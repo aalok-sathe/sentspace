@@ -133,6 +133,7 @@ dmypy.json
 */.DS_Store
 **/.DS_Store
 *.DS_Store
+.vscode
 
 # Directories
 database/* 
@@ -153,3 +154,4 @@ sentspace/example
 *.csv
 *.xlsx
 *.pdf
+*singularity*
