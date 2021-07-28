@@ -20,7 +20,10 @@ For more information, request read access to the [project doc](https://docs.goog
 
 ## Usage
 
-
+For a complete list of options and default values, see the `help` page like so:
+```bash
+python3 -m sentspace -h
+```
 
 
 
