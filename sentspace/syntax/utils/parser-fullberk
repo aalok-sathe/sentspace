@@ -1,0 +1,2 @@
+#!/bin/sh
+java -Xmx8g -cp berkeleyparser/berkeleyParser.jar edu.berkeley.nlp.PCFGLA.BerkeleyParser -substates -gr $1
