@@ -16,6 +16,11 @@ along the many metrics it implements (and will implementat in the future).
 
 For more information, request read access to the [project doc](https://docs.google.com/document/d/1O1M7T5Ji6KKRvDfI7KQXe_LJ7l9O6_OZA7TEaVP4f8E/edit#).
 
+### Submodules
+
+#### `syntax`
+#### `lexical`
+
 
 
 ## Usage
@@ -24,6 +29,7 @@ For a complete list of options and default values, see the `help` page like so:
 ```bash
 python3 -m sentspace -h
 ```
+
 
 
 
