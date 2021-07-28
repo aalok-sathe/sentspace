@@ -143,6 +143,13 @@ database/*
 */Glove
 Glove/*
 */Glove/*
+# teporarily:
+sentspace/stimuli
+sentspace/example
 
 *.zs
-**.zs
+**/*.zs
+*.pkl
+*.csv
+*.xlsx
+*.pdf
