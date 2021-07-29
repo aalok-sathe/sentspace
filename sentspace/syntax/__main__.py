@@ -17,7 +17,8 @@ if __name__ == '__main__':
     # Parse input
     parser = argparse.ArgumentParser('sentspace.syntax')
 
-    parser.add_argument('input', nargs='?', type=str, #argparse.FileType('r'), default=sys.stdin,
+    parser.add_argument('input', type=str, #argparse.FileType('r'), 
+                        # default=sys.stdin,
                         help='File (currently NotImplemented) or single sentence to process')
 
     # Add an option for a user to include their own stop words

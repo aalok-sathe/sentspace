@@ -1,6 +1,8 @@
 import sys, re, argparse
 sys.setrecursionlimit(1500)
 
+import pdb
+
 ## Command-line processing
 argparser = argparse.ArgumentParser('''
 Calculates various center-embedding fields on %.nopunc.tss.fromlinetree.semprocdecpars and outputs tokmeasures using tokenization provided by %.linetoks (stdin).
@@ -215,7 +217,7 @@ class StoreNode(object):
 
 ## Method definitions
 def next_tok(buffer):
-    line = decpars.readline().decode('utf-8')
+    line = decpars.readline()
     while line and not line.startswith('N '):
         line = decpars.readline()
     return(line)
