@@ -46,7 +46,13 @@ Below, we provide more information and the capabilities/usage of each submodule 
 #### `syntax`
 
 #### `lexical`
+Not yet implemented
 
+#### `embedding`
+Not yet implemented
+
+#### `semantic`
+Not yet implemented
 
 <!-- CONTRIBUTING -->
 ## Contributing
