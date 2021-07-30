@@ -16,21 +16,36 @@ along the many metrics it implements (and will implementat in the future).
 
 For more information, request read access to the [project doc](https://docs.google.com/document/d/1O1M7T5Ji6KKRvDfI7KQXe_LJ7l9O6_OZA7TEaVP4f8E/edit#).
 
-### Submodules
-
-#### `syntax`
-#### `lexical`
-
 
 
 ## Usage
+
+The recommended way to run this project with all its dependencies is using a prebuilt Docker image, `aloxatel/ubuntu:sent-space`.
+To use the image as a container using `singularity`, do:
+
+#### **first, some important housekeeping stuff**
+- `which singularity` (make sure you have singularity, or load/install it otherwise)
+- make sure you have set the ennvironment variables that specify where `singularity` will cache its images. if you don't do this, `singularity` will make assumptions and you may end up with a full disk and an unresponsive server. you need about 6gb of free space at the target location.
+
+#### **next, running the container**
+- `singularity shell docker://aloxatel/ubuntu:sent-space` (or alternatively, from the root of the repo, `bash singularity-shell.sh`). this step can take a while when you run it for the first time as it needs to download the image from docker hub and convert it to singularity image format (`.sif`). however, each subsequent run will execute rapidly.
+- [now you are within the container] `source .singularitybashrc`, again from the root of the repo, to activate the environment variables and so on.
+- now you are ready to run the module!
 
 For a complete list of options and default values, see the `help` page like so:
 ```bash
 python3 -m sentspace -h
 ```
 
+### Submodules
 
+In general, each submodule exists as a standalone implementation. You can run each module on its own by specifying it like so:
+`python -m sentspace.syntax -h`, which will print out the usage for that submodule.
+Below, we provide more information and the capabilities/usage of each submodule in some greater depth.
+
+#### `syntax`
+
+#### `lexical`
 
 
 <!-- CONTRIBUTING -->
