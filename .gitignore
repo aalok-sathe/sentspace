@@ -147,6 +147,7 @@ Glove/*
 # teporarily:
 sentspace/stimuli
 sentspace/example
+sentspace/.cached_function_calls
 
 *.zs
 **/*.zs
