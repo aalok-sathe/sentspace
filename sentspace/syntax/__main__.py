@@ -1,14 +1,11 @@
 import argparse
-import sys
 
 from distutils.util import strtobool
-from sentspace.syntax import get_features
-
+from sentspace.syntax import get_tree_features
 
 def main(args):
     
-    # text = args.input_file.read()
-    features = get_features(args.input, dlt=args.dlt, left_corner=args.left_corner)
+    features = get_tree_features(args.input, dlt=args.dlt, left_corner=args.left_corner)
     print(features)
 
 
@@ -19,7 +16,7 @@ if __name__ == '__main__':
 
     parser.add_argument('input', type=str, #argparse.FileType('r'), 
                         # default=sys.stdin,
-                        help='File (currently NotImplemented) or single sentence to process')
+                        help='a single sentence to process')
 
     # Add an option for a user to include their own stop words
     parser.add_argument('-sw', '--stop_words', default=None,
