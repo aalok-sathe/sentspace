@@ -1,8 +1,14 @@
-import subprocess
 import os
-from sentspace.syntax.features import Feature, Tree, DLT, LeftCorner
+import subprocess
+from functools import lru_cache
 from pathlib import Path
-import pdb
+
+from joblib import Memory
+from sentspace.syntax.content_ratios import get_content_ratio
+from sentspace.syntax.features import DLT, Feature, LeftCorner, Tree
+
+from sentspace.utils.caching import cache_to_disk
+
 
 os.environ['PERL_BADLANG'] = '0'
 
@@ -32,12 +38,11 @@ def path_decorator(func):
     return wrapped
 
 
-def get_features(text:str=None, dlt:bool=False, left_corner:bool=False):
+def get_tree_features(text:str=None, dlt:bool=False, left_corner:bool=False):
     """executes the syntactic features pipeline
 
     Args:
-        text (str, optional): a string containing one or more sentences
-                              to be computed features of. [None].
+        text (str, optional): a string containing one sentence [None].
         dlt (bool, optional): calculate DLT feature? [False].
         left_corner (bool, optional): calculate Left Corner feature? [False].
 
@@ -50,6 +55,7 @@ def get_features(text:str=None, dlt:bool=False, left_corner:bool=False):
     else:
         return None
 
+    print(parse_input(text), features.tree)
     if dlt:
         features.dlt = DLT(compute_feature('dlt.sh', features.tree.raw))
     if left_corner:
@@ -74,6 +80,7 @@ def validate_input():
 
 
 @path_decorator
+@cache_to_disk
 def tokenize(raw):
     cmd = ['bash', 'tokenize.sh', raw]
     tokens = subprocess.check_output(cmd)
@@ -81,6 +88,7 @@ def tokenize(raw):
 
 
 @path_decorator
+@cache_to_disk
 def compute_trees(tokens):
     cmd = ['bash', 'parse_trees.sh', tokens]
     trees = subprocess.check_output(cmd)
@@ -88,6 +96,7 @@ def compute_trees(tokens):
 
 
 @path_decorator
+@cache_to_disk
 def compute_feature(feature, trees):
     cmd = ['bash', feature, trees]
     out = subprocess.check_output(cmd)
