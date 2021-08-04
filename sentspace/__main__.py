@@ -152,7 +152,6 @@ def run_sentence_features_pipeline(input_file:pathlib.Path, stop_words_file:str=
 		exit()
 	
 	if syntax:
-		exit()
 		# Get content ratio
 		content_ratios = sentspace.syntax.get_content_ratio(flat_sentence_num, flat_is_content_word)
 
@@ -164,22 +163,6 @@ def run_sentence_features_pipeline(input_file:pathlib.Path, stop_words_file:str=
 		syntax_df.to_csv(sent_output_path, index=False)
 
 
-	# Clear vars for RAM
-	if 'databases' in locals():
-		del databases
-	if 'df' in locals():
-		del df
-	if 'sent_embed' in locals():
-		del sent_embed
-	if 'syntax_df' in locals():
-		del syntax_df
-	if 'lex_per_word_with_uniform_column' in locals():
-		del lex_per_word_with_uniform_column
-	if 'merged_vals' in locals():
-		del merged_vals
-	if 'content_ratios' in locals():	
-		del content_ratios
-	
 	# Calculate PMI
 	# utils.GrabNGrams(sent_rows,pmi_paths)
 	# utils.pPMI(sent_rows, pmi_paths)
@@ -190,14 +173,6 @@ def run_sentence_features_pipeline(input_file:pathlib.Path, stop_words_file:str=
 		result = utils.compile_results_for_glove_only(wordlst, wordlst_l, wordlst_lem, 
 										taglst, is_content_lst, setlst, 
 										sent_num_list, wordlen)
-		del wordlst
-		del wordlst_l
-		del wordlst_lem
-		del taglst
-		del is_content_lst
-		del setlst
-		del sent_num_list
-		del wordlen
 		
 		result['Word no. within sentence'] = word_num_list
 		sent_version = utils.get_sent_version('cleaned', result)
