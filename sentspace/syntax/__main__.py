@@ -1,11 +1,11 @@
 import argparse
 
 from distutils.util import strtobool
-from sentspace.syntax import get_tree_features
+from sentspace.syntax import get_features
 
 def main(args):
     
-    features = get_tree_features(args.input, dlt=args.dlt, left_corner=args.left_corner)
+    features = get_features(args.input, dlt=args.dlt, left_corner=args.left_corner)
     print(features)
 
 

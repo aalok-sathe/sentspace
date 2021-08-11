@@ -4,7 +4,6 @@ from functools import lru_cache
 from pathlib import Path
 
 from joblib import Memory
-from sentspace.syntax.content_ratios import get_content_ratio
 from sentspace.syntax.features import DLT, Feature, LeftCorner, Tree
 
 from sentspace.utils.caching import cache_to_disk
@@ -38,7 +37,7 @@ def path_decorator(func):
     return wrapped
 
 
-def get_tree_features(text:str=None, dlt:bool=False, left_corner:bool=False):
+def get_features(text:str=None, dlt:bool=False, left_corner:bool=False):
     """executes the syntactic features pipeline
 
     Args:
