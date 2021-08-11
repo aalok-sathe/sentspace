@@ -1,21 +1,21 @@
 import os
 from pathlib import Path
 from typing import List
+from sentspace.utils.caching import cache_to_disk, cache_to_mem
+from sentspace.lexical import utils
+from sentspace.lexical.content_ratios import get_content_ratio
 
 
-def get_lexical_features(sentence:List[str]):
+def get_features(sentence:List[str]):
 
-    return 
-    
     merged_vals = utils.get_all_features_merged(
-        flat_cleaned_token_list, flat_lemmatized_token_list, databases)  # lexical features
+        sentence, lemmatized_sentence, databases)  # lexical features
     # Clear variables so we have RAM
-    del databases
 
     # Results
     result = utils.compile_results(flat_token_list, flat_cleaned_token_list, flat_lemmatized_token_list,
-                                flat_pos_tags, flat_is_content_word, setlst,
-                                flat_sentence_num, flat_token_lens, merged_vals)
+                                   flat_pos_tags, flat_is_content_word, setlst,
+                                   flat_sentence_num, flat_token_lens, merged_vals)
 
     result = utils.transform_features(result, *features_transform)
 
