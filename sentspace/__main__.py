@@ -4,15 +4,13 @@
 # print('Loading modules... (chunk 1/4)', end='\r')
 
 import argparse
-import os
 import pathlib
 import sys
-from datetime import date
 from distutils.util import strtobool
 
 # print('Loading modules... (chunk 2/4)', end='\r')
 import nltk
-import numpy as np
+# import numpy as np
 import pandas as pd
 import seaborn as sns
 
@@ -20,20 +18,15 @@ import seaborn as sns
 import sentspace.syntax
 import sentspace.utils as utils
 from sentspace.utils import wordnet
+
 # from sentspace.utils.caching import cache_to_disk, cache_to_mem
 # from sentspace.utils.text import get_flat_pos_tags
 # from sentspace.utils.utils import wordnet
 
-# print('Loading modules... (chunk 4/4)', end='\r')
-import matplotlib.pyplot as plt; plt.rcdefaults()
+# import matplotlib.pyplot as plt; plt.rcdefaults()
 
 
-# download NLTK data if not already downloaded
-for nltk_resource in ['taggers/averaged_perceptron_tagger', 'corpora/wordnet']:
-	try:
-		nltk.data.find(nltk_resource)
-	except LookupError as e:
-		nltk.download(nltk_resource)
+
 
 ### supposedly unused imports ###
 
@@ -58,9 +51,10 @@ for nltk_resource in ['taggers/averaged_perceptron_tagger', 'corpora/wordnet']:
 # from s3 import load_feature
 
 
-def run_sentence_features_pipeline(input_file:pathlib.Path, stop_words_file:str=None, 
-                                   benchmark_file: str = None, out_dir: str = None,
-                                   lexical=False, syntax=False, embedding=False, semantic=False):
+def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
+                                   benchmark_file: str = None, output_dir: str = None,
+                                   lexical: bool = False, syntax: bool = False, 
+								   embedding: bool = False, semantic: bool = False):
 	"""runs the full sentence features pipeline on the given input according to
 		requested submodules (lexical, syntax, ...).
 		returns output in the form of TODO
@@ -79,35 +73,12 @@ def run_sentence_features_pipeline(input_file:pathlib.Path, stop_words_file:str=
 	databases = utils.io.load_databases(features='all')
 
 
-	# Sentence vectors settings
-	embed_method = 'all' # options: 'strict', 'all'
-	content_only = False
-
-	# Define output paths
-	default = True
-	suffix = ''
-	out_file_name = os.path.basename(input_file).split('.')[0]
-	if default:
-	    date_ = date.today().strftime('%m%d%Y')
-	    output_folder = f'output_folder/{date_}'
-	    sent_suffix = f"_{embed_method}"
-	    if content_only:
-	        sent_suffix = '_content' + sent_suffix
-	    if stop_words_file is not None:
-	        sent_suffix = '_content'+'_minus_stop_words' + sent_suffix
-	    # Make out outlex path    
-	    word_lex_output_path, embed_lex_output_path, plot_path, na_words_path, bench_perc_out_path = utils.io.create_output_path(output_folder, out_file_name, 'lex', sent_suffix=sent_suffix)
-	    # Make output syntax path
-	    _, sent_output_path = utils.io.create_output_path(output_folder, out_file_name, 'syntax', sent_suffix=sent_suffix)
-	    glove_words_output_path, glove_sents_output_path = utils.io.create_output_path(output_folder, out_file_name, 'glove', sent_suffix=sent_suffix)
-	    pmi_paths = utils.io.create_output_path(output_folder, out_file_name, 'PMI', sent_suffix=sent_suffix)
-	    #pdb.set_trace()
-	    lex_base = f'analysis_example/{date_}\\lex\\'
-	else: # custom path
-	    output_path = ''
-	    plot_path = ''
-	    na_words_path = ''
-	    embed_output_path = ''
+	# create output folder
+	(sent_output_path, 
+	 glove_words_output_path, 
+	 glove_sents_output_path) = sentspace.io.create_output_files(input_file,
+	 															 output_dir=output_dir,
+                                                                 stop_words_file=stop_words_file)
 
 	token_lists, sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
 	flat_token_list = utils.text.get_flat_tokens(token_lists)
@@ -195,6 +166,7 @@ def run_sentence_features_pipeline(input_file:pathlib.Path, stop_words_file:str=
 		glove_sents.to_csv(glove_sents_output_path, index=False)
 
 
+
 	# Plot input data to benchmark data
 	#utils.plot_usr_input_against_benchmark_dist_plots(df_benchmark, sent_embed)
 
@@ -207,7 +179,7 @@ def main(args):
 											  benchmark_file=args.benchmark, lexical=args.lexical, 
 											  syntax=args.syntax, embedding=args.embedding,
 											  semantic=args.semantic,
-											  out_dir=args.out_dir)
+											  output_dir=args.output_dir)
 	#estimate_sentence_embeddings(args.input_file)
 
 
@@ -249,7 +221,7 @@ if __name__ == "__main__":
 	# parser.add_argument('--cache_dir', default='.cache', type=str,
     #                  	help='path to directory where results may be cached')
 
-	parser.add_argument('-o', '--out_dir', default='./sentspace_output', type=str,
+	parser.add_argument('-o', '--output_dir', default='./sentspace.out', type=str,
                      	help='path to output directory where results may be stored')
 
 	# Add an option for a user to choose to not do some analyses. Default is true
