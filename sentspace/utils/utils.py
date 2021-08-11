@@ -2,19 +2,21 @@
 # import gzip
 # import os
 # import pathlib
+import hashlib
 import pdb
 import pickle
 # import string
 from itertools import chain
-from math import log
+from math import isnan, log
 
+# import seaborn as sns
+# from adjustText import adjust_text
+import nltk
 # import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.io as sio
 import scipy.spatial.distance as ssd
-# import seaborn as sns
-# from adjustText import adjust_text
 from nltk import pos_tag
 from nltk.corpus import wordnet
 from nltk.stem import WordNetLemmatizer
@@ -81,6 +83,20 @@ from zs import ZS
 #     return snplst
 
 
+# download NLTK data if not already downloaded
+
+def download_nltk_resources():
+    for nltk_resource in ['taggers/averaged_perceptron_tagger', 'corpora/wordnet']:
+    	try:
+	    	nltk.data.find(nltk_resource)
+    	except LookupError as e:
+    		nltk.download(nltk_resource)
+
+
+def sha1(ob):
+    ob_repr = repr(ob)
+    hash_object = hashlib.sha1(ob_repr.encode('utf-8'))
+    return hash_object.hexdigest()
 
 # this might be data-dependent
 def load_passage_labels(filename):
@@ -125,111 +141,34 @@ def load_passage_category(filename):
 
 
 
-# --------- Lexical features
-
-# list of acceptable feature terms to load_databases(...)
-def get_feature_list():
-    return ['NRC_Arousal', 'NRC_Valence', 'OSC', 'aoa', 'concreteness', 'lexical_decision_RT',
-            'log_contextual_diversity', 'log_lexical_frequency', 'n_orthographic_neighbors', 'num_morpheme',
-            'prevalence', 'surprisal-3', 'total_degree_centrality']
-
-def get_feature_list_using_third_party_libraries():
-    return ['polysemy','num_morpheme_poly']
-
-def get_feature_list_requiring_calculation():
-    return ['PMI']
-
-def get_poly_morpheme(sent_num, word_list):
-    '''
-        Given sent_number and word_list, calculate the morphemes of each word in each sentence
-    '''
-    raise NotImplementedError
-
-
-
-def getFeature(wordlist, feature, databases):
-    """
-    Given list of words, return list of corresponding feature values
-    """
-    d = {}
-    feature_lst = []
-
-    # Some databases we create and use
-    if feature in get_feature_list():
-        d = databases[feature]
-        for word in wordlist:
-            if word in d:
-                feature_lst.append(d[word])
-            else:
-                feature_lst.append(np.nan)
-
-    # Other databases we use from libraries we load such as NLTK and Polyglot
-    elif feature in get_feature_list_using_third_party_libraries():
-        if feature == 'polysemy':
-            for x in wordlist:
-                if wordnet.synsets(x):
-                    feature_lst.append( len(wordnet.synsets(x)) )
-                else:
-                    feature_lst.append(1)
-        if feature == 'num_morpheme_poly':
-            for x in wordlist:
-                morphed = Word(x, language='en').morphemes
-                if morphed:
-                    feature_lst.append(len(morphed))
-                else:
-                    feature_lst.append(np.nan)
-
-    return feature_lst
-
-def mergeList(nonLemVals,lemVals, feature=""):
-    '''Input: Two lists.
+def merge_lists(list_a, list_b, feature=""):
+    '''Input: Two lists with potentially missing values.
        Return: If list 1 contains NA vals, the NA val is replaced by the value in list 2 (either numerical val or np.nan again)
     '''
-    count_lem = 0
-    count_na = 0
-    count_nonlem = 0
-    mergeLst = []
-    for val1, val2 in zip(nonLemVals, lemVals):
-        if not np.isnan(val1):
-            mergeLst.append(val1)
-            count_nonlem += 1
-        else:
-            mergeLst.append(val2)
-            if not np.isnan(val2):
-                count_lem += 1
-            else:
-                count_na += 1
-    n = len(mergeLst)
-    print(feature, f"| number of values derived from original form: {count_nonlem}, {count_nonlem/n*100:.2f}%")
-    print(feature, f"| number of values derived from lemmatized form: {count_lem}, {count_lem/n*100:.2f}%")
+    count_a, count_b, count_na = 0, 0, 0
+    merged = []
+
+    for val1, val2 in zip(list_a, list_b):
+        merged += [val2 if np.isnan(val1) else val1]
+
+        # if not np.isnan(val1):
+        #     merged.append(val1)
+        #     count_b += 1
+        # else:
+        #     merged.append(val2)
+        #     if not np.isnan(val2):
+        #         count_a += 1
+        #     else:
+        #         count_na += 1
+    
+    return merged
+
+    n = len(merged)
+    print(feature, f"| number of values derived from original form: {count_b}, {count_b/n*100:.2f}%")
+    print(feature, f"| number of values derived from lemmatized form: {count_a}, {count_a/n*100:.2f}%")
     print(feature, f"| number of values = NA: {count_na}, {count_na/n*100:.2f}%")
     print('-'*79)
-    return mergeLst
 
-def get_all_features(wordlist, databases):
-    """
-    Given list of words, return dict mapping feature to list of feature values
-    """
-    result = {}
-    for feature in get_feature_list():
-        result[feature] = getFeature(wordlist, feature, databases)
-    for feature in get_feature_list_using_third_party_libraries():
-        result[feature] = getFeature(wordlist, feature, databases)
-    return result
-
-def get_all_features_merged(wordlst, wordlst_lem, databases):
-    """
-    Given list of words & list of lemmatized words,
-    return dict mapping feature to list of feature values after merging
-    (if a word in its original form exists in the database, use its associated value;
-    if not, use value associated with the lemmatized version)
-    """
-    all_vals = get_all_features(wordlst, databases)
-    all_vals_lem = get_all_features(wordlst_lem, databases)
-    merged = {}
-    for feature in all_vals:
-        merged[feature] = mergeList(all_vals[feature], all_vals_lem[feature], feature=feature)
-    return merged
 
 # def compile_results(wordlst, wordlst_l, wordlst_lem, taglst, is_content_lst, setlst,
 #                     snlst, lplst_word, snplst, wnslst, catlst, wordlen, merged_vals):
@@ -555,7 +494,7 @@ def get_glove_sent(df, content_only=False, is_content_lst=None,
 
     na_frac = len(df.dropna())/len(df)
     print(f'Fraction of words used for sentence embeddings: {na_frac*100:.2f}%')
-    print(divider)
+    print('-'*79)
 
     if save:
         suffix = save_path.rsplit('.', -1)[1]

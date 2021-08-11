@@ -1,7 +1,9 @@
 
 import os
-import pathlib
+from pathlib import Path
 import pickle
+from datetime import date
+from hashlib import sha1
 
 import numpy as np
 import sentspace.utils
@@ -10,7 +12,46 @@ from sentspace.utils.s3 import load_feature
 from sentspace.utils.sanity_checks import sanity_check_databases
 
 
-def create_output_path(output_folder, name, analysis, suffix='', sent_suffix=''):
+def create_output_paths(input_file:str, output_dir:str, calling_module=None, stop_words_file:str=None):
+    embed_method = 'all'  # options: 'strict', 'all'
+    content_only = False
+
+    output_dir = Path(output_dir)
+
+    suffix = ''
+
+    # output will be organized based on its respective input file,
+    # together with a hash of the contents (for completeness)
+    out_file_name = os.path.basename(input_file).split('.')[0]
+    with open(input_file, 'r') as f:
+        output_dir /= (out_file_name + '_' + sentspace.utils.sha1(f.read()))
+    output_dir /= calling_module or ''
+    output_dir /= date.today().strftime('%Y-%m-%d')
+    output_dir.mkdir(parent=True, exist_ok=True)
+
+    sent_suffix = f"_{embed_method}"
+
+    if content_only:
+        sent_suffix = '_content' + sent_suffix
+    if stop_words_file:
+        sent_suffix = '_content'+'_minus_stop_words' + sent_suffix
+    # Make out outlex path
+    word_lex_output_path, embed_lex_output_path, plot_path, na_words_path, bench_perc_out_path = _create_output_paths(
+        output_folder, out_file_name, 'lex', sent_suffix=sent_suffix)
+    # Make output syntax path
+    _, sent_output_path = _create_output_paths(
+        output_folder, out_file_name, 'syntax', sent_suffix=sent_suffix)
+    glove_words_output_path, glove_sents_output_path = _create_output_paths(
+        output_folder, out_file_name, 'glove', sent_suffix=sent_suffix)
+    pmi_paths = _create_output_paths(
+        output_folder, out_file_name, 'PMI', sent_suffix=sent_suffix)
+
+    lex_base = f'analysis_example/{date_}\\lex\\'
+
+    return sent_output_path, glove_words_output_path, glove_sents_output_path
+
+
+def _create_output_paths(output_dir:Path, name, analysis, suffix='', sent_suffix=''):
     """
     Return list of file paths and create output folder if appropriate
     Supports analysis = 'lex', 'glove','syntax','PMI'
@@ -40,7 +81,7 @@ def create_output_path(output_folder, name, analysis, suffix='', sent_suffix='')
         raise ValueError('Invalid analysis method!')
     output_folder = os.path.join(output_folder, analysis)
     if not os.path.isdir(output_folder):  # create output_folder if it doesn't exist
-        pathlib.Path(output_folder).mkdir(parents=True, exist_ok=True)
+        Path(output_folder).mkdir(parents=True, exist_ok=True)
 
     result = [os.path.join(output_folder, path) for path in return_paths]
     return result
@@ -102,8 +143,6 @@ def load_databases(features='all', path='.feature_database/', ignore_case=True):
 
     sanity_check_databases(databases)
     return databases
-
-
 
 
 def load_surprisal(file='pickle/surprisal-3_dict.pkl'):

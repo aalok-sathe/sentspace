@@ -16,6 +16,7 @@ def get_flat_pos_tags(token_lists):
     """
     Given list of sentences (each a list of tokens), return single list of POS tags
     """
+
     all_pos_tags = []
     for sentence_tokens in token_lists:
         tags = pos_tag(sentence_tokens)
@@ -113,7 +114,7 @@ def get_nonletters_from_word(word, exceptions):
     return charlst, nonletters
 
 
-def strip_words(wordlst, method='nonletter', nonletters=None, punctuation=string.punctuation):
+def strip_words(flat_token_list, method='nonletter', nonletters=None, punctuation=string.punctuation):
     """
     Given list of tokens, return list of cleaned/stripped words. Lower-cased.
     method = 'nonletter': remove all nonletters specified in the nonletters argument
@@ -124,11 +125,11 @@ def strip_words(wordlst, method='nonletter', nonletters=None, punctuation=string
     # elif method == 'punctuation':
     #     print('Formatting words - Characters ignored:', punctuation)
     # print('-'*79)
-    wordlst_l = []
-    for word in wordlst:
+    flat_cleaned_token_list = []
+    for word in flat_token_list:
         stripped = strip_word(word, method, nonletters, punctuation)
-        wordlst_l.append(stripped.lower())
-    return wordlst_l
+        flat_cleaned_token_list.append(stripped.lower())
+    return flat_cleaned_token_list
 
 
 @cache_to_disk
