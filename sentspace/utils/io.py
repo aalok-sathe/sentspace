@@ -1,9 +1,10 @@
 
 import os
-from pathlib import Path
 import pickle
+import textwrap
 from datetime import date
 from hashlib import sha1
+from pathlib import Path
 
 import numpy as np
 import sentspace.utils
@@ -23,11 +24,11 @@ def create_output_paths(input_file:str, output_dir:str, calling_module=None, sto
     # output will be organized based on its respective input file,
     # together with a hash of the contents (for completeness)
     out_file_name = os.path.basename(input_file).split('.')[0]
-    with open(input_file, 'r') as f:
-        output_dir /= (out_file_name + '_' + sentspace.utils.sha1(f.read()))
+    # with open(input_file, 'r') as f:
+    output_dir /= (out_file_name + '_md5:' + sentspace.utils.md5(input_file))
     output_dir /= calling_module or ''
-    output_dir /= date.today().strftime('%Y-%m-%d')
-    output_dir.mkdir(parent=True, exist_ok=True)
+    output_dir /= date.today().strftime('run_%Y-%m-%d')
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     sent_suffix = f"_{embed_method}"
 
@@ -37,16 +38,16 @@ def create_output_paths(input_file:str, output_dir:str, calling_module=None, sto
         sent_suffix = '_content'+'_minus_stop_words' + sent_suffix
     # Make out outlex path
     word_lex_output_path, embed_lex_output_path, plot_path, na_words_path, bench_perc_out_path = _create_output_paths(
-        output_folder, out_file_name, 'lex', sent_suffix=sent_suffix)
+        output_dir, out_file_name, 'lexical', sent_suffix=sent_suffix)
     # Make output syntax path
     _, sent_output_path = _create_output_paths(
-        output_folder, out_file_name, 'syntax', sent_suffix=sent_suffix)
+        output_dir, out_file_name, 'syntax', sent_suffix=sent_suffix)
     glove_words_output_path, glove_sents_output_path = _create_output_paths(
-        output_folder, out_file_name, 'glove', sent_suffix=sent_suffix)
+        output_dir, out_file_name, 'embedding', sent_suffix=sent_suffix)
     pmi_paths = _create_output_paths(
-        output_folder, out_file_name, 'PMI', sent_suffix=sent_suffix)
+        output_dir, out_file_name, 'PMI', sent_suffix=sent_suffix)
 
-    lex_base = f'analysis_example/{date_}\\lex\\'
+    # lex_base = f'analysis_example/{date_}\\lex\\'
 
     return sent_output_path, glove_words_output_path, glove_sents_output_path
 
@@ -56,13 +57,13 @@ def _create_output_paths(output_dir:Path, name, analysis, suffix='', sent_suffix
     Return list of file paths and create output folder if appropriate
     Supports analysis = 'lex', 'glove','syntax','PMI'
     """
-    if analysis == 'lex':
+    if analysis == 'lexical':
         return_paths = [f"{name}_lex_features_words{suffix}.csv",
                         f"{name}_lex_features_sents{suffix}{sent_suffix}.csv",
                         f"{name}_plots{suffix}{sent_suffix}_",
                         f"{name}_unique_NA{suffix}{sent_suffix}.csv",
                         f"{name}_benchmark_percentiles{suffix}{sent_suffix}.csv"]
-    elif analysis == 'glove':
+    elif analysis == 'embedding':
         return_paths = [f"{name}_glove_words{suffix}.csv",
                         f"{name}_glove_sents{suffix}{sent_suffix}.csv"]
     elif analysis == 'PMI':
@@ -79,11 +80,11 @@ def _create_output_paths(output_dir:Path, name, analysis, suffix='', sent_suffix
                         f"{name}_{suffix}{sent_suffix}.csv"]
     else:
         raise ValueError('Invalid analysis method!')
-    output_folder = os.path.join(output_folder, analysis)
-    if not os.path.isdir(output_folder):  # create output_folder if it doesn't exist
-        Path(output_folder).mkdir(parents=True, exist_ok=True)
+    output_dir = os.path.join(output_dir, analysis)
+    if not os.path.isdir(output_dir):  # create output_folder if it doesn't exist
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    result = [os.path.join(output_folder, path) for path in return_paths]
+    result = [os.path.join(output_dir, path) for path in return_paths]
     return result
 
 
@@ -130,7 +131,7 @@ def load_databases(features='all', path='.feature_database/', ignore_case=True):
     """
     databases = {}
     if features == 'all':
-        features = sentspace.utils.get_feature_list()
+        features = sentspace.lexical.utils.get_feature_list()
     for feature in features:
         if not os.path.exists(path+feature+'.pkl'):
             load_feature(key=feature+'.pkl')
@@ -151,3 +152,9 @@ def load_surprisal(file='pickle/surprisal-3_dict.pkl'):
     """
     with open(file, 'rb') as f:
         return pickle.load(f)
+
+
+def log(message, type='INFO'):
+    timestamp = f'{sentspace.utils.time() - sentspace.utils.START_TIME():.2f}s'
+    lines = textwrap.wrap(message, width=79, initial_indent='='*4 + f' [{type} @ {timestamp}] ', subsequent_indent='='*8+' ')
+    print(*lines, sep='\n')
