@@ -8,6 +8,7 @@ import pickle
 # import string
 from itertools import chain
 from math import isnan, log
+from time import time
 
 # import seaborn as sns
 # from adjustText import adjust_text
@@ -25,6 +26,9 @@ from scipy.stats import percentileofscore, zscore
 from sentspace import utils
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
 from zs import ZS
+
+_START_TIME = time()
+def START_TIME(): return _START_TIME
 
 # lemmas=WordNetLemmatizer()
 
@@ -83,8 +87,8 @@ from zs import ZS
 #     return snplst
 
 
-# download NLTK data if not already downloaded
 
+# download NLTK data if not already downloaded
 def download_nltk_resources():
     for nltk_resource in ['taggers/averaged_perceptron_tagger', 'corpora/wordnet']:
     	try:
@@ -93,9 +97,20 @@ def download_nltk_resources():
     		nltk.download(nltk_resource)
 
 
+def md5(fname) -> str:
+    '''generates md5sum of the contents of fname
+        fname (str): path to file whose md5sum we want
+    '''
+    hash_md5 = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+
 def sha1(ob):
     ob_repr = repr(ob)
-    hash_object = hashlib.sha1(ob_repr.encode('utf-8'))
+    hash_object = hashlib.sha1()
+    hash_object.update(ob_repr.encode('utf-8'))
     return hash_object.hexdigest()
 
 # this might be data-dependent
