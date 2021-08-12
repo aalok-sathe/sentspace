@@ -13,7 +13,7 @@ class _S3Storage():
 
     _NO_SIGNATURE = Config(signature_version=UNSIGNED)
 
-    def __init__(self, *args, key, bucket='sentence-features-io', region='us-east-1', **kwargs):
+    def __init__(self, *args, key, bucket='sentspace-databases', region='us-east-1', **kwargs):
         super(_S3Storage, self).__init__(*args, **kwargs)
         self._key = key
         self._bucket = bucket
