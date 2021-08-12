@@ -1,6 +1,6 @@
-
+import numpy as np
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
-from sentspace.utils.utils import merge_lists
+from sentspace.utils import merge_lists, wordnet, Word
 
 
 def get_all_features(wordlist, databases):
@@ -52,7 +52,7 @@ def get_poly_morpheme(sent_num, word_list):
     raise NotImplementedError
 
 
-@cache_to_disk
+@cache_to_disk(ignore=['databases'])
 def get_feature_(word, feature, databases={}):
     """given a word and a feature to exatract, returns the value of that
         feature for the word using available databases
@@ -79,7 +79,7 @@ def get_feature_(word, feature, databases={}):
                 return len(wordnet.synsets(word))
             return 1
         if feature == 'num_morpheme_poly':
-            morphed = Word(x, language='en').morphemes
+            morphed = Word(word, language='en').morphemes
             if morphed:
                 return (len(morphed))
             return np.nan

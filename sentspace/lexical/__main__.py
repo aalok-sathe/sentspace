@@ -1,11 +1,11 @@
 import argparse
 from sentspace.lexical import get_features
-
+from distutils.util import strtobool
 
 def main(args):
     
-    print('Estimating lexical features')
-
+    features = get_features(args.input)
+    print(features)
 
 
 if __name__ == '__main__':
