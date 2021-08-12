@@ -11,6 +11,14 @@ from sentspace.utils.caching import cache_to_disk, cache_to_mem
 pos_for_lemmatization = [wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV] # define POS used for lemmatization
 pos_for_content = [wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV]  # define POS that count as content words
 
+@cache_to_mem
+def get_pos_tags(sentence):
+    """
+    Given sentence (a list of tokens), return single list of POS tags
+    """
+
+    return [tag for token, tag in pos_tag(sentence)]
+
 
 def get_flat_pos_tags(token_lists):
     """
@@ -19,7 +27,7 @@ def get_flat_pos_tags(token_lists):
 
     all_pos_tags = []
     for sentence_tokens in token_lists:
-        tags = pos_tag(sentence_tokens)
+        tags = get_pos_tags(sentence_tokens)
         for tag in tags:
             all_pos_tags.append(tag[1])
     return all_pos_tags
