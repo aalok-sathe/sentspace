@@ -3,14 +3,14 @@
 
 # print('Loading modules... (chunk 1/4)', end='\r')
 
+from distutils.util import strtobool
 import argparse
 import pathlib
 import sys
-from distutils.util import strtobool
+# import numpy as np
 
 # print('Loading modules... (chunk 2/4)', end='\r')
 import nltk
-# import numpy as np
 import pandas as pd
 import seaborn as sns
 
@@ -23,32 +23,6 @@ from sentspace.utils import wordnet
 # from sentspace.utils.text import get_flat_pos_tags
 # from sentspace.utils.utils import wordnet
 
-# import matplotlib.pyplot as plt; plt.rcdefaults()
-
-
-
-
-### supposedly unused imports ###
-
-# import pickle
-# import scipy.io as sio
-# from itertools import chain
-# import itertools
-# import string
-# from collections import Counter, defaultdict
-
-# from nltk.tokenize import word_tokenize
-# from nltk import pos_tag
-# from nltk import word_tokenize
-# from nltk import parse
-
-# import copy
-# import simmat_util as sim
-# from importlib import reload 
-# from sklearn.decomposition import PCA
-# from sklearn.manifold import MDS
-# from scipy.stats import zscore
-# from s3 import load_feature
 
 
 def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
@@ -70,29 +44,31 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 		{lexical,syntax,embedding,semantic,...} (bool): compute submodule features? [False]
 	"""
 
-	databases = utils.io.load_databases(features='all')
-
-
 	# create output folder
+	utils.io.log('creating output folder')
 	(sent_output_path, 
 	 glove_words_output_path, 
-	 glove_sents_output_path) = sentspace.io.create_output_files(input_file,
+	 glove_sents_output_path) = utils.io.create_output_paths(input_file,
 	 															 output_dir=output_dir,
                                                                  stop_words_file=stop_words_file)
 
-	token_lists, sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
-	flat_token_list = utils.text.get_flat_tokens(token_lists)
-	flat_sentence_num = utils.text.get_flat_sentence_num(token_lists)
-	flat_pos_tags = utils.text.get_flat_pos_tags(token_lists)
-	flat_token_lens = utils.text.get_token_lens(flat_token_list)  # word length
+	utils.io.log('reading input sentences')
+	token_lists, sentences = utils.io.read_sentences(
+		input_file, stop_words_file=stop_words_file)
+	utils.io.log('---done--- reading input sentences')
 
-	pronoun_ratios = utils.text.get_pronoun_ratio(flat_sentence_num, flat_pos_tags)
-	word_num_list = utils.text.get_flat_word_num(token_lists)  # word no. within sentence
+	# flat_token_list = utils.text.get_flat_tokens(token_lists)
+	# flat_sentence_num = utils.text.get_flat_sentence_num(token_lists)
+	# flat_pos_tags = utils.text.get_flat_pos_tags(token_lists)
+	# flat_token_lens = utils.text.get_token_lens(flat_token_list)  # word length
 
-	nonletters = utils.text.get_nonletters(flat_token_list, exceptions=[]) # find all non-letter characters in file
-	flat_cleaned_token_list = utils.text.strip_words(flat_token_list, method='punctuation', nonletters=nonletters) # clean words: strip nonletters/punctuation and lowercase
-	flat_lemmatized_token_list = utils.text.get_lemmatized_tokens(flat_cleaned_token_list, flat_pos_tags, utils.text.pos_for_lemmatization)  # lemmas
-	flat_is_content_word = utils.text.get_is_content(flat_pos_tags, content_pos=utils.text.pos_for_content) # content or function word
+	# pronoun_ratios = utils.text.get_pronoun_ratio(flat_sentence_num, flat_pos_tags)
+	# word_num_list = utils.text.get_flat_word_num(token_lists)  # word no. within sentence
+
+	# nonletters = utils.text.get_nonletters(flat_token_list, exceptions=[]) # find all non-letter characters in file
+	# flat_cleaned_token_list = utils.text.strip_words(flat_token_list, method='punctuation', nonletters=nonletters) # clean words: strip nonletters/punctuation and lowercase
+	# flat_lemmatized_token_list = utils.text.get_lemmatized_tokens(flat_cleaned_token_list, flat_pos_tags, utils.text.pos_for_lemmatization)  # lemmas
+	# flat_is_content_word = utils.text.get_is_content(flat_pos_tags, content_pos=utils.text.pos_for_content) # content or function word
 
 
 	surprisal_database = 'pickle/surprisal-3_dict.pkl' # default: 3-gram surprisal
@@ -105,21 +81,23 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
 	
 	# Word features
-	n_words = len(flat_token_list)
-	n_sentences = len(token_lists)
-	# TODO what is this?
-	setlst = [3] * n_words # set no. 
-	print("Number of sentences:", n_sentences)
-	print("Number of words:", n_words)
-	print("Number of unique words (cleaned):", len(set(flat_cleaned_token_list)))
-	print(f"Average number of words per sentence: {n_words/n_sentences:.2f}")
-	print('-'*79)
+	# n_words = len(flat_token_list)
+	# n_sentences = len(token_lists)
+	# # TODO what is this?
+	# setlst = [3] * n_words # set no. 
+	# print("Number of sentences:", n_sentences)
+	# print("Number of words:", n_words)
+	# print("Number of unique words (cleaned):", len(set(flat_cleaned_token_list)))
+	# print(f"Average number of words per sentence: {n_words/n_sentences:.2f}")
+	# print('-'*79)
 
 	
 	# Updated features
 	#databases = utils.load_databases(ignore_case=features_ignore_case)
 	if lexical == True:
-		sentspace.lexical.get_lexical_features(None)
+		utils.io.log('running lexical submodule pipeline')
+		features = [sentspace.lexical.get_features(
+		sentence) for sentence in token_lists]
 		exit()
 	
 	if syntax:
@@ -221,7 +199,7 @@ if __name__ == "__main__":
 	# parser.add_argument('--cache_dir', default='.cache', type=str,
     #                  	help='path to directory where results may be cached')
 
-	parser.add_argument('-o', '--output_dir', default='./sentspace.out', type=str,
+	parser.add_argument('-o', '--output_dir', default='./out', type=str,
                      	help='path to output directory where results may be stored')
 
 	# Add an option for a user to choose to not do some analyses. Default is true
