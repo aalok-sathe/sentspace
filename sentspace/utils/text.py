@@ -1,29 +1,34 @@
 
 
 import string
+from collections import Counter
 
 import pandas as pd
 from nltk import pos_tag
 from nltk.corpus import wordnet
 from nltk.stem import WordNetLemmatizer
+import sentspace.utils
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
 
-pos_for_lemmatization = [wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV] # define POS used for lemmatization
-pos_for_content = [wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV]  # define POS that count as content words
+
+pos_for_lemmatization = (wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV) # define POS used for lemmatization
+pos_for_content = (wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV)  # define POS that count as content words
 
 @cache_to_mem
-def get_pos_tags(sentence):
+def get_pos_tags(sentence:tuple) -> tuple:
     """
     Given sentence (a list of tokens), return single list of POS tags
     """
-
-    return [tag for token, tag in pos_tag(sentence)]
+    return tuple(tag for token, tag in pos_tag(sentence))
 
 
 def get_flat_pos_tags(token_lists):
     """
     Given list of sentences (each a list of tokens), return single list of POS tags
     """
+    sentspacte.utils.io.log('`get_flat_post_tags` '
+        'applied to multiple sentences will be DEPRECATED. '
+        'please call the appropriate function corresponding to a single sentence.', type='WARN')
 
     all_pos_tags = []
     for sentence_tokens in token_lists:
@@ -92,7 +97,7 @@ def get_passage_category(lpclst, lplst_word, keyPassageCategory):
     return catlst, cat_dict
 
 
-def get_nonletters(wordlst, exceptions={'-'}):
+def get_nonletters(wordlst:tuple, exceptions={'-'}) -> set:
     """
     Given list of tokens, print & return all non-alphabetical characters (except for input exceptions)
     For helping configure how to clean words
@@ -106,9 +111,9 @@ def get_nonletters(wordlst, exceptions={'-'}):
         all_nonletters.update(nonletters)
 
     # print('All unique characters:', sorted(charlst))
-    print('All non-letter characters in text file:', sorted(nonletters))
-    print('Exceptions passed in:', sorted(exceptions))
-    print('-'*79)
+    # print('All non-letter characters in text file:', sorted(nonletters))
+    # print('Exceptions passed in:', sorted(exceptions))
+    # print('-'*79)
     return all_nonletters
 
 @cache_to_disk
@@ -141,7 +146,7 @@ def strip_words(flat_token_list, method='nonletter', nonletters=None, punctuatio
 
 
 @cache_to_disk
-def strip_word(word, method, nonletters, punctuation):
+def strip_word(word:str, method:str, nonletters:set, punctuation:set) -> str:
     stripped = ''
     for char in word:
         if method == 'nonletter':
@@ -151,7 +156,7 @@ def strip_word(word, method, nonletters, punctuation):
             if char not in punctuation:
                 stripped += char
         else:
-            raise ValueError
+            raise ValueError(f'unknown method passed to strip word {method}')
     return stripped
 
 
@@ -166,18 +171,7 @@ def get_token_lens(flat_token_list):
     """    
     return [*map(len, flat_token_list)]
 
-@cache_to_mem
-def get_wordnet_pos(treebank_tag):
-    if treebank_tag.startswith('J'):
-        return wordnet.ADJ
-    elif treebank_tag.startswith('V'):
-        return wordnet.VERB
-    elif treebank_tag.startswith('N'):
-        return wordnet.NOUN
-    elif treebank_tag.startswith('R'):
-        return wordnet.ADV
-    else:
-        return ''
+
 
 def get_lemmatized_tokens(flat_token_list, flat_pos_tags, lemmatized_pos=[wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV]):
     """
@@ -207,8 +201,17 @@ def get_lemmatized_tokens(flat_token_list, flat_pos_tags, lemmatized_pos=[wordne
     # print('-'*79)
 
 
+@cache_to_mem
+def get_pronoun_ratio(tag_list:tuple):
+    """
+    Given sentence calculate the pronoun ratio
+    """
+    # initialize pronoun tags
+    pronoun_tags = {'PRP', 'PRP$', 'WP', 'WP$'}
+    return sum(tag in pronoun_tags for tag in tag_list) / len(tag_list)
 
-def get_pronoun_ratio(sent_num, tag_list):
+
+def _get_pronoun_ratio(sent_num, tag_list):
     """
     Given sentence number and parts of speech tag corresponding to this sentence's word, calculate the pronoun ratio
     """
@@ -237,19 +240,34 @@ def get_pronoun_ratio(sent_num, tag_list):
     return df_p_ratio
 
 
-def get_is_content(taglst, content_pos=[wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV]):
+@cache_to_mem
+def get_is_content(taglst:tuple, content_pos=(wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV)):
     """
     Given list of POS tags, return list of 1 - content word, 0 - not content word
     """
-    is_content_lst = []
-    for tag in taglst:
-        if get_wordnet_pos(tag) in content_pos:
-            is_content_lst.append(1)
-        else:
-            is_content_lst.append(0)
-    print("All POS in text:", sorted(set(taglst)))
-    print("Content words defined as:", sorted(content_pos))
-    print(
-        f"Number of content words: {sum(is_content_lst)}, {sum(is_content_lst)/len(taglst)*100:.2f}%")
-    print('-'*79)
-    return is_content_lst
+
+    return tuple(int(get_wordnet_pos(tag) in content_pos) for tag in taglst)
+    
+    #     if False: 
+    #         is_content_lst.append(1)
+    #     else:
+    #         is_content_lst.append(0)
+    # print("All POS in text:", sorted(set(taglst)))
+    # print("Content words defined as:", sorted(content_pos))
+    # print(
+    #     f"Number of content words: {sum(is_content_lst)}, {sum(is_content_lst)/len(taglst)*100:.2f}%")
+    # print('-'*79)
+    # return is_content_lst
+
+@cache_to_disk
+def get_wordnet_pos(treebank_tag):
+    if treebank_tag.startswith('J'):
+        return wordnet.ADJ
+    elif treebank_tag.startswith('V'):
+        return wordnet.VERB
+    elif treebank_tag.startswith('N'):
+        return wordnet.NOUN
+    elif treebank_tag.startswith('R'):
+        return wordnet.ADV
+    else:
+        return ''
