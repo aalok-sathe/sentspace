@@ -1,6 +1,10 @@
+import os
+import pickle
+
 import numpy as np
+import sentspace.utils
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
-from sentspace.utils import merge_lists, wordnet, Word
+from sentspace.utils.utils import Word, merge_lists, wordnet
 
 
 def get_all_features(wordlist, databases):
@@ -28,9 +32,14 @@ def get_all_features_merged(flat_token_list, flat_lemmatized_token_list, databas
     return merged
 
 
+
+
+
+
 # --------- Lexical features
 
 # list of acceptable feature terms to load_databases(...)
+@cache_to_mem
 def get_feature_list():
     return ['NRC_Arousal', 'NRC_Valence', 'OSC', 'aoa', 'concreteness', 'lexical_decision_RT',
             'log_contextual_diversity', 'log_lexical_frequency', 'n_orthographic_neighbors', 'num_morpheme',
@@ -93,3 +102,48 @@ def get_feature(flat_token_list, feature, databases):
         features_list += [get_feature_(word, feature, databases)]
 
     return features_list
+
+
+@cache_to_mem
+def load_databases(features='all', path='.feature_database/', ignore_case=True):
+    """
+    Load dicts mapping word to feature value
+    If one feature, provide in list format
+    """
+    databases = {}
+    if features == 'all':
+        features = get_feature_list()
+    for feature in features:
+        if not os.path.exists(path+feature+'.pkl'):
+            load_feature(key=feature+'.pkl')
+        with open(path+feature+'.pkl', 'rb') as f:
+            d = pickle.load(f)
+            if ignore_case:  # add lowercase version to feature database
+                for key, val in d.copy().items():
+                    d[str(key).lower()] = val
+            databases[feature] = d
+
+    sanity_check_databases(databases)
+    return databases
+
+
+def sanity_check_databases(databases):
+    '''
+    perform sanity checks upon loading various datasets
+    to ensure validity of the loaded data
+    '''
+
+    assert databases['NRC_Arousal']['happy'] == 0.735
+    assert databases['NRC_Valence']['happy'] == 1
+    assert databases['OSC']['happy'] == 0.951549893181384
+    assert abs(databases['aoa']['a'] - 2.893384) < 1e-4
+    assert databases['concreteness']['roadsweeper'] == 4.85
+    # assert abs(databases['imag']['abbey'] - 5.344) < 1e-4
+    assert databases['total_degree_centrality']['a'] == 30
+    assert databases['lexical_decision_RT']['a'] == 798.917
+    assert abs(databases['log_contextual_diversity']['a'] - 3.9234) < 1e-4
+    assert abs(databases['log_lexical_frequency']['a'] - 6.0175) < 1e-4
+    assert databases['n_orthographic_neighbors']['a'] == 950.59
+    assert databases['num_morpheme']['abbreviated'] == 4
+    assert abs(databases['prevalence']['a'] - 1.917) < 1e-3
+    assert databases['surprisal-3']['beekeeping'] == 10.258

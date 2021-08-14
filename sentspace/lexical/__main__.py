@@ -1,11 +1,14 @@
 import argparse
+import json
 from sentspace.lexical import get_features
 from distutils.util import strtobool
+import pandas as pd
 
 def main(args):
     
-    features = get_features(args.input)
-    print(features)
+    features = get_features(args.input.split())
+    print(pd.DataFrame(features))
+    # print(json.dumps(features, indent=4))
 
 
 if __name__ == '__main__':
