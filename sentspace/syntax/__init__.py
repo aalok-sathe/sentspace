@@ -79,7 +79,6 @@ def validate_input():
 
 
 @path_decorator
-@cache_to_disk
 def tokenize(raw):
     cmd = ['bash', 'tokenize.sh', raw]
     tokens = subprocess.check_output(cmd)
