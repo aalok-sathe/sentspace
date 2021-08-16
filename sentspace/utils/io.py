@@ -5,12 +5,13 @@ import textwrap
 from datetime import date
 from hashlib import sha1
 from pathlib import Path
+from sys import stderr
 
 import numpy as np
 import sentspace.utils
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
 from sentspace.utils.s3 import load_feature
-from sentspace.utils.sanity_checks import sanity_check_databases
+# from sentspace.utils.sanity_checks import sanity_check_databases
 
 
 def create_output_paths(input_file:str, output_dir:str, calling_module=None, stop_words_file:str=None):
@@ -123,28 +124,6 @@ def read_sentences(filename, stop_words_file: str = None):
     return token_lists, sentences
 
 
-@cache_to_mem
-def load_databases(features='all', path='.feature_database/', ignore_case=True):
-    """
-    Load dicts mapping word to feature value
-    If one feature, provide in list format
-    """
-    databases = {}
-    if features == 'all':
-        features = sentspace.lexical.utils.get_feature_list()
-    for feature in features:
-        if not os.path.exists(path+feature+'.pkl'):
-            load_feature(key=feature+'.pkl')
-        with open(path+feature+'.pkl', 'rb') as f:
-            d = pickle.load(f)
-            if ignore_case:  # add lowercase version to feature database
-                for key, val in d.copy().items():
-                    d[str(key).lower()] = val
-            databases[feature] = d
-
-    sanity_check_databases(databases)
-    return databases
-
 
 def load_surprisal(file='pickle/surprisal-3_dict.pkl'):
     """
@@ -157,4 +136,4 @@ def load_surprisal(file='pickle/surprisal-3_dict.pkl'):
 def log(message, type='INFO'):
     timestamp = f'{sentspace.utils.time() - sentspace.utils.START_TIME():.2f}s'
     lines = textwrap.wrap(message, width=79, initial_indent='='*4 + f' [{type} @ {timestamp}] ', subsequent_indent='='*8+' ')
-    print(*lines, sep='\n')
+    print(*lines, sep='\n', file=stderr)

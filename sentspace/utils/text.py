@@ -172,7 +172,6 @@ def get_token_lens(flat_token_list):
     return [*map(len, flat_token_list)]
 
 
-
 def get_lemmatized_tokens(flat_token_list, flat_pos_tags, lemmatized_pos=[wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV]):
     """
     Given list of tokens & tags, lemmatize nouns & verbs (as specified by input POS tags)
@@ -201,63 +200,6 @@ def get_lemmatized_tokens(flat_token_list, flat_pos_tags, lemmatized_pos=[wordne
     # print('-'*79)
 
 
-@cache_to_mem
-def get_pronoun_ratio(tag_list:tuple):
-    """
-    Given sentence calculate the pronoun ratio
-    """
-    # initialize pronoun tags
-    pronoun_tags = {'PRP', 'PRP$', 'WP', 'WP$'}
-    return sum(tag in pronoun_tags for tag in tag_list) / len(tag_list)
-
-
-def _get_pronoun_ratio(sent_num, tag_list):
-    """
-    Given sentence number and parts of speech tag corresponding to this sentence's word, calculate the pronoun ratio
-    """
-    df = pd.DataFrame({'sent_num': sent_num, 'tag_list': tag_list})
-
-    # initialize pronoun tags
-    pronoun_tags = ['PRP', 'PRP$', 'WP', 'WP$']
-
-    # Per sentence get the ratio
-    p_ratios = {}
-    for sent in df.sent_num.unique():
-        t_df = df[df.sent_num == sent]['tag_list']
-        counts = t_df.value_counts()
-
-        p_count = 0
-        not_p_count = 0
-        for tag in counts.keys():
-            if tag in pronoun_tags:
-                p_count += counts[tag]
-            else:
-                not_p_count += counts[tag]
-        # f'{p_count}:{not_p_count}'
-        p_ratios[sent] = p_count/(p_count + not_p_count)
-    df_p_ratio = pd.DataFrame(
-        {'sent_num': p_ratios.keys(), 'pronoun_ratio': p_ratios.values()})
-    return df_p_ratio
-
-
-@cache_to_mem
-def get_is_content(taglst:tuple, content_pos=(wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV)):
-    """
-    Given list of POS tags, return list of 1 - content word, 0 - not content word
-    """
-
-    return tuple(int(get_wordnet_pos(tag) in content_pos) for tag in taglst)
-    
-    #     if False: 
-    #         is_content_lst.append(1)
-    #     else:
-    #         is_content_lst.append(0)
-    # print("All POS in text:", sorted(set(taglst)))
-    # print("Content words defined as:", sorted(content_pos))
-    # print(
-    #     f"Number of content words: {sum(is_content_lst)}, {sum(is_content_lst)/len(taglst)*100:.2f}%")
-    # print('-'*79)
-    # return is_content_lst
 
 @cache_to_disk
 def get_wordnet_pos(treebank_tag):

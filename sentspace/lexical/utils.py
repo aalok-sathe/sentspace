@@ -5,7 +5,7 @@ import numpy as np
 import sentspace.utils
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
 from sentspace.utils.utils import Word, merge_lists, wordnet
-
+from sentspace.utils import text
 
 def get_all_features(wordlist, databases):
     """
@@ -32,8 +32,28 @@ def get_all_features_merged(flat_token_list, flat_lemmatized_token_list, databas
     return merged
 
 
+def get_content_ratio(is_content_pos_tag: tuple):
+    """
+    given boolean list corresponding to a token being a content word, 
+    calculate the content ratio
+    """
+    return sum(is_content_pos_tag) / len(is_content_pos_tag)
 
 
+def get_pronoun_ratio(pos_tags: tuple):
+    """
+    Given sentence calculate the pronoun ratio
+    """
+    pronoun_tags = {'PRP', 'PRP$', 'WP', 'WP$'}
+    return sum(tag in pronoun_tags for tag in pos_tags) / len(pos_tags)
+
+
+# @cache_to_mem
+def get_is_content(taglst: tuple, content_pos=(wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV)):
+    """
+    Given list of POS tags, return list of 1 - content word, 0 - not content word
+    """
+    return tuple(int(text.get_wordnet_pos(tag) in content_pos) for tag in taglst)
 
 
 # --------- Lexical features
@@ -82,16 +102,18 @@ def get_feature_(word, feature, databases={}):
         return databases.get(feature, {}).get(word, np.nan)
 
     # Other databases we use from libraries we load such as NLTK and Polyglot
-    if feature in get_feature_list_using_third_party_libraries():
+    elif feature in get_feature_list_using_third_party_libraries():
         if feature == 'polysemy':
             if wordnet.synsets(word):
                 return len(wordnet.synsets(word))
             return 1
-        if feature == 'num_morpheme_poly':
+        elif feature == 'num_morpheme_poly':
             morphed = Word(word, language='en').morphemes
             if morphed:
-                return (len(morphed))
+                return len(morphed)
             return np.nan
+    else:
+        raise ValueError(f'unable to compute unknown feature `{feature}`')
 
 
 def get_feature(flat_token_list, feature, databases):
@@ -115,7 +137,7 @@ def load_databases(features='all', path='.feature_database/', ignore_case=True):
         features = get_feature_list()
     for feature in features:
         if not os.path.exists(path+feature+'.pkl'):
-            load_feature(key=feature+'.pkl')
+            sentspace.utils.s3.load_feature(key=feature+'.pkl')
         with open(path+feature+'.pkl', 'rb') as f:
             d = pickle.load(f)
             if ignore_case:  # add lowercase version to feature database
