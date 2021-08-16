@@ -4,10 +4,11 @@ from functools import lru_cache
 from pathlib import Path
 
 from joblib import Memory
+from nltk.tree import ParentedTree
 from sentspace.syntax.features import DLT, Feature, LeftCorner, Tree
 
 from sentspace.utils.caching import cache_to_disk
-
+from sentspace.utils import io
 
 os.environ['PERL_BADLANG'] = '0'
 
@@ -37,11 +38,11 @@ def path_decorator(func):
     return wrapped
 
 
-def get_features(text:str=None, dlt:bool=False, left_corner:bool=False):
+def get_features(text:str=None, dlt:bool=False, left_corner:bool=False, parse_beam_width=5000):
     """executes the syntactic features pipeline
 
     Args:
-        text (str, optional): a string containing one sentence [None].
+        text (str, optional): paragraph of 1 or more sentences separated by newline or path to file [None].
         dlt (bool, optional): calculate DLT feature? [False].
         left_corner (bool, optional): calculate Left Corner feature? [False].
 
@@ -50,16 +51,18 @@ def get_features(text:str=None, dlt:bool=False, left_corner:bool=False):
     """
     features = Feature()
     if dlt or left_corner:
-        features.tree = Tree(compute_trees(parse_input(text)))
+        io.log(f'computing tree with beam_width={parse_beam_width} for given text')
+        features.tree = Tree(compute_trees(parse_input(text), beam_width=parse_beam_width))
+        io.log(f'tree computed')
     else:
         return None
 
-    print(parse_input(text), features.tree)
+    # print(parse_input(text), features.tree)
     if dlt:
         features.dlt = DLT(compute_feature('dlt.sh', features.tree.raw))
     if left_corner:
         features.left_corner = LeftCorner(compute_feature('leftcorner.sh', features.tree.raw))
-    return features
+    return {'tree': features.tree, 'dlt': features.dlt, 'leftcorner': features.left_corner}
 
 
 def parse_input(source):
@@ -87,8 +90,8 @@ def tokenize(raw):
 
 @path_decorator
 @cache_to_disk
-def compute_trees(tokens):
-    cmd = ['bash', 'parse_trees.sh', tokens]
+def compute_trees(tokens, beam_width=5000):
+    cmd = ['bash', 'parse_trees.sh', f'{beam_width}', tokens]
     trees = subprocess.check_output(cmd)
     return trees
 
