@@ -7,7 +7,7 @@ import pdb
 import pickle
 # import string
 from itertools import chain
-from math import isnan, log
+from math import isnan
 from time import time
 
 # import seaborn as sns
@@ -23,7 +23,6 @@ from nltk.corpus import wordnet
 from nltk.stem import WordNetLemmatizer
 from polyglot.text import Word
 from scipy.stats import percentileofscore, zscore
-from sentspace import utils
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
 from zs import ZS
 
