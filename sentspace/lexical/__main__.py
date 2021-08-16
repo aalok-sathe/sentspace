@@ -7,7 +7,8 @@ import pandas as pd
 from pathlib import Path
 
 def main(args):
-    
+    sentspace.utils.io.log(f'--- LEXICAL MODULE ---')
+
     split = lambda s: s.split()
 
     if Path(args.input).exists():
@@ -45,8 +46,6 @@ if __name__ == '__main__':
     # parser.add_argument('-b', '--benchmark', default='sentspace/benchmarks/lex/UD_corpora_lex_features_sents_all.csv',
     #                     help='Path to csv file of benchmark corpora For example benchmarks/lex/UD_corpora_lex_features_sents_all.csv')
 
-
     args = parser.parse_args()
-    print(args)
-    
+    sentspace.utils.io.log(f'SENTSPACE. Received arguments: {args}')
     main(args)
