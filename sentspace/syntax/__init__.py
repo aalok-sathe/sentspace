@@ -51,17 +51,23 @@ def get_features(text:str=None, dlt:bool=False, left_corner:bool=False, parse_be
     """
     features = Feature()
     if dlt or left_corner:
-        io.log(f'computing tree with beam_width={parse_beam_width} for given text')
-        features.tree = Tree(compute_trees(parse_input(text), beam_width=parse_beam_width))
-        io.log(f'tree computed')
+        io.log(f'parsing given text')
+        parsed = parse_input(text)
+        io.log(f'computing tree with beam_width={parse_beam_width} for parsed text')
+        features.tree = Tree(compute_trees(parsed, beam_width=parse_beam_width))
+        io.log(f'--- done: tree computed')
     else:
         return None
 
     # print(parse_input(text), features.tree)
     if dlt:
+        io.log(f'computing DLT feature')
         features.dlt = DLT(compute_feature('dlt.sh', features.tree.raw))
+        io.log(f'--- done: DLT')
     if left_corner:
+        io.log(f'computing left corner feature')
         features.left_corner = LeftCorner(compute_feature('leftcorner.sh', features.tree.raw))
+        io.log(f'--- done: left corner')
     return {'tree': features.tree, 'dlt': features.dlt, 'leftcorner': features.left_corner}
 
 

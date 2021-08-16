@@ -12,15 +12,6 @@ from sentspace.syntax import get_features
 def main(args):
     sentspace.utils.io.log(f'--- SYNTAX MODULE ---')
 
-    # split = lambda s: s.split()
-
-    # if Path(args.input).exists():
-    #     with Path(args.input).open('r') as f:
-    #         input = [*map(split, f.readlines())]
-    # else:
-    #     input = [*map(split, args.input.split('\n'))]
-
-    # for i, item in enumerate(input):
     sentspace.utils.io.log(f'*** processing input ***')
     sentspace.utils.io.log(f'--- {args.input}')
     features = get_features(args.input, dlt=args.dlt, left_corner=args.left_corner,
@@ -55,7 +46,7 @@ if __name__ == '__main__':
 
     # Add an option for a user to choose to not do some analyses. Default is true
     parser.add_argument('-c', '--parse_beam_width', default=5_000, 
-                        help='beam width to use with the Berkeley PCFG (smaller leads to faster output)')
+                        help='[NotImplemented] beam width to use with the Berkeley PCFG (smaller leads to faster output) [5000]')
     parser.add_argument('-dlt', '--dlt', type=strtobool,
                         default=True, help='calculate dependency locality theory (DLT) metric? [True]')
     parser.add_argument('-lc', '--left_corner', type=strtobool,
