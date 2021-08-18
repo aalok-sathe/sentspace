@@ -5,7 +5,7 @@ import numpy as np
 import sentspace.utils
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
 from sentspace.utils.utils import Word, merge_lists, wordnet
-from sentspace.utils import text
+from sentspace.utils import text, io
 
 def get_all_features(wordlist, databases):
     """
@@ -59,7 +59,7 @@ def get_is_content(taglst: tuple, content_pos=(wordnet.ADJ, wordnet.VERB, wordne
 # --------- Lexical features
 
 # list of acceptable feature terms to load_databases(...)
-@cache_to_mem
+# @cache_to_mem
 def get_feature_list():
     return ['NRC_Arousal', 'NRC_Valence', 'OSC', 'aoa', 'concreteness', 'lexical_decision_RT',
             'log_contextual_diversity', 'log_lexical_frequency', 'n_orthographic_neighbors', 'num_morpheme',
@@ -81,47 +81,50 @@ def get_poly_morpheme(sent_num, word_list):
     raise NotImplementedError
 
 
-@cache_to_disk(ignore=['databases'])
-def get_feature_(word, feature, databases={}):
-    """given a word and a feature to exatract, returns the value of that
-        feature for the word using available databases
-
-    Args:
-        word (str): the token (word) to extract a feature for
-        feature (str): name identifier of the feature acc to predefined convention
-        databases (dict, optional): dictionary of feature --> (word --> feature_value) dictionaries. 
-                                    Defaults to {}.
-
-    Returns:
-        Any: feature value
-    """
-    # if the feature is from a database we have on disk
-    # database can be a dictionary or an object that implements
-    # get(key, default)
-    if feature in get_feature_list():
-        return databases.get(feature, {}).get(word, np.nan)
-
-    # Other databases we use from libraries we load such as NLTK and Polyglot
-    elif feature in get_feature_list_using_third_party_libraries():
-        if feature == 'polysemy':
-            if wordnet.synsets(word):
-                return len(wordnet.synsets(word))
-            return 1
-        elif feature == 'num_morpheme_poly':
-            morphed = Word(word, language='en').morphemes
-            if morphed:
-                return len(morphed)
-            return np.nan
-    else:
-        raise ValueError(f'unable to compute unknown feature `{feature}`')
 
 
 def get_feature(flat_token_list, feature, databases):
+
+    # @cache_to_mem  # (ignore=['databases'])
+    def get_feature_(word, feature):
+        """given a word and a feature to exatract, returns the value of that
+            feature for the word using available databases
+
+        Args:
+            word (str): the token (word) to extract a feature for
+            feature (str): name identifier of the feature acc to predefined convention
+            databases (dict, optional): dictionary of feature --> (word --> feature_value) dictionaries. 
+                                        Defaults to {}.
+
+        Returns:
+            Any: feature value
+        """
+        # if the feature is from a database we have on disk
+        # database can be a dictionary or an object that implements
+        # get(key, default)
+        if feature in get_feature_list():
+            return databases.get(feature, {}).get(word, np.nan)
+
+        # Other databases we use from libraries we load such as NLTK and Polyglot
+        elif feature in get_feature_list_using_third_party_libraries():
+            if feature == 'polysemy':
+                if wordnet.synsets(word):
+                    return len(wordnet.synsets(word))
+                return 1
+            elif feature == 'num_morpheme_poly':
+                morphed = Word(word, language='en').morphemes
+                if morphed:
+                    return len(morphed)
+                return np.nan
+        else:
+            raise ValueError(f'unable to compute unknown feature `{feature}`')
+
+
     d = {}
     features_list = []
 
     for word in flat_token_list:
-        features_list += [get_feature_(word, feature, databases)]
+        features_list += [get_feature_(word, feature)]
 
     return features_list
 
@@ -132,6 +135,7 @@ def load_databases(features='all', path='.feature_database/', ignore_case=True):
     Load dicts mapping word to feature value
     If one feature, provide in list format
     """
+    io.log("loading databases with all features")
     databases = {}
     if features == 'all':
         features = get_feature_list()
@@ -146,6 +150,7 @@ def load_databases(features='all', path='.feature_database/', ignore_case=True):
             databases[feature] = d
 
     sanity_check_databases(databases)
+    io.log("---done--- loading databases with all features")
     return databases
 
 

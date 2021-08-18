@@ -6,12 +6,9 @@ from sentspace.utils import text, io
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
 from sentspace.lexical import utils
 
+databases = utils.load_databases(features='all')
 
 def get_features(sentence:List[str]):
-
-    io.log("loading databases with all features")
-    databases = utils.load_databases(features='all')
-    io.log("---done--- loading databases with all features")
 
     sentence = tuple(sentence)
     lemmatized_sentence = text.get_lemmatized_tokens(sentence, text.get_pos_tags(sentence))
