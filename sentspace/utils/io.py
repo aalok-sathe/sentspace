@@ -13,8 +13,9 @@ from sentspace.utils.caching import cache_to_disk, cache_to_mem
 from sentspace.utils.s3 import load_feature
 # from sentspace.utils.sanity_checks import sanity_check_databases
 
+def dump_features(): pass
 
-def create_output_paths(input_file:str, output_dir:str, calling_module=None, stop_words_file:str=None):
+def create_output_paths(input_file:str, output_dir:str, calling_module=None, stop_words_file:str=None) -> Path:
     embed_method = 'all'  # options: 'strict', 'all'
     content_only = False
 
@@ -30,6 +31,8 @@ def create_output_paths(input_file:str, output_dir:str, calling_module=None, sto
     output_dir /= calling_module or ''
     output_dir /= date.today().strftime('run_%Y-%m-%d')
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    return output_dir
 
     sent_suffix = f"_{embed_method}"
 
@@ -107,7 +110,10 @@ def read_sentences(filename, stop_words_file: str = None):
 
     with open(filename, 'r') as f:
         for line in f:
-            tokens = line.split()
+            if line.strip():
+                tokens = line.split()
+            else:
+                continue
             # if a non-empty collection of stop words has been supplied
             if stop_words_file:
                 stop_words = np.loadtxt(
@@ -119,7 +125,7 @@ def read_sentences(filename, stop_words_file: str = None):
             # no stopwords supplied; do not filter
             else:
                 token_lists.append(tokens)
-                sentences.append(line)
+                sentences.append(line.strip())
 
     return token_lists, sentences
 
