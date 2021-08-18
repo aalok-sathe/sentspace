@@ -157,4 +157,4 @@ sentspace/.cached_function_calls
 *.pdf
 sentspace/syntax/utils/vs13parser-from-CORY
 sentspace/syntax/testing/
-literature/descriptions/nltk_stopwords.rtf
+literature/
