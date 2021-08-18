@@ -74,10 +74,13 @@ def get_features(text:str=None, dlt:bool=False, left_corner:bool=False, parse_be
 def parse_input(source):
     # TODO: collect input from various sources
     tokens = None
-    if os.path.isdir(source):
-        raw = open(source, 'r').read()
-        tokens = tokenize(raw)
-    if type(source) == str:
+    try: 
+        if Path(source).exists():
+            raw = open(source, 'r').read()
+            tokens = tokenize(raw)
+        else:
+            tokens = tokenize(source)
+    except (FileNotFoundError, OSError) as e:
         tokens = tokenize(source)
     return tokens
 
@@ -89,8 +92,10 @@ def validate_input():
 
 @path_decorator
 def tokenize(raw):
-    cmd = ['bash', 'tokenize.sh', raw]
+    cmd = ['bash', 'tokenize.sh', raw.strip()]
+    io.log(f'calling tokenizer like so: `{cmd}`')
     tokens = subprocess.check_output(cmd)
+    io.log(f'---done--- tokenizer returned output like so: `{tokens}`')
     return tokens
 
 
@@ -103,7 +108,7 @@ def compute_trees(tokens, beam_width=5000):
 
 
 @path_decorator
-@cache_to_disk
+# @cache_to_disk
 def compute_feature(feature, trees):
     cmd = ['bash', feature, trees]
     out = subprocess.check_output(cmd)
