@@ -14,7 +14,7 @@ from sentspace.utils.caching import cache_to_disk, cache_to_mem
 pos_for_lemmatization = (wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV) # define POS used for lemmatization
 pos_for_content = (wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV)  # define POS that count as content words
 
-@cache_to_mem
+# @cache_to_mem
 def get_pos_tags(sentence:tuple) -> tuple:
     """
     Given sentence (a list of tokens), return single list of POS tags
@@ -116,7 +116,7 @@ def get_nonletters(wordlst:tuple, exceptions={'-'}) -> set:
     # print('-'*79)
     return all_nonletters
 
-@cache_to_disk
+# @cache_to_disk
 def get_nonletters_from_word(word, exceptions):
     charlst = set()
     nonletters = set()
@@ -145,7 +145,7 @@ def strip_words(flat_token_list, method='nonletter', nonletters=None, punctuatio
     return flat_cleaned_token_list
 
 
-@cache_to_disk
+# @cache_to_disk
 def strip_word(word:str, method:str, nonletters:set, punctuation:set) -> str:
     stripped = ''
     for char in word:
@@ -178,7 +178,7 @@ def get_lemmatized_tokens(flat_token_list, flat_pos_tags, lemmatized_pos=[wordne
     """
     
     lemmas = WordNetLemmatizer()
-    @cache_to_disk
+    @cache_to_mem
     def lemmatize_token(word, pos):
         if pos in lemmatized_pos:
             return lemmas.lemmatize(word, pos)
@@ -200,8 +200,6 @@ def get_lemmatized_tokens(flat_token_list, flat_pos_tags, lemmatized_pos=[wordne
     # print('-'*79)
 
 
-
-@cache_to_disk
 def get_wordnet_pos(treebank_tag):
     if treebank_tag.startswith('J'):
         return wordnet.ADJ
