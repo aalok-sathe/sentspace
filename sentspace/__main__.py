@@ -17,7 +17,9 @@ import seaborn as sns
 # print('Loading modules... (chunk 3/4)', end='\r')
 import sentspace.syntax
 import sentspace.utils as utils
+from tqdm import tqdm
 from sentspace.utils import wordnet
+import json
 
 # from sentspace.utils.caching import cache_to_disk, cache_to_mem
 # from sentspace.utils.text import get_flat_pos_tags
@@ -46,15 +48,17 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
 	# create output folder
 	utils.io.log('creating output folder')
-	(sent_output_path, 
-	 glove_words_output_path, 
-	 glove_sents_output_path) = utils.io.create_output_paths(input_file,
+	# (sent_output_path, 
+	#  glove_words_output_path, 
+	#  glove_sents_output_path) 
+	output_dir = utils.io.create_output_paths(input_file,
 	 															 output_dir=output_dir,
                                                                  stop_words_file=stop_words_file)
+	with (output_dir / 'config.txt').open('w+') as f:
+		print(args, file=f)
 
 	utils.io.log('reading input sentences')
-	token_lists, sentences = utils.io.read_sentences(
-		input_file, stop_words_file=stop_words_file)
+	token_lists, sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
 	utils.io.log('---done--- reading input sentences')
 
 	# flat_token_list = utils.text.get_flat_tokens(token_lists)
@@ -71,9 +75,9 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 	# flat_is_content_word = utils.text.get_is_content(flat_pos_tags, content_pos=utils.text.pos_for_content) # content or function word
 
 
-	surprisal_database = 'pickle/surprisal-3_dict.pkl' # default: 3-gram surprisal
-	features_ignore_case = True
-	features_transform = ['default', None, None] # format: [method, cols to log transform, cols to z-score] (if method is specified, the other two are ignored)
+	# surprisal_database = 'pickle/surprisal-3_dict.pkl' # default: 3-gram surprisal
+	# features_ignore_case = True
+	# features_transform = ['default', None, None] # format: [method, cols to log transform, cols to z-score] (if method is specified, the other two are ignored)
 
 	# Get morpheme from polyglot library instead of library
 	# TODO: where was this supposed to be used?
@@ -94,22 +98,29 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 	
 	# Updated features
 	#databases = utils.load_databases(ignore_case=features_ignore_case)
-	if lexical == True:
-		utils.io.log('running lexical submodule pipeline')
-		features = [sentspace.lexical.get_features(
-		sentence) for sentence in token_lists]
-		exit()
+	if lexical:
+		utils.io.log('*** running lexical submodule pipeline')
+		lexical_features = [sentspace.lexical.get_features(sentence) 
+							for sentence in tqdm(token_lists, desc='Lexical pipeline')]
+		
+		lexical_out = output_dir / 'lexical'
+		lexical_out.mkdir(parents=True, exist_ok=True)
+		with (lexical_out/'features.json').open('w') as f:
+			json.dump(lexical_features, f)
+		
 	
 	if syntax:
-		# Get content ratio
-		content_ratios = sentspace.syntax.get_content_ratio(flat_sentence_num, flat_is_content_word)
+		utils.io.log('*** running syntax submodule pipeline')
+		syntax_features = sentspace.syntax.get_features(args.input_file, dlt=True, left_corner=True)
 
-		syn_feats = sentspace.syntax.get_tree_features('hello my name is syntax', dlt=True, left_corner=True)
-		print(syn_feats)
+		syntax_out = output_dir / 'syntax'
+		syntax_out.mkdir(parents=True, exist_ok=True)
+		with (syntax_out/'features.json').open('w') as f:
+			f.write(str(syntax_features))
 
-		syntax_df = pd.DataFrame(
-			{'Sentence no.': content_ratios['sent_num'], 'Content Ratio': content_ratios['content_ratio']})
-		syntax_df.to_csv(sent_output_path, index=False)
+		# syntax_df = pd.DataFrame(
+		# 	{'Sentence no.': content_ratios['sent_num'], 'Content Ratio': content_ratios['content_ratio']})
+		# syntax_df.to_csv(sent_output_path, index=False)
 
 
 	# Calculate PMI
@@ -117,12 +128,14 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 	# utils.pPMI(sent_rows, pmi_paths)
 	# pdb.set_trace()
 	
-	if embedding == True:
+	if embedding:
+		utils.io.log('*** running embedding submodule pipeline')
+		return
 		# Get GloVE
-		result = utils.compile_results_for_glove_only(wordlst, wordlst_l, wordlst_lem, 
-										taglst, is_content_lst, setlst, 
-										sent_num_list, wordlen)
-		
+		result = utils.compile_results_for_glove_only(wordlst, wordlst_l, wordlst_lem,
+													  taglst, is_content_lst, setlst,
+												      sent_num_list, wordlen)
+
 		result['Word no. within sentence'] = word_num_list
 		sent_version = utils.get_sent_version('cleaned', result)
 		vocab = utils.get_vocab(sent_version)
@@ -209,8 +222,5 @@ if __name__ == "__main__":
 	parser.add_argument('-sm','--semantic', type=strtobool, default=True, help='compute semantic (multi-word) features? [True]')
 	
 	args = parser.parse_args()	
-	print('-'*79)
-	print('Received arguments:', args)
-	print('-'*79)
-
+	utils.io.log(f'SENTSPACE. Received arguments: {args}')
 	main(args)
