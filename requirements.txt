@@ -13,7 +13,7 @@ polyglot==16.7.4
 pycld2==0.41
 morfessor-2.0.6
 pyyaml==5.4.1
-torch==1.9.0
-torchvision
-torchaudio
+# torch==1.9.0
+# torchvision
+# torchaudio
 # zs
