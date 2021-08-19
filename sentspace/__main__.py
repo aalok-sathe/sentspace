@@ -10,7 +10,6 @@ import sys
 # import numpy as np
 
 # print('Loading modules... (chunk 2/4)', end='\r')
-import nltk
 import pandas as pd
 import seaborn as sns
 
@@ -46,8 +45,8 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 	#  glove_words_output_path, 
 	#  glove_sents_output_path) 
 	output_dir = utils.io.create_output_paths(input_file,
-	 															 output_dir=output_dir,
-                                                                 stop_words_file=stop_words_file)
+                                              output_dir=output_dir,
+                                              stop_words_file=stop_words_file)
 	with (output_dir / 'config.txt').open('w+') as f:
 		print(args, file=f)
 
