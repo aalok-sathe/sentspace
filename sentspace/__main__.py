@@ -15,16 +15,10 @@ import pandas as pd
 import seaborn as sns
 
 # print('Loading modules... (chunk 3/4)', end='\r')
-import sentspace.syntax
+import sentspace
 import sentspace.utils as utils
 from tqdm import tqdm
-from sentspace.utils import wordnet
 import json
-
-# from sentspace.utils.caching import cache_to_disk, cache_to_mem
-# from sentspace.utils.text import get_flat_pos_tags
-# from sentspace.utils.utils import wordnet
-
 
 
 def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
@@ -101,7 +95,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 	if lexical:
 		utils.io.log('*** running lexical submodule pipeline')
 		lexical_features = [sentspace.lexical.get_features(sentence) 
-							for sentence in tqdm(token_lists, desc='Lexical pipeline')]
+							for sentence in tqdm(sentences, desc='Lexical pipeline')]
 		
 		lexical_out = output_dir / 'lexical'
 		lexical_out.mkdir(parents=True, exist_ok=True)
@@ -111,7 +105,8 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 	
 	if syntax:
 		utils.io.log('*** running syntax submodule pipeline')
-		syntax_features = sentspace.syntax.get_features(args.input_file, dlt=True, left_corner=True)
+		syntax_features = [sentspace.syntax.get_features(sentence, dlt=True, left_corner=True)
+                     	   for sentence in tqdm(sentences, desc='Lexical pipeline')]
 
 		syntax_out = output_dir / 'syntax'
 		syntax_out.mkdir(parents=True, exist_ok=True)
