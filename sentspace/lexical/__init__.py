@@ -10,21 +10,24 @@ databases = utils.load_databases(features='all')
 
 def get_features(sentence:str):
 
-    sentence = tuple(sentence.split())
-    lemmatized_sentence = text.get_lemmatized_tokens(sentence, text.get_pos_tags(sentence))
+    tokenized = tuple(sentence.split())
+    lemmatized_sentence = text.get_lemmatized_tokens(tokenized, text.get_pos_tags(tokenized))
     # clean words: strip nonletters/punctuation and lowercase
-    nonletters = text.get_nonletters(sentence, exceptions=[]) # find all non-letter characters in file
-    cleaned_sentence = text.strip_words(sentence, method='punctuation', nonletters=nonletters)
-    tagged_sentence = text.get_pos_tags(sentence)
+    # find all non-letter characters in file
+    nonletters = text.get_nonletters(tokenized, exceptions=[])
+    cleaned_sentence = text.strip_words(tokenized, method='punctuation', nonletters=nonletters)
+    tagged_sentence = text.get_pos_tags(tokenized)
     pronoun_ratio = utils.get_pronoun_ratio(tagged_sentence)
     is_content_word = utils.get_is_content(tagged_sentence, content_pos=text.pos_for_content) # content or function word
     content_ratio = utils.get_content_ratio(is_content_word)
 
-    database_features = utils.get_all_features_merged(sentence, lemmatized_sentence, databases)  # lexical features
+    database_features = utils.get_all_features_merged(tokenized, lemmatized_sentence, databases)  # lexical features
     
     return {
-        'tokens': sentence,
-        'lemmas': lemmatized_sentence,
+        # 'UID': None,
+        'sentence': sentence,
+        'token': tokenized,
+        'lemma': lemmatized_sentence,
         'cleaned_tokens': cleaned_sentence,
         'tags': tagged_sentence,
         'content_words': is_content_word,
