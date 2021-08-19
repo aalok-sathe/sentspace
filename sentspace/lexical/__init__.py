@@ -8,9 +8,9 @@ from sentspace.lexical import utils
 
 databases = utils.load_databases(features='all')
 
-def get_features(sentence:List[str]):
+def get_features(sentence:str):
 
-    sentence = tuple(sentence)
+    sentence = tuple(sentence.split())
     lemmatized_sentence = text.get_lemmatized_tokens(sentence, text.get_pos_tags(sentence))
     # clean words: strip nonletters/punctuation and lowercase
     nonletters = text.get_nonletters(sentence, exceptions=[]) # find all non-letter characters in file
