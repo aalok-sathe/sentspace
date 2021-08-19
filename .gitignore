@@ -158,3 +158,4 @@ sentspace/.cached_function_calls
 sentspace/syntax/utils/vs13parser-from-CORY
 sentspace/syntax/testing/
 literature/
+*.code-workspace
