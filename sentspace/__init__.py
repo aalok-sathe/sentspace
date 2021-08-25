@@ -9,9 +9,9 @@ def license():
     print(_license_string)
 
 
+import sentspace.utils as utils
 import sentspace.syntax as syntax
 import sentspace.lexical as lexical
 import sentspace.semantic as semantic
 import sentspace.embedding as embedding
 # ...
-import sentspace.utils

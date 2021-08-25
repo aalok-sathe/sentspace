@@ -8,6 +8,7 @@ import pickle
 # import string
 from itertools import chain
 from math import isnan
+import math
 from time import time
 
 # import seaborn as sns
@@ -23,7 +24,6 @@ from nltk.corpus import wordnet
 from nltk.stem import WordNetLemmatizer
 from polyglot.text import Word
 from scipy.stats import percentileofscore, zscore
-from sentspace.utils.caching import cache_to_disk, cache_to_mem
 from zs import ZS
 
 _START_TIME = time()
@@ -89,9 +89,10 @@ def START_TIME(): return _START_TIME
 
 # download NLTK data if not already downloaded
 def download_nltk_resources():
-    for nltk_resource in ['taggers/averaged_perceptron_tagger', 'corpora/wordnet']:
+    for category, nltk_resource in [('taggers', 'averaged_perceptron_tagger'), 
+                                    ('corpora', 'wordnet')]:
     	try:
-	    	nltk.data.find(nltk_resource)
+	    	nltk.data.find(category+'/'+nltk_resource)
     	except LookupError as e:
     		nltk.download(nltk_resource)
 

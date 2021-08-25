@@ -9,13 +9,13 @@ from pathlib import Path
 def main(args):
     sentspace.utils.io.log(f'--- LEXICAL MODULE ---')
 
-    split = lambda s: s.split()
+    strip = lambda s: s.strip()
 
     if Path(args.input).exists():
         with Path(args.input).open('r') as f:
-            input = [*map(split, f.readlines())]
+            input = [*map(strip, f.readlines())]
     else:
-        input = [*map(split, args.input.split('\n'))]
+        input = [*map(strip, args.input.split('\n'))]
 
     for i, item in enumerate(input):
         sentspace.utils.io.log(f'*** processing sentence {i}/{len(input)} ***')
