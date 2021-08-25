@@ -4,12 +4,11 @@ import string
 from collections import Counter
 
 import pandas as pd
+import sentspace.utils
 from nltk import pos_tag
 from nltk.corpus import wordnet
 from nltk.stem import WordNetLemmatizer
-import sentspace.utils
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
-
 
 pos_for_lemmatization = (wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV) # define POS used for lemmatization
 pos_for_content = (wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV)  # define POS that count as content words
@@ -26,7 +25,7 @@ def get_flat_pos_tags(token_lists):
     """
     Given list of sentences (each a list of tokens), return single list of POS tags
     """
-    sentspacte.utils.io.log('`get_flat_post_tags` '
+    sentspace.utils.io.log('`get_flat_post_tags` '
         'applied to multiple sentences will be DEPRECATED. '
         'please call the appropriate function corresponding to a single sentence.', type='WARN')
 
