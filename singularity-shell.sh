@@ -1,1 +1,1 @@
-singularity shell docker://aloxatel/ubuntu:sent-space
+singularity shell docker://aloxatel/sentspace:latest
