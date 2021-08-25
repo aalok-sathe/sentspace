@@ -3,9 +3,10 @@ import pickle
 
 import numpy as np
 import sentspace.utils
+from sentspace.utils import io, text
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
 from sentspace.utils.utils import Word, merge_lists, wordnet
-from sentspace.utils import text, io
+
 
 def get_all_features(wordlist, databases):
     """
@@ -30,22 +31,6 @@ def get_all_features_merged(flat_token_list, flat_lemmatized_token_list, databas
     for feature in all_vals:
         merged[feature] = merge_lists(all_vals[feature], all_vals_lem[feature], feature=feature)
     return merged
-
-
-def get_content_ratio(is_content_pos_tag: tuple):
-    """
-    given boolean list corresponding to a token being a content word, 
-    calculate the content ratio
-    """
-    return sum(is_content_pos_tag) / len(is_content_pos_tag)
-
-
-def get_pronoun_ratio(pos_tags: tuple):
-    """
-    Given sentence calculate the pronoun ratio
-    """
-    pronoun_tags = {'PRP', 'PRP$', 'WP', 'WP$'}
-    return sum(tag in pronoun_tags for tag in pos_tags) / len(pos_tags)
 
 
 # @cache_to_mem

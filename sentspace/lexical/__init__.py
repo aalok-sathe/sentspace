@@ -1,13 +1,16 @@
 import os
 from pathlib import Path
 from typing import List
+
 import sentspace.utils
-from sentspace.utils import text, io
-from sentspace.utils.caching import cache_to_disk, cache_to_mem
 from sentspace.lexical import utils
+from sentspace.utils import io, text
+from sentspace.utils.caching import cache_to_disk, cache_to_mem
 
 
-def get_features(sentence:str):
+def get_features(sentence:str) -> dict:
+
+    # io.log(f'computing lexical featuures for `{sentence}`')
 
     databases = utils.load_databases(features='all')
 
@@ -18,9 +21,9 @@ def get_features(sentence:str):
     nonletters = text.get_nonletters(tokenized, exceptions=[])
     cleaned_sentence = text.strip_words(tokenized, method='punctuation', nonletters=nonletters)
     tagged_sentence = text.get_pos_tags(tokenized)
-    pronoun_ratio = utils.get_pronoun_ratio(tagged_sentence)
+    # pronoun_ratio = utils.get_pronoun_ratio(tagged_sentence)
     is_content_word = utils.get_is_content(tagged_sentence, content_pos=text.pos_for_content) # content or function word
-    content_ratio = utils.get_content_ratio(is_content_word)
+    # content_ratio = utils.get_content_ratio(is_content_word)
 
     database_features = utils.get_all_features_merged(tokenized, lemmatized_sentence, databases)  # lexical features
     
@@ -30,10 +33,12 @@ def get_features(sentence:str):
         'token': tokenized,
         'lemma': lemmatized_sentence,
         'cleaned_tokens': cleaned_sentence,
+
         'tags': tagged_sentence,
         'content_words': is_content_word,
-        'pronoun_ratio': pronoun_ratio,
-        'content_ratio': content_ratio,
+        # 'pronoun_ratio': pronoun_ratio,
+        # 'content_ratio': content_ratio,
+
         **database_features
     }
 
