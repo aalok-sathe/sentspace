@@ -5,12 +5,14 @@ import textwrap
 from datetime import date
 from hashlib import sha1
 from pathlib import Path
-from sys import stderr
+from sys import stderr, stdout
 
 import numpy as np
 import sentspace.utils
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
 from sentspace.utils.s3 import load_feature
+from tqdm import tqdm
+
 # from sentspace.utils.sanity_checks import sanity_check_databases
 
 def dump_features(): pass
@@ -141,5 +143,6 @@ def load_surprisal(file='pickle/surprisal-3_dict.pkl'):
 
 def log(message, type='INFO'):
     timestamp = f'{sentspace.utils.time() - sentspace.utils.START_TIME():.2f}s'
-    lines = textwrap.wrap(message, width=79, initial_indent='='*4 + f' [{type} @ {timestamp}] ', subsequent_indent='='*8+' ')
-    print(*lines, sep='\n', file=stderr)
+    lines = textwrap.wrap(message, width=120, initial_indent='='*4 + f' [{type} @ {timestamp}] ', subsequent_indent='='*8+' ')
+    tqdm.write('\n'.join(lines), file=stderr)
+    # print(*lines, sep='\n', file=stderr)
