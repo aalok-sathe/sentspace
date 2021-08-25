@@ -158,3 +158,7 @@ sentspace/.cached_function_calls
 sentspace/syntax/utils/vs13parser-from-CORY
 sentspace/syntax/testing/
 literature/
+in/
+out/
+sentspace/syntax/utils/berkeleyparser/
+sentspace/syntax/utils/wsj02to21.gcg15.prtrm.4sm.fullberk.model
