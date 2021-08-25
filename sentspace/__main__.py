@@ -1,23 +1,21 @@
-# This file accepts as input a path to a file containing sentences and 
-# prints out a csv with sentences per row and sentence features per column.
+#!/usr/bin/env python3
 
-# print('Loading modules... (chunk 1/4)', end='\r')
-
-from distutils.util import strtobool
 import argparse
+import json
 import pathlib
 import sys
-# import numpy as np
+from distutils.util import strtobool
 
-# print('Loading modules... (chunk 2/4)', end='\r')
 import pandas as pd
 import seaborn as sns
+from tqdm import tqdm
 
-# print('Loading modules... (chunk 3/4)', end='\r')
 import sentspace
 import sentspace.utils as utils
-from tqdm import tqdm
-import json
+
+# import numpy as np
+
+
 
 
 def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
@@ -105,7 +103,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 	if syntax:
 		utils.io.log('*** running syntax submodule pipeline')
 		syntax_features = [sentspace.syntax.get_features(sentence, dlt=True, left_corner=True)
-                     	   for sentence in tqdm(sentences, desc='Lexical pipeline')]
+                     	   for sentence in tqdm(sentences, desc='Syntax pipeline')]
 
 		syntax_out = output_dir / 'syntax'
 		syntax_out.mkdir(parents=True, exist_ok=True)
@@ -187,9 +185,7 @@ if __name__ == "__main__":
 		"""
     )
 
-	parser.add_argument('-i', '--input_file', type=str,
-						default=None,
-						required=True,
+	parser.add_argument('input_file', type=str,
 						help='path to input file or a single sentence. If '
 						     'supplying a file, it must be .csv .txt or .xlsx,'
 							 ' e.g., example/example.csv')
