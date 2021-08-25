@@ -12,19 +12,30 @@ from sentspace.syntax import get_features
 def main(args):
     sentspace.utils.io.log(f'--- SYNTAX MODULE ---')
 
-    sentspace.utils.io.log(f'*** processing input ***')
-    sentspace.utils.io.log(f'--- {args.input}')
-    features = get_features(args.input, dlt=args.dlt, left_corner=args.left_corner,
-                            parse_beam_width=args.parse_beam_width)        
-    sentspace.utils.io.log(f'--- obtained features:')
-    if args.output == 'pandas':
-        print(pd.DataFrame(features, index=[0]))
-    elif args.output == 'json':
-        print(json.dumps(features, indent=4))
-    elif args.output == 'dict':
-        print(features)
+    def split(s): return s.split()
+    def nosplit(s): return s
+
+    if Path(args.input).exists():
+        with Path(args.input).open('r') as f:
+            input = [*map(nosplit, f.readlines())]
     else:
-        raise ValueError(f'output mode {args.output} not in supported modes (pandas, json)')
+        input = [*map(nosplit, args.input.split('\n'))]
+
+    for i, item in enumerate(input):
+        sentspace.utils.io.log(f'*** processing sentence {i}/{len(input)} ***')
+
+    # sentspace.utils.io.log(f'*** processing input ***')
+    # sentspace.utils.io.log(f'--- {args.input}')
+        features = get_features(item, dlt=args.dlt, left_corner=args.left_corner)        
+        sentspace.utils.io.log(f'--- obtained features:')
+        if args.output == 'pandas':
+            print(pd.DataFrame(features, index=[0]))
+        elif args.output == 'json':
+            print(json.dumps(features, indent=4))
+        elif args.output == 'dict':
+            print(features)
+        else:
+            raise ValueError(f'output mode {args.output} not in supported modes (pandas, json)')
 
 
 if __name__ == '__main__':
@@ -45,8 +56,6 @@ if __name__ == '__main__':
     #                     help='Path to csv file of benchmark corpora For example benchmarks/lex/UD_corpora_lex_features_sents_all.csv')
 
     # Add an option for a user to choose to not do some analyses. Default is true
-    parser.add_argument('-c', '--parse_beam_width', default=5_000, 
-                        help='[NotImplemented] beam width to use with the Berkeley PCFG (smaller leads to faster output) [5000]')
     parser.add_argument('-dlt', '--dlt', type=strtobool,
                         default=True, help='calculate dependency locality theory (DLT) metric? [True]')
     parser.add_argument('-lc', '--left_corner', type=strtobool,

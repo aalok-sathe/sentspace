@@ -2,13 +2,12 @@ import os
 import subprocess
 from functools import lru_cache
 from pathlib import Path
+from urllib import request
 
-from joblib import Memory
 from nltk.tree import ParentedTree
 from sentspace.syntax.features import DLT, Feature, LeftCorner, Tree
-
-from sentspace.utils.caching import cache_to_disk
 from sentspace.utils import io
+from sentspace.utils.caching import cache_to_disk
 
 os.environ['PERL_BADLANG'] = '0'
 
@@ -25,24 +24,20 @@ def path_decorator(func):
             back to the same directory we started from
         '''
         previous_pwd = os.getcwd()
-        target = Path(__file__) 
+        target = Path(__file__)
         os.chdir(str(target.parent / 'utils'))
-        # DEBUG
-        # pdb.set_trace()
         result = func(*args, **kwargs)
         os.chdir(previous_pwd)
-        # DEBUG
-        # pdb.set_trace()
         return result.decode('utf-8').strip()
 
     return wrapped
 
 
-def get_features(text:str=None, dlt:bool=False, left_corner:bool=False, parse_beam_width=5000):
+def get_features(text: str = None, dlt: bool = False, left_corner: bool = False):
     """executes the syntactic features pipeline
 
     Args:
-        text (str, optional): paragraph of 1 or more sentences separated by newline or path to file [None].
+        text (str, optional): exactly 1 sentence [None].
         dlt (bool, optional): calculate DLT feature? [False].
         left_corner (bool, optional): calculate Left Corner feature? [False].
 
@@ -51,10 +46,10 @@ def get_features(text:str=None, dlt:bool=False, left_corner:bool=False, parse_be
     """
     features = Feature()
     if dlt or left_corner:
-        io.log(f'parsing given text')
-        parsed = parse_input(text)
-        io.log(f'computing tree with beam_width={parse_beam_width} for parsed text')
-        features.tree = Tree(compute_trees(parsed, beam_width=parse_beam_width))
+        # io.log(f'parsing given text')
+        # parsed = parse_input(text)
+        io.log(f'computing tree for parsed text')
+        features.tree = Tree(compute_trees(text))
         io.log(f'--- done: tree computed')
     else:
         return None
@@ -71,18 +66,18 @@ def get_features(text:str=None, dlt:bool=False, left_corner:bool=False, parse_be
     return {'tree': features.tree, 'dlt': features.dlt, 'leftcorner': features.left_corner}
 
 
-def parse_input(source):
-    # TODO: collect input from various sources
-    tokens = None
-    try: 
-        if Path(source).exists():
-            raw = open(source, 'r').read()
-            tokens = tokenize(raw)
-        else:
-            tokens = tokenize(source)
-    except (FileNotFoundError, OSError) as e:
-        tokens = tokenize(source)
-    return tokens
+# def parse_input(source):
+#     # TODO: collect input from various sources
+#     tokens = None
+#     try:
+#         if Path(source).exists():
+#             raw = open(source, 'r').read()
+#             tokens = tokenize(raw)
+#         else:
+#             tokens = tokenize(source)
+#     except (FileNotFoundError, OSError) as e:
+#         tokens = tokenize(source)
+#     return tokens
 
 
 def validate_input():
@@ -100,9 +95,17 @@ def tokenize(raw):
 
 
 @path_decorator
-@cache_to_disk
-def compute_trees(tokens, beam_width=5000):
-    cmd = ['bash', 'parse_trees.sh', f'{beam_width}', tokens]
+def compute_trees(sentence, server_url='http://localhost:8000/fullberk'):
+    
+    data = f'{{ "sentence": "{sentence}" }}'
+    r = request.Request(server_url, data=bytes(data, 'utf-8'), method='GET',
+                        headers={'Content-Type': 'application/json'})
+    with request.urlopen(r) as rq:
+        response = rq.read()
+    cmd = ['bash', 'postprocess_trees.sh', response]
+
+    # fallback to manually initializing parser
+    # cmd = ['bash', 'parse_trees.sh', tokens]
     trees = subprocess.check_output(cmd)
     return trees
 
