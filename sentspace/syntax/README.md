@@ -1,3 +1,18 @@
+# sentspace syntax module
+
+This module computes `leftcorner` and `DLT` (dependency lexicality theory)
+features for sentences (one at a time). We use parser and scripts provided
+as-is from Cory Shain and the `modelblocks` collection of utilities.
+Unfortunately, producing GCG-15 parse trees using the utilities in this
+subsection involves a large overhead in terms of time taken to load
+and process sentences. Within sentspace we will simply query an always-running
+web server that will produce parse trees for a sentence upon request.
+Details about how to set up and run the webserver are available at
+[github.com/aalok-sathe/berkeley-interact](https://github.com/aalok-sathe/berkeley-interact).
+
+
+**rest of README as-is below**
+
 van Schijndel et al. (2013) parser implementation
 =================================================
 
