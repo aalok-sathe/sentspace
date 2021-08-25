@@ -6,4 +6,4 @@ else
     input=$1
 fi
 
-echo $input | python2 calcDLT.py
+echo $input | python2.7 calcDLT.py
