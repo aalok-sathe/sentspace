@@ -12,7 +12,8 @@ from tqdm import tqdm
 
 import sentspace
 import sentspace.utils as utils
-
+from itertools import chain
+from functools import reduce, partial
 # import numpy as np
 
 
@@ -21,7 +22,9 @@ import sentspace.utils as utils
 def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                    benchmark_file: str = None, output_dir: str = None,
                                    lexical: bool = False, syntax: bool = False, 
-								   embedding: bool = False, semantic: bool = False):
+                                   embedding: bool = False, semantic: bool = False,
+                                   #
+                                   emb_data_dir: str = None):
 	"""runs the full sentence features pipeline on the given input according to
 		requested submodules (lexical, syntax, ...).
 		returns output in the form of TODO
@@ -142,6 +145,28 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 	
 	if embedding:
 		utils.io.log('*** running embedding submodule pipeline')
+        # Get GloVE
+
+        stripped_words = utils.text.strip_words(chain(*token_lists), method='punctuation')
+        vocab = sentspace.embedding.utils.get_vocab(stripped_words)
+        embedding_features = [sentspace.embedding.get_features(sentence, vocab=vocab,
+                                                               data_dir=emb_data_dir)
+                               for sentence in tqdm(sentences, desc='Embedding pipeline')]
+
+        embedding_out = output_dir / 'embedding'
+        embedding_out.mkdir(parents=True, exist_ok=True)
+
+        sentence_df = pd.DataFrame([{k: v for k, v in feature_dict.items() if k != 'token_embeds'}
+                              for feature_dict in embedding_features])
+        print(sentence_df.head())
+        sentence_df.to_csv(embedding_out / 'sentence-features.tsv', sep='\t', index=False)
+        
+        token_dfs = [feature_dict['token_embeds'] for feature_dict in embedding_features]
+
+        reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs).to_csv(
+            embedding_out / 'token-features.tsv', sep='\t', index=False)
+
+
 		return
 		# Get GloVE
 		result = utils.compile_results_for_glove_only(wordlst, wordlst_l, wordlst_lem,
@@ -182,7 +207,9 @@ def main(args):
 											  benchmark_file=args.benchmark, lexical=args.lexical, 
 											  syntax=args.syntax, embedding=args.embedding,
 											  semantic=args.semantic,
-											  output_dir=args.output_dir)
+                                              output_dir=args.output_dir,
+                                              #
+                                                 emb_data_dir=args.emb_data_dir)
 	#estimate_sentence_embeddings(args.input_file)
 
 
@@ -231,6 +258,9 @@ if __name__ == "__main__":
 	parser.add_argument('-em','--embedding', type=strtobool, default=True, help='compute sentence embeddings? [True]')
 	parser.add_argument('-sm','--semantic', type=strtobool, default=True, help='compute semantic (multi-word) features? [True]')
 	
+    parser.add_argument('--emb_data_dir', default='/om/data/public/glove/', type=str,
+                         help='path to output directory where results may be stored')
+
 	args = parser.parse_args()	
 	utils.io.log(f'SENTSPACE. Received arguments: {args}')
 	main(args)
