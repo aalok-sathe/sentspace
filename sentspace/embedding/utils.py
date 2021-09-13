@@ -1,11 +1,14 @@
 import os
 import pickle
+from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import sentspace.utils
+from sentspace.utils import text, io
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
 from sentspace.utils.utils import Word, merge_lists, wordnet
-from sentspace.utils import text
+from tqdm import tqdm
 
 
 # --------- GloVe
@@ -29,55 +32,69 @@ def get_sent_version(version, df):
     return f1g
 
 
-def get_vocab(f1g):
+def get_vocab(token_list):
     """
-    Return set of unique tokens in input (assume input is a list of token lists)
+    Return set of unique tokens in input (assume input is a list of tokens)
     """
-    vocab = set()
-    for sent in f1g:
-        for token in sent:
-            vocab.add(token)
-    return vocab
+    return set(t for t in token_list)
 
 
-def return_percentile_df(bench_df, usr_df):
-    # Initialize df
-    perc_df = pd.DataFrame(columns=usr_df.columns)
-    # For each sentence get the percentile scores for each feature
-    for index, row in usr_df.iterrows():
-        temp_df = {}
-        # Iterate through the features
-        for col in usr_df.columns:
-            if col == 'Sentence no.':
-                temp_df[col] = row[col]
-                continue
-            #print(percentileofscore(bench_df[col],row[col]))
-            temp_df[col] = percentileofscore(bench_df[col], row[col])
-            #pdb.set_trace()
-        # Append percentile feature row
-        perc_df = perc_df.append(temp_df, ignore_index=True)
-
-    perc_df.drop(columns=['Sentence no.'])
-    return perc_df
+def download_embeddings(which='glove.840B.300d.txt'):
+    raise NotImplementedError()
+    if 'glove' in which:
+        url = 'https://huggingface.co/stanfordnlp/glove/resolve/main/glove.840B.300d.zip'
 
 
-def read_glove_embed(vocab, glove_path):
+@cache_to_mem
+def load_embeddings(emb_file: str = 'glove.840B.300d.txt',
+                    data_dir: Path = None,
+                    vocab: tuple = ()):
     """
     Read through the embedding file to find embeddings for target words in vocab
     Return dict mapping word to embedding (numpy array)
     """
+    try:
+        data_dir = Path(data_dir)
+    except TypeError:
+        data_dir = Path(__file__).parent / '..' / '..' / '.feature_database/'
+    
+    vocab = set(vocab)
+    OOV = set(vocab)
+
+    io.log(f"loading embeddings from {emb_file} for vocab of size {len(vocab)}")
     w2v = {}
-    with open(glove_path, 'r') as f:
-        for line in f:
-            tokens = line.strip().split(' ')
-            w = tokens[0]
-            if w in vocab:
-                v = tokens[1:]
-                w2v[w] = np.array(v, dtype=float)
+    with (data_dir / emb_file).open('r') as f:
+        total_lines = sum(1 for _ in tqdm(f, desc=f'counting # of lines in {data_dir/emb_file}'))
+    with (data_dir / emb_file).open('r') as f:
+        for line in tqdm(f, total=total_lines, desc=f'loading {len(vocab)} embeddings'):
+            token, *emb = line.split(' ')
+            if token in vocab:
+                # print(f'found {token}!')
+                w2v[token] = np.asarray(emb, dtype=float)
+                OOV.remove(token)
+    
+    io.log(f"---done--- loading embeddings from {emb_file}. OOV count: {len(OOV)}/{len(vocab)}")
+    io.log(f"           a selection of up to 100 OOV tokens: {[*OOV][:100]}")
+
     return w2v
 
 
-def get_glove_word(f1g, w2v, return_NA_words=False, save=False, save_path=False):
+def get_word_embeds(token_list, w2v, which='glove', dims=300, return_NA_words=False, save=False, save_path=False):
+    """[summary]
+
+    Args:
+        tokenized ([type]): [description]
+        w2v ([type]): [description]
+        embedding (str, optional): [description]. Defaults to 'glove'.
+        dims (int, optional): [description]. Defaults to 300.
+
+    Raises:
+        ValueError: [description]
+
+    Returns:
+        [type]: [description]
+    """    
+    #
     """
     Return dataframe of each word, sentence no., and its glove embedding
     If embedding does not exist for a word, fill cells with np.nan
@@ -88,19 +105,21 @@ def get_glove_word(f1g, w2v, return_NA_words=False, save=False, save_path=False)
         save: whether to save results
         save_path: path to save, support .csv & .mat files
     """
-    glove_embed = []
-    NA_words = set()
-    for i, sent in enumerate(f1g):
-        for token in sent:
-            if token in w2v:
-                glove_embed.append(w2v[token])
-            else:
-                glove_embed.append([np.nan]*300)
-                NA_words.add(token)
-    NA_words = list(NA_words)
 
-    flat_token_list = utils.text.get_flat_tokens(f1g)
-    flat_sentence_num = utils.text.get_flat_sentence_num(f1g)
+    embeddings = []
+    
+    OOV_words = set()
+    for token in token_list:
+        if token in w2v[which]:
+            embeddings.append(w2v[which][token])
+        else:
+            embeddings.append([np.nan]*dims)
+            OOV_words.add(token)
+    
+    return embeddings
+
+    flat_token_list = sentspace.utils.text.get_flat_tokens(f1g)
+    flat_sentence_num = sentspace.utils.text.get_flat_sentence_num(f1g)
     df = pd.DataFrame(glove_embed)
     df.insert(0, 'Sentence no.', flat_sentence_num)
     df.insert(0, 'Word', flat_token_list)
@@ -125,8 +144,23 @@ def get_glove_word(f1g, w2v, return_NA_words=False, save=False, save_path=False)
         return df
 
 
-def get_glove_sent(df, content_only=False, is_content_lst=None,
-                   save=False, save_path=None):
+
+def pool_sentence_embeds(tokens, token_embeddings, filters=[lambda i, x: True],
+                         which='glove'):
+    """pools embeddings of an entire sentence (given as a list of embeddings)
+       using averaging, maxpooling, minpooling, etc., after applying all the
+       provided filters as functions (such as content words only).
+
+    Args:
+        token_embeddings (list[np.array]): [description]
+        filters (list[function[(idx, token) -> bool]], optional): [description]. Defaults to [lambda x: True].
+            filters should be functions that map token to bool (e.g. is_content_word(...))
+            only tokens that satisfy all filters are retained.
+
+    Returns:
+        dict: averaging method -> averaged embedding
+    """                         
+
     """
     Return dataframe of each sentence no. and its sentence embedding
     from averaging embeddings of words in a sentence (ignore NAs)
@@ -137,8 +171,26 @@ def get_glove_sent(df, content_only=False, is_content_lst=None,
         save: whether to save results
         save_path: path to save, support .csv & .mat files
     """
-    if content_only:
-        df = df[np.array(is_content_lst) == 1]
+    # if content_only:
+    #     df = df[np.array(is_content_lst) == 1]
+
+    all_pooled = {}
+    for which in token_embeddings:
+        filtered_embeds = [e for i, (t, e) in enumerate(zip(tokens, token_embeddings[which]))
+                           if all(fn(i, t) for fn in filters)]
+        filtered_embeds = np.array(filtered_embeds, dtype=np.float32)
+        filtered_embeds = filtered_embeds[~np.isnan(filtered_embeds[:,0])]
+        
+        pooled = {
+            'pooled_'+which+'_mean': filtered_embeds.mean(axis=0).reshape(-1).tolist() if len(filtered_embeds) else None,
+            'pooled_'+which+'_max': filtered_embeds.max(axis=0).reshape(-1).tolist() if len(filtered_embeds) else None,
+            'pooled_'+which+'_min': filtered_embeds.min(axis=0).reshape(-1).tolist() if len(filtered_embeds) else None,
+        }
+
+        all_pooled.update(pooled)
+
+    return all_pooled
+
     sent_vectors = df.drop(columns=['Word']).groupby('Sentence no.').mean()  # ignores nans
 
     na_frac = len(df.dropna())/len(df)
@@ -154,3 +206,23 @@ def get_glove_sent(df, content_only=False, is_content_lst=None,
         else:
             raise ValueError('File type not supported!')
     return sent_vectors
+
+
+def compile_results_for_glove_only(wordlst, wordlst_l, wordlst_lem,
+                                   taglst, is_content_lst, setlst,
+                                   snlst, wordlen):
+    """
+    Return dataframe: each row is a word & its various associated values
+    """
+    result = pd.DataFrame({'Word': wordlst})
+    result['Word cleaned'] = wordlst_l
+    result['Word lemma'] = wordlst_lem
+
+    result['POS'] = taglst
+    result['Content/function'] = is_content_lst
+    result['Set no.'] = setlst
+    result['Sentence no.'] = snlst
+    result['Specific topic'] = ['']*len(wordlst)
+    result['Word length'] = wordlen
+
+    return result
