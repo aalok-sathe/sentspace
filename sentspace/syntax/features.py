@@ -23,23 +23,34 @@ class Tree:
         return repr(self.raw)
 
 
-class DLT:
-    """Description of a DLT object"""
+def rawdatatodf(data, sentence=None, identifier=None):
+    df = pd.read_csv(StringIO(data), sep=' ')
+    df.rename(columns={'word': 'token'}, inplace=True)
+    df['sentence'] = sentence
+    df['identifier'] = identifier
+    df = df[['sentence', 'indentifier', *df.columns[:-2]]]
+    return df
 
-    def __init__(self, data=None):
-        self.pandas_dataframe = pd.read_csv(StringIO(data), sep=' ')
-        self.raw = data
-
-    def __repr__(self):
-        return repr(self.pandas_dataframe)
+DLT = LeftCorner = rawdatatodf
 
 
-class LeftCorner:
-    """Description of a LeftCorner object"""
+# class DLT:
+#     """Description of a DLT object"""
 
-    def __init__(self, data=None):
-        self.pandas_dataframe = pd.read_csv(StringIO(data), sep=' ')
-        self.raw = data
+#     def __init__(self, data=None):
+#         self.pandas_dataframe = pd.read_csv(StringIO(data), sep=' ')
+#         self.raw = data
 
-    def __repr__(self):
-        return repr(self.pandas_dataframe)
+#     def __repr__(self):
+#         return repr(self.pandas_dataframe)
+
+
+# class LeftCorner:
+#     """Description of a LeftCorner object"""
+
+#     def __init__(self, data=None):
+#         self.pandas_dataframe = pd.read_csv(StringIO(data), sep=' ')
+#         self.raw = data
+
+#     def __repr__(self):
+#         return repr(self.pandas_dataframe)
