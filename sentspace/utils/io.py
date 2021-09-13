@@ -94,7 +94,7 @@ def _create_output_paths(output_dir:Path, name, analysis, suffix='', sent_suffix
     return result
 
 
-def read_sentences(filename, stop_words_file: str = None):
+def read_sentences(filename: str, stop_words_file: str = None):
     """reads sentences from a file, one per line, filtering
         for stopwords
 
@@ -106,30 +106,38 @@ def read_sentences(filename, stop_words_file: str = None):
         list[list]: list of the tokens from each sentences, nested as a list
         list: list of sentences
     """
-
+    UIDs = []
     token_lists = []
     sentences = []
 
-    with open(filename, 'r') as f:
-        for line in f:
-            if line.strip():
-                tokens = sentspace.utils.text.tokenize(line) # line.split()
-            else:
-                continue
-            # if a non-empty collection of stop words has been supplied
-            if stop_words_file:
-                stop_words = np.loadtxt(
-                    stop_words_file, delimiter='\t', unpack=False, dtype=str)
-                stop_words = set(stop_words)
-                filtered = [x for x in tokens if x not in stop_words]
-                token_lists.append(filtered)
-                sentences.append(' '.join(filtered))
-            # no stopwords supplied; do not filter
-            else:
-                token_lists.append(tokens)
-                sentences.append(line.strip())
+    # if a non-empty collection of stop words has been supplied
+    if stop_words_file:
+        stop_words = set(np.loadtxt(stop_words_file, delimiter='\t', unpack=False, dtype=str))
 
-    return token_lists, sentences
+    if filename.endswith('.txt'):
+        with open(filename, 'r') as f:
+            UID_prefix = f'{filename[-8:]:#>10}' + '_' + sentspace.utils.md5(filename)[-5:]
+            for i, line in enumerate(f):
+
+                if line.strip():
+                    tokens = sentspace.utils.text.tokenize(line) # line.split()
+                else:
+                    continue
+
+                UIDs += [UID_prefix + '_' + f'{1+len(UIDs):0>5}']
+                if stop_words_file:
+                    filtered = [x for x in tokens if x not in stop_words]
+                    token_lists.append(filtered)
+                    sentences.append(' '.join(filtered))
+                # no stopwords supplied; do not filter
+                else:
+                    token_lists.append(tokens)
+                    sentences.append(line.strip())
+
+    elif filename.endswith('.csv'): pass
+    elif filename.endswith('.tsv'): pass
+
+    return UIDs, token_lists, sentences
 
 
 
