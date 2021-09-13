@@ -96,10 +96,13 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 		
 		lexical_out = output_dir / 'lexical'
 		lexical_out.mkdir(parents=True, exist_ok=True)
-		with (lexical_out/'features.json').open('w') as f:
-			json.dump(lexical_features, f)
+
+        # with (lexical_out/'token-features.json').open('w') as f:
+        # 	json.dump(lexical_features, f)
 		
         # lexical is a special case since it returns dicts per token (rather than per sentence)
+        # so we want to flatten it so that pandas creates a sensible dataframe from it.
+        pd.DataFrame(chain.from_iterable(lexical_features)).to_csv(lexical_out / 'token-features.tsv', sep='\t', index=False)
 	
 	if syntax:
 		utils.io.log('*** running syntax submodule pipeline')
