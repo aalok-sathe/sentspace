@@ -28,7 +28,7 @@ def rawdatatodf(data, sentence=None, identifier=None):
     df.rename(columns={'word': 'token'}, inplace=True)
     df['sentence'] = sentence
     df['identifier'] = identifier
-    df = df[['sentence', 'indentifier', *df.columns[:-2]]]
+    df = df[['sentence', 'identifier', *df.columns[:-2]]]
     return df
 
 DLT = LeftCorner = rawdatatodf
