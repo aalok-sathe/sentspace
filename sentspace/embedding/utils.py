@@ -1,11 +1,12 @@
 import os
 import pickle
+import warnings
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import sentspace.utils
-from sentspace.utils import text, io
+from sentspace.utils import io, text
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
 from sentspace.utils.utils import Word, merge_lists, wordnet
 from tqdm import tqdm
@@ -181,10 +182,15 @@ def pool_sentence_embeds(tokens, token_embeddings, filters=[lambda i, x: True],
         filtered_embeds = np.array(filtered_embeds, dtype=np.float32)
         filtered_embeds = filtered_embeds[~np.isnan(filtered_embeds[:,0])]
         
+        if len(filtered_embeds) == 0:
+            warnings.warn(f'all embeddings for current sentence ({tokens}) are NaN', ValueError)
+            filtered_embeds = np.zeros((1,))
+
         pooled = {
-            'pooled_'+which+'_mean': filtered_embeds.mean(axis=0).reshape(-1).tolist() if len(filtered_embeds) else None,
-            'pooled_'+which+'_max': filtered_embeds.max(axis=0).reshape(-1).tolist() if len(filtered_embeds) else None,
-            'pooled_'+which+'_min': filtered_embeds.min(axis=0).reshape(-1).tolist() if len(filtered_embeds) else None,
+            'pooled_'+which+'_median': np.median(filtered_embeds, axis=0).reshape(-1).tolist(),
+            'pooled_'+which+'_mean': filtered_embeds.mean(axis=0).reshape(-1).tolist(),
+            'pooled_'+which+'_max': filtered_embeds.max(axis=0).reshape(-1).tolist(),
+            'pooled_'+which+'_min': filtered_embeds.min(axis=0).reshape(-1).tolist(),
         }
 
         all_pooled.update(pooled)
