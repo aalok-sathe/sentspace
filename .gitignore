@@ -144,7 +144,6 @@ database/*
 */Glove
 Glove/*
 */Glove/*
-# teporarily:
 sentspace/stimuli
 sentspace/example
 sentspace/.cached_function_calls

@@ -90,12 +90,16 @@ def START_TIME(): return _START_TIME
 # download NLTK data if not already downloaded
 def download_nltk_resources():
     for category, nltk_resource in [('taggers', 'averaged_perceptron_tagger'), 
-                                    ('corpora', 'wordnet')]:
-    	try:
-	    	nltk.data.find(category+'/'+nltk_resource)
-    	except LookupError as e:
-    		nltk.download(nltk_resource)
-
+                                    ('corpora', 'wordnet'),
+                                    # ('tokenizers', 'punkt')
+                                    ]:
+        try:
+            nltk.data.find(category+'/'+nltk_resource)
+        except LookupError as e:
+            try:
+                nltk.download(nltk_resource)
+            except FileExistsError:
+                pass
 
 def md5(fname) -> str:
     '''generates md5sum of the contents of fname
@@ -232,23 +236,7 @@ def compile_results(wordlst, wordlst_l, wordlst_lem,
         result[val] = merged_vals[key]
     return result
     
-def compile_results_for_glove_only(wordlst, wordlst_l, wordlst_lem, 
-                    taglst, is_content_lst, setlst,
-                    snlst, wordlen):
-    """
-    Return dataframe: each row is a word & its various associated values
-    """
-    result = pd.DataFrame({'Word': wordlst})
-    result['Word cleaned'] = wordlst_l
-    result['Word lemma'] = wordlst_lem
 
-    result['POS'] = taglst
-    result['Content/function'] = is_content_lst
-    result['Set no.'] = setlst
-    result['Sentence no.'] = snlst
-    result['Specific topic'] = ['']*len(wordlst)
-    result['Word length'] = wordlen
-    return result
     
 def conform_word_lex_df_columns(df):
     # List what you want the columns to be called
