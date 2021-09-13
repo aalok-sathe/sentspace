@@ -51,7 +51,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         print(args, file=f)
 
     utils.io.log('reading input sentences')
-    token_lists, sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
+    UIDs, token_lists, sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
     utils.io.log('---done--- reading input sentences')
 
     # flat_token_list = utils.text.get_flat_tokens(token_lists)
@@ -91,8 +91,8 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
     if lexical:
         utils.io.log('*** running lexical submodule pipeline')
-        lexical_features = [sentspace.lexical.get_features(sentence) 
-                            for sentence in tqdm(sentences, desc='Lexical pipeline')]
+        lexical_features = [sentspace.lexical.get_features(sentence, identifier=UIDs[i]) 
+                            for i, sentence in enumerate(tqdm(sentences, desc='Lexical pipeline'))]
         
         lexical_out = output_dir / 'lexical'
         lexical_out.mkdir(parents=True, exist_ok=True)
@@ -106,8 +106,8 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
     
     if syntax:
         utils.io.log('*** running syntax submodule pipeline')
-        syntax_features = [sentspace.syntax.get_features(sentence, dlt=True, left_corner=True)
-                            for sentence in tqdm(sentences, desc='Syntax pipeline')]
+        syntax_features = [sentspace.syntax.get_features(sentence, dlt=True, left_corner=True, identifier=UIDs[i])
+                            for i, sentence in enumerate(tqdm(sentences, desc='Syntax pipeline'))]
 
         syntax_out = output_dir / 'syntax'
         syntax_out.mkdir(parents=True, exist_ok=True)
@@ -148,14 +148,14 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         vocab = sentspace.embedding.utils.get_vocab(stripped_words)
         embedding_features = [sentspace.embedding.get_features(sentence, vocab=vocab,
                                                                data_dir=emb_data_dir)
-                               for sentence in tqdm(sentences, desc='Embedding pipeline')]
+                               for i, sentence in enumerate(tqdm(sentences, desc='Embedding pipeline'))]
 
         embedding_out = output_dir / 'embedding'
         embedding_out.mkdir(parents=True, exist_ok=True)
 
         sentence_df = pd.DataFrame([{k: v for k, v in feature_dict.items() if k != 'token_embeds'}
                               for feature_dict in embedding_features])
-        print(sentence_df.head())
+  
         sentence_df.to_csv(embedding_out / 'sentence-features.tsv', sep='\t', index=False)
         
         token_dfs = [feature_dict['token_embeds'] for feature_dict in embedding_features]
