@@ -113,7 +113,7 @@ def read_sentences(filename, stop_words_file: str = None):
     with open(filename, 'r') as f:
         for line in f:
             if line.strip():
-                tokens = line.split()
+                tokens = sentspace.utils.text.tokenize(line) # line.split()
             else:
                 continue
             # if a non-empty collection of stop words has been supplied

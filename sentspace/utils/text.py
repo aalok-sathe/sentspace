@@ -10,6 +10,9 @@ from nltk.corpus import wordnet
 from nltk.stem import WordNetLemmatizer
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
 
+from nltk.tokenize import TreebankWordTokenizer
+tokenize = TreebankWordTokenizer().tokenize
+
 pos_for_lemmatization = (wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV) # define POS used for lemmatization
 pos_for_content = (wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV)  # define POS that count as content words
 
@@ -138,9 +141,9 @@ def strip_words(flat_token_list, method='nonletter', nonletters=None, punctuatio
     #     print('Formatting words - Characters ignored:', punctuation)
     # print('-'*79)
     flat_cleaned_token_list = []
-    for word in flat_token_list:
-        stripped = strip_word(word, method, nonletters, punctuation)
-        flat_cleaned_token_list.append(stripped.lower())
+    for t in flat_token_list:
+        stripped = strip_word(t, method, nonletters, punctuation)
+        if stripped: flat_cleaned_token_list.append(stripped.lower())
     return flat_cleaned_token_list
 
 
