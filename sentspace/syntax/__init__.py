@@ -1,8 +1,6 @@
 import os
-import subprocess
-from functools import lru_cache
+import sentspace
 from pathlib import Path
-from urllib import request
 
 from nltk.tree import ParentedTree
 from sentspace.syntax import utils
@@ -13,8 +11,7 @@ from sentspace.utils.caching import cache_to_disk
 os.environ['PERL_BADLANG'] = '0'
 
 
-
-def get_features(sentence: str = None, dlt: bool = False, left_corner: bool = False) -> dict:
+def get_features(sentence: str = None, identifier: str = None, dlt: bool = True, left_corner: bool = True) -> dict:
     """executes the syntactic features pipeline
 
     Args:
@@ -29,7 +26,7 @@ def get_features(sentence: str = None, dlt: bool = False, left_corner: bool = Fa
     if dlt or left_corner:
         # io.log(f'parsing into syntax tree: `{sentence}`')
         # parsed = parse_input(sentence)
-        features.tree = Tree(compute_trees(sentence))
+        features.tree = Tree(utils.compute_trees(sentence))
         # io.log(f'--- done: tree computed')
     else:
         return None
@@ -37,21 +34,21 @@ def get_features(sentence: str = None, dlt: bool = False, left_corner: bool = Fa
     # print(parse_input(sentence), features.tree)
     if dlt:
         # io.log(f'computing DLT feature')
-        features.dlt = DLT(compute_feature('dlt.sh', features.tree.raw))
+        features.dlt = DLT(utils.compute_feature('dlt.sh', features.tree.raw), sentence, identifier)
         # io.log(f'--- done: DLT')
     if left_corner:
         # io.log(f'computing left corner feature')
-        features.left_corner = LeftCorner(compute_feature('leftcorner.sh', features.tree.raw))
+        features.left_corner = LeftCorner(utils.compute_feature('leftcorner.sh', features.tree.raw), sentence, identifier)
         # io.log(f'--- done: left corner')
 
-    tokenized = tuple(sentence.split())
+    tokenized = utils.tokenize(sentence).split()
     tagged_sentence = text.get_pos_tags(tokenized)
     is_content_word = utils.get_is_content(tagged_sentence, content_pos=text.pos_for_content)  # content or function word
     pronoun_ratio = utils.get_pronoun_ratio(tagged_sentence)
     content_ratio = utils.get_content_ratio(is_content_word)
 
     return {
-        # 'UID': None,
+        'identifier': identifier,
         'sentence': sentence,
         # 'tags': tagged_sentence,
 
@@ -65,34 +62,3 @@ def get_features(sentence: str = None, dlt: bool = False, left_corner: bool = Fa
     }
 
 
-
-@utils.path_decorator
-def tokenize(raw):
-    cmd = ['bash', 'tokenize.sh', raw.strip()]
-    io.log(f'calling tokenizer like so: `{cmd}`')
-    tokens = subprocess.check_output(cmd)
-    io.log(f'---done--- tokenizer returned output like so: `{tokens}`')
-    return tokens
-
-
-@utils.path_decorator
-def compute_trees(sentence, server_url='http://localhost:8000/fullberk'):
-    
-    data = f'{{ "sentence": "{sentence}" }}'
-    r = request.Request(server_url, data=bytes(data, 'utf-8'), method='GET',
-                        headers={'Content-Type': 'application/json'})
-    with request.urlopen(r) as rq:
-        response = rq.read()
-    cmd = ['bash', 'postprocess_trees.sh', response]
-
-    # fallback to manually initializing parser
-    # cmd = ['bash', 'parse_trees.sh', tokens]
-    trees = subprocess.check_output(cmd)
-    return trees
-
-
-@utils.path_decorator
-def compute_feature(feature, trees):
-    cmd = ['bash', feature, trees]
-    out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)
-    return out
