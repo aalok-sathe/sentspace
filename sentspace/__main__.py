@@ -99,6 +99,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 		with (lexical_out/'features.json').open('w') as f:
 			json.dump(lexical_features, f)
 		
+        # lexical is a special case since it returns dicts per token (rather than per sentence)
 	
 	if syntax:
 		utils.io.log('*** running syntax submodule pipeline')
@@ -107,12 +108,28 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
 		syntax_out = output_dir / 'syntax'
 		syntax_out.mkdir(parents=True, exist_ok=True)
-		with (syntax_out/'features.json').open('w') as f:
-			f.write(str(syntax_features))
 
-		# syntax_df = pd.DataFrame(
-		# 	{'Sentence no.': content_ratios['sent_num'], 'Content Ratio': content_ratios['content_ratio']})
-		# syntax_df.to_csv(sent_output_path, index=False)
+        # with (syntax_out/'features.json').open('w') as f:
+        # 	f.write(str(syntax_features))
+
+        # put all features in the sentence df except the token-level ones
+        token_syntax_features = {'dlt', 'leftcorner'}
+        sentence_df = pd.DataFrame([{k:v for k,v in feature_dict.items() if k not in token_syntax_features}
+                                      for feature_dict in syntax_features])
+        sentence_df.to_csv(syntax_out / 'sentence-features.tsv', sep='\t', index=False)
+
+        # output gives us dataframes corresponding to each token-level feature. we need to combine these
+        # into a single dataframe
+        # we use functools.reduce to apply the pd.concat function to all the dataframes and join dataframes
+        # that contain different features for the same tokens
+        # we use df.T.drop_duplicates().T to remove duplicate columns ('token', 'sentence', 'UID' etc) that appear in
+        # all/multiple dataframes as part of the standard output schema
+        token_dfs = [reduce(lambda x, y: pd.concat([x, y], axis=1, sort=False),
+                            (v for k, v in feature_dict.items() if k in token_syntax_features)).T.drop_duplicates().T
+                     for feature_dict in syntax_features]
+
+        reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs).to_csv(
+            syntax_out / 'token-features.tsv', sep='\t', index=False)
 
 
 	# Calculate PMI
