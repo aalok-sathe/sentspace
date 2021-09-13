@@ -48,7 +48,7 @@ def get_features(sentence: str = None, identifier: str = None, dlt: bool = True,
     content_ratio = utils.get_content_ratio(is_content_word)
 
     return {
-        'UID': identifier,
+        'index': identifier,
         'sentence': sentence,
         # 'tags': tagged_sentence,
 

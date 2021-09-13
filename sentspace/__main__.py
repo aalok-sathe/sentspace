@@ -125,7 +125,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         # into a single dataframe
         # we use functools.reduce to apply the pd.concat function to all the dataframes and join dataframes
         # that contain different features for the same tokens
-        # we use df.T.drop_duplicates().T to remove duplicate columns ('token', 'sentence', 'UID' etc) that appear in
+        # we use df.T.drop_duplicates().T to remove duplicate columns ('token', 'sentence', 'index' etc) that appear in
         # all/multiple dataframes as part of the standard output schema
         token_dfs = [reduce(lambda x, y: pd.concat([x, y], axis=1, sort=False),
                             (v for k, v in feature_dict.items() if k in token_syntax_features)).T.drop_duplicates().T
@@ -146,8 +146,8 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
         stripped_words = utils.text.strip_words(chain(*token_lists), method='punctuation')
         vocab = sentspace.embedding.utils.get_vocab(stripped_words)
-        embedding_features = [sentspace.embedding.get_features(sentence, vocab=vocab,
-                                                               data_dir=emb_data_dir)
+        embedding_features = [sentspace.embedding.get_features(sentence, vocab=vocab, data_dir=emb_data_dir,
+                                                               identifier=UIDs[i])
                                for i, sentence in enumerate(tqdm(sentences, desc='Embedding pipeline'))]
 
         embedding_out = output_dir / 'embedding'

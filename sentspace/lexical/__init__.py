@@ -30,7 +30,7 @@ def get_features(sentence: str,  identifier=None) -> dict:
     database_features = utils.get_all_features_merged(tokenized, lemmatized_sentence, databases)  # lexical features
     
     return [{
-                'UID': identifier,
+                'index': identifier,
                 'sentence': sentence,
                 'token': token,
                 'lemma': lemma,
@@ -51,7 +51,7 @@ def get_features(sentence: str,  identifier=None) -> dict:
                                    database_features.values())
     ]
     {
-        # 'UID': None,
+        # 'index': None,
         'sentence': sentence,
         'token': tokenized,
         'lemma': lemmatized_sentence,

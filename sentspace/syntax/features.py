@@ -27,8 +27,8 @@ def rawdatatodf(data, sentence=None, identifier=None):
     df = pd.read_csv(StringIO(data), sep=' ')
     df.rename(columns={'word': 'token'}, inplace=True)
     df['sentence'] = sentence
-    df['UID'] = identifier
-    df = df[['sentence', 'UID', *df.columns[:-2]]]
+    df['index'] = identifier
+    df = df[['sentence', 'index', *df.columns[:-2]]]
     return df
 
 DLT = LeftCorner = rawdatatodf
