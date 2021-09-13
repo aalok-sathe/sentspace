@@ -8,13 +8,15 @@ from sentspace.utils import io, text
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
 
 
-def get_features(sentence:str) -> dict:
+def get_features(sentence: str,  identifier=None) -> dict:
 
     # io.log(f'computing lexical featuures for `{sentence}`')
 
     databases = utils.load_databases(features='all')
 
-    tokenized = tuple(sentence.split())
+    # tokenized = tuple(sentence.split())
+    tokenized = text.tokenize(sentence)
+
     lemmatized_sentence = text.get_lemmatized_tokens(tokenized, text.get_pos_tags(tokenized))
     # clean words: strip nonletters/punctuation and lowercase
     # find all non-letter characters in file
@@ -27,12 +29,32 @@ def get_features(sentence:str) -> dict:
 
     database_features = utils.get_all_features_merged(tokenized, lemmatized_sentence, databases)  # lexical features
     
-    return {
+    return [{
+                'sentence': sentence,
+                'token': token,
+                'lemma': lemma,
+                'cleaned_token': cleaned_token,
+                'tag': tag,
+                'content_word': content_word,
+                **dict(zip(database_features.keys(), db_vals))
+            } for (token, 
+                   lemma, 
+                   cleaned_token, 
+                   tag, 
+                   content_word,
+                   db_vals) in zip(tokenized,
+                                   cleaned_sentence, 
+                                   lemmatized_sentence, 
+                                   tagged_sentence, 
+                                   is_content_word,
+                                   database_features.values())
+    ]
+    {
         # 'UID': None,
         'sentence': sentence,
         'token': tokenized,
         'lemma': lemmatized_sentence,
-        'cleaned_tokens': cleaned_sentence,
+        'cleaned_token': cleaned_sentence,
 
         'tags': tagged_sentence,
         'content_words': is_content_word,
