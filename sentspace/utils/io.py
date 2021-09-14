@@ -6,7 +6,7 @@ from datetime import date
 from hashlib import sha1
 from pathlib import Path
 from sys import stderr, stdout
-
+import pandas as pd
 import numpy as np
 import sentspace.utils
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
@@ -58,40 +58,40 @@ def create_output_paths(input_file:str, output_dir:str, calling_module=None, sto
     return sent_output_path, glove_words_output_path, glove_sents_output_path
 
 
-def _create_output_paths(output_dir:Path, name, analysis, suffix='', sent_suffix=''):
-    """
-    Return list of file paths and create output folder if appropriate
-    Supports analysis = 'lex', 'glove','syntax','PMI'
-    """
-    if analysis == 'lexical':
-        return_paths = [f"{name}_lex_features_words{suffix}.csv",
-                        f"{name}_lex_features_sents{suffix}{sent_suffix}.csv",
-                        f"{name}_plots{suffix}{sent_suffix}_",
-                        f"{name}_unique_NA{suffix}{sent_suffix}.csv",
-                        f"{name}_benchmark_percentiles{suffix}{sent_suffix}.csv"]
-    elif analysis == 'embedding':
-        return_paths = [f"{name}_glove_words{suffix}.csv",
-                        f"{name}_glove_sents{suffix}{sent_suffix}.csv"]
-    elif analysis == 'PMI':
-        return_paths = [f"{name}_pPMI_0{suffix}.csv",
-                        f"{name}_pPMI_1{suffix}.csv",
-                        f"{name}_pPMI_2{suffix}.csv",
-                        f"{name}_ngrams{suffix}.pkl",
-                        f"{name}_nm1grams{suffix}.pkl"]
-    elif analysis == 'syntax':
-        return_paths = [f"{name}_{suffix}.csv",
-                        f"{name}_{suffix}{sent_suffix}.csv"]
-    elif analysis == 'lex_per_word':
-        return_paths = [f"{name}_{suffix}.csv",
-                        f"{name}_{suffix}{sent_suffix}.csv"]
-    else:
-        raise ValueError('Invalid analysis method!')
-    output_dir = os.path.join(output_dir, analysis)
-    if not os.path.isdir(output_dir):  # create output_folder if it doesn't exist
-        Path(output_dir).mkdir(parents=True, exist_ok=True)
+# def _create_output_paths(output_dir:Path, name, analysis, suffix='', sent_suffix=''):
+#     """
+#     Return list of file paths and create output folder if appropriate
+#     Supports analysis = 'lex', 'glove','syntax','PMI'
+#     """
+#     if analysis == 'lexical':
+#         return_paths = [f"{name}_lex_features_words{suffix}.csv",
+#                         f"{name}_lex_features_sents{suffix}{sent_suffix}.csv",
+#                         f"{name}_plots{suffix}{sent_suffix}_",
+#                         f"{name}_unique_NA{suffix}{sent_suffix}.csv",
+#                         f"{name}_benchmark_percentiles{suffix}{sent_suffix}.csv"]
+#     elif analysis == 'embedding':
+#         return_paths = [f"{name}_glove_words{suffix}.csv",
+#                         f"{name}_glove_sents{suffix}{sent_suffix}.csv"]
+#     elif analysis == 'PMI':
+#         return_paths = [f"{name}_pPMI_0{suffix}.csv",
+#                         f"{name}_pPMI_1{suffix}.csv",
+#                         f"{name}_pPMI_2{suffix}.csv",
+#                         f"{name}_ngrams{suffix}.pkl",
+#                         f"{name}_nm1grams{suffix}.pkl"]
+#     elif analysis == 'syntax':
+#         return_paths = [f"{name}_{suffix}.csv",
+#                         f"{name}_{suffix}{sent_suffix}.csv"]
+#     elif analysis == 'lex_per_word':
+#         return_paths = [f"{name}_{suffix}.csv",
+#                         f"{name}_{suffix}{sent_suffix}.csv"]
+#     else:
+#         raise ValueError('Invalid analysis method!')
+#     output_dir = os.path.join(output_dir, analysis)
+#     if not os.path.isdir(output_dir):  # create output_folder if it doesn't exist
+#         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    result = [os.path.join(output_dir, path) for path in return_paths]
-    return result
+#     result = [os.path.join(output_dir, path) for path in return_paths]
+#     return result
 
 
 def read_sentences(filename: str, stop_words_file: str = None):
@@ -106,15 +106,17 @@ def read_sentences(filename: str, stop_words_file: str = None):
         list[list]: list of the tokens from each sentences, nested as a list
         list: list of sentences
     """
-    UIDs = []
-    token_lists = []
-    sentences = []
+    
 
     # if a non-empty collection of stop words has been supplied
     if stop_words_file:
+        raise NotImplementedError()
         stop_words = set(np.loadtxt(stop_words_file, delimiter='\t', unpack=False, dtype=str))
 
     if filename.endswith('.txt'):
+        UIDs = []
+        token_lists = []
+        sentences = []
         with open(filename, 'r') as f:
             UID_prefix = f'{filename[-8:]:#>10}' + '_' + sentspace.utils.md5(filename)[-5:]
             for i, line in enumerate(f):
@@ -124,7 +126,7 @@ def read_sentences(filename: str, stop_words_file: str = None):
                 else:
                     continue
 
-                UIDs += [UID_prefix + '_' + f'{1+len(UIDs):0>5}']
+                UIDs += [UID_prefix + '_' + f'{len(UIDs):0>5}']
                 if stop_words_file:
                     filtered = [x for x in tokens if x not in stop_words]
                     token_lists.append(filtered)
@@ -133,9 +135,26 @@ def read_sentences(filename: str, stop_words_file: str = None):
                 else:
                     token_lists.append(tokens)
                     sentences.append(line.strip())
+        return UIDs, token_lists, sentences
 
-    elif filename.endswith('.csv'): pass
-    elif filename.endswith('.tsv'): pass
+    elif filename.endswith('.pkl'):
+        df = pd.read_pickle(filename)
+    elif filename.endswith('.csv'):
+        df = pd.read_csv(filename, sep=',')
+    elif filename.endswith('.tsv'):
+        df = pd.read_csv(filename, sep='\t')
+    else:
+        raise ValueError('unknown type of file supplied (must be txt/pkl/csv/tsv. if pickle, must be a dataframe object)')
+
+    try:
+        UIDs = df['index'].tolist()
+    except KeyError:
+        UIDs = df.index.tolist()
+    except AttributeError:
+        raise('does your dataframe have a unique index for each sentence?')
+
+    sentences = df['sentence'].tolist()
+    token_lists = df['sentence'].apply(lambda s: sentspace.utils.text.tokenize(s)).tolist()
 
     return UIDs, token_lists, sentences
 
