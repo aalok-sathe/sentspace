@@ -41,19 +41,22 @@ def get_features(sentence:str, identifier=None, vocab=None, data_dir=None):
         io.log(f'no vocabulary provided in advance. this may take a while. grab some popcorn ^.^', type='WARN')
     w2v = defaultdict(lambda: defaultdict(None))
     
-    # w2v['glove'] = utils.load_embeddings(emb_file='glove.840B.300d.txt', 
-    w2v['glove'] = utils.load_embeddings(emb_file='glove.6B.300d.txt', 
-                                         vocab=(*sorted(vocab or tokenized),),
-                                         data_dir=data_dir)
+    # if lock is not None:
+    #     lock.acquire()
+    w2v['glove'] = utils.load_embeddings(emb_file='glove.840B.300d.txt',
+                                            vocab=(*sorted(vocab or tokenized),),
+                                            data_dir=data_dir)
+    # if lock is not None:
+    #     lock.release()
 
     token_embeddings = {
         'glove': utils.get_word_embeds(lowercased, w2v=w2v,
                                        which='glove', dims=300),
     }
 
-    content_word_filter = lambda i, token: is_content_word[i]
-    filters = [content_word_filter]
-    pooled_embeddings = utils.pool_sentence_embeds(lowercased, token_embeddings, filters=filters)
+    # content_word_filter = lambda i, token: is_content_word[i]
+    # filters = [content_word_filter]
+    pooled_embeddings = utils.pool_sentence_embeds(lowercased, token_embeddings)
 
     tagged_sentence = text.get_pos_tags(tokenized)
     lemmatized_sentence = text.get_lemmatized_tokens(tokenized, tagged_sentence)
@@ -65,7 +68,7 @@ def get_features(sentence:str, identifier=None, vocab=None, data_dir=None):
                              'lemmas': lemmatized_sentence,
                              'tags': tagged_sentence,
                             #  **{k:[e for e in v] for k,v in token_embeddings.items()}
-                             **token_embeddings,
+                              **token_embeddings,
                              }, dtype=str)
     
     # for which in token_embeddings:
