@@ -8,11 +8,15 @@ from sentspace.utils import io, text
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
 
 
-def get_features(sentence: str,  identifier=None) -> dict:
+def get_features(sentence: str,  identifier=None, lock=None) -> dict:
 
     # io.log(f'computing lexical featuures for `{sentence}`')
 
+    # if lock is not None:
+    #     lock.acquire()
     databases = utils.load_databases(features='all')
+    # if lock is not None:
+    #     lock.release()
 
     # tokenized = tuple(sentence.split())
     tokenized = text.tokenize(sentence)
