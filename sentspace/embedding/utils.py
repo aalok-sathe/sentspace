@@ -2,6 +2,7 @@ import os
 import pickle
 import warnings
 from pathlib import Path
+import random
 
 import numpy as np
 import pandas as pd
@@ -67,7 +68,7 @@ def load_embeddings(emb_file: str = 'glove.840B.300d.txt',
     with (data_dir / emb_file).open('r') as f:
         total_lines = sum(1 for _ in tqdm(f, desc=f'counting # of lines in {data_dir/emb_file}'))
     with (data_dir / emb_file).open('r') as f:
-        for line in tqdm(f, total=total_lines, desc=f'loading {len(vocab)} embeddings'):
+        for line in tqdm(f, total=total_lines, desc=f'searching for embeddings in {emb_file}'):
             token, *emb = line.split(' ')
             if token in vocab:
                 # print(f'found {token}!')
@@ -75,7 +76,9 @@ def load_embeddings(emb_file: str = 'glove.840B.300d.txt',
                 OOV.remove(token)
     
     io.log(f"---done--- loading embeddings from {emb_file}. OOV count: {len(OOV)}/{len(vocab)}")
-    io.log(f"           a selection of up to 100 OOV tokens: {[*OOV][:100]}")
+    OOVlist = [*OOV]
+    random.shuffle(OOVlist)
+    io.log(f"           a selection of up to 100 random OOV tokens: {OOVlist[:100]}")
 
     return w2v
 
@@ -86,7 +89,7 @@ def get_word_embeds(token_list, w2v, which='glove', dims=300, return_NA_words=Fa
     Args:
         tokenized ([type]): [description]
         w2v ([type]): [description]
-        embedding (str, optional): [description]. Defaults to 'glove'.
+        which (str, optional): [description]. Defaults to 'glove'.
         dims (int, optional): [description]. Defaults to 300.
 
     Raises:
@@ -180,11 +183,16 @@ def pool_sentence_embeds(tokens, token_embeddings, filters=[lambda i, x: True],
         filtered_embeds = [e for i, (t, e) in enumerate(zip(tokens, token_embeddings[which]))
                            if all(fn(i, t) for fn in filters)]
         filtered_embeds = np.array(filtered_embeds, dtype=np.float32)
-        filtered_embeds = filtered_embeds[~np.isnan(filtered_embeds[:,0])]
-        
+        shape = filtered_embeds.shape
+
+        try:
+            filtered_embeds = filtered_embeds[~np.isnan(filtered_embeds[:, 0]), :]
+        except IndexError as e:
+            pass
+
         if len(filtered_embeds) == 0:
-            warnings.warn(f'all embeddings for current sentence ({tokens}) are NaN', ValueError)
-            filtered_embeds = np.zeros((1,))
+            io.log(f'all embeddings for current sentence are NaN ({shape} -> {filtered_embeds.shape}): {tokens}', type='WARN')
+            filtered_embeds = np.zeros((1,shape[-1]))
 
         pooled = {
             'pooled_'+which+'_median': np.median(filtered_embeds, axis=0).reshape(-1).tolist(),
@@ -214,21 +222,21 @@ def pool_sentence_embeds(tokens, token_embeddings, filters=[lambda i, x: True],
     return sent_vectors
 
 
-def compile_results_for_glove_only(wordlst, wordlst_l, wordlst_lem,
-                                   taglst, is_content_lst, setlst,
-                                   snlst, wordlen):
-    """
-    Return dataframe: each row is a word & its various associated values
-    """
-    result = pd.DataFrame({'Word': wordlst})
-    result['Word cleaned'] = wordlst_l
-    result['Word lemma'] = wordlst_lem
+# def compile_results_for_glove_only(wordlst, wordlst_l, wordlst_lem,
+#                                    taglst, is_content_lst, setlst,
+#                                    snlst, wordlen):
+#     """
+#     Return dataframe: each row is a word & its various associated values
+#     """
+#     result = pd.DataFrame({'Word': wordlst})
+#     result['Word cleaned'] = wordlst_l
+#     result['Word lemma'] = wordlst_lem
 
-    result['POS'] = taglst
-    result['Content/function'] = is_content_lst
-    result['Set no.'] = setlst
-    result['Sentence no.'] = snlst
-    result['Specific topic'] = ['']*len(wordlst)
-    result['Word length'] = wordlen
+#     result['POS'] = taglst
+#     result['Content/function'] = is_content_lst
+#     result['Set no.'] = setlst
+#     result['Sentence no.'] = snlst
+#     result['Specific topic'] = ['']*len(wordlst)
+#     result['Word length'] = wordlen
 
-    return result
+#     return result
