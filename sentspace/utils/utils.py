@@ -2,13 +2,15 @@
 # import gzip
 # import os
 # import pathlib
+import concurrent.futures
 import hashlib
+import math
 import pdb
 import pickle
+from functools import partial
 # import string
 from itertools import chain
 from math import isnan
-import math
 from time import time
 
 # import seaborn as sns
@@ -24,6 +26,7 @@ from nltk.corpus import wordnet
 from nltk.stem import WordNetLemmatizer
 from polyglot.text import Word
 from scipy.stats import percentileofscore, zscore
+from tqdm import tqdm
 from zs import ZS
 
 _START_TIME = time()
@@ -116,6 +119,25 @@ def sha1(ob):
     hash_object = hashlib.sha1()
     hash_object.update(ob_repr.encode('utf-8'))
     return hash_object.hexdigest()
+
+
+def parallelize(function, *iterables, wrap_tqdm=True, desc=None, **kwargs):
+    """parallelizes a function by calling it on the supplied iterables and (static) kwargs.
+       optionally wraps in tqdm for progress visualization 
+
+    Args:
+        function ([type]): [description]
+        wrap_tqdm (bool, optional): [description]. Defaults to True.
+        desc ([type], optional): [description]. Defaults to None.
+
+    Returns:
+        [type]: [description]
+    """    
+    partialfn = partial(function, **kwargs)
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        if wrap_tqdm:
+            return [*tqdm(executor.map(partialfn, *iterables), total=len(iterables[0]), desc='[parallelized] '+desc)]
+        return executor.map(partialfn, *iterables)
 
 # this might be data-dependent
 def load_passage_labels(filename):

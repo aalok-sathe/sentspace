@@ -16,6 +16,7 @@ from itertools import chain
 from functools import reduce, partial
 # import numpy as np
 
+import multiprocessing
 
 
 def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
@@ -39,6 +40,8 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         {lexical,syntax,embedding,semantic,...} (bool): compute submodule features? [False]
     """
 
+    # lock = multiprocessing.Manager().Lock()
+
     # create output folder
     utils.io.log('creating output folder')
     # (sent_output_path, 
@@ -54,19 +57,6 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
     UIDs, token_lists, sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
     utils.io.log('---done--- reading input sentences')
 
-    # flat_token_list = utils.text.get_flat_tokens(token_lists)
-    # flat_sentence_num = utils.text.get_flat_sentence_num(token_lists)
-    # flat_pos_tags = utils.text.get_flat_pos_tags(token_lists)
-    # flat_token_lens = utils.text.get_token_lens(flat_token_list)  # word length
-
-    # pronoun_ratios = utils.text.get_pronoun_ratio(flat_sentence_num, flat_pos_tags)
-    # word_num_list = utils.text.get_flat_word_num(token_lists)  # word no. within sentence
-
-    # nonletters = utils.text.get_nonletters(flat_token_list, exceptions=[]) # find all non-letter characters in file
-    # flat_cleaned_token_list = utils.text.strip_words(flat_token_list, method='punctuation', nonletters=nonletters) # clean words: strip nonletters/punctuation and lowercase
-    # flat_lemmatized_token_list = utils.text.get_lemmatized_tokens(flat_cleaned_token_list, flat_pos_tags, utils.text.pos_for_lemmatization)  # lemmas
-    # flat_is_content_word = utils.text.get_is_content(flat_pos_tags, content_pos=utils.text.pos_for_content) # content or function word
-
 
     # surprisal_database = 'pickle/surprisal-3_dict.pkl' # default: 3-gram surprisal
     # features_ignore_case = True
@@ -76,23 +66,15 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
     # TODO: where was this supposed to be used?
     # poly_morphemes = utils.get_poly_morpheme(flat_sentence_num, flat_token_list)
 
-    
-    # Word features
-    # n_words = len(flat_token_list)
-    # n_sentences = len(token_lists)
-    # # TODO what is this?
-    # setlst = [3] * n_words # set no. 
-    # print("Number of sentences:", n_sentences)
-    # print("Number of words:", n_words)
-    # print("Number of unique words (cleaned):", len(set(flat_cleaned_token_list)))
-    # print(f"Average number of words per sentence: {n_words/n_sentences:.2f}")
-    # print('-'*79)
-
 
     if lexical:
         utils.io.log('*** running lexical submodule pipeline')
-        lexical_features = [sentspace.lexical.get_features(sentence, identifier=UIDs[i]) 
-                            for i, sentence in enumerate(tqdm(sentences, desc='Lexical pipeline'))]
+        _ = sentspace.lexical.utils.load_databases(features='all')
+
+        # lexical_features = [sentspace.lexical.get_features(sentence, identifier=UIDs[i])
+        #                     for i, sentence in enumerate(tqdm(sentences, desc='Lexical pipeline'))]
+        lexical_features = utils.parallelize(sentspace.lexical.get_features, sentences, UIDs, 
+                                             wrap_tqdm=True, desc='Lexical pipeline')
         
         lexical_out = output_dir / 'lexical'
         lexical_out.mkdir(parents=True, exist_ok=True)
@@ -102,12 +84,21 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         
         # lexical is a special case since it returns dicts per token (rather than per sentence)
         # so we want to flatten it so that pandas creates a sensible dataframe from it.
-        pd.DataFrame(chain.from_iterable(lexical_features)).to_csv(lexical_out / 'token-features.tsv', sep='\t', index=False)
+        lexical_df = pd.DataFrame(chain.from_iterable(lexical_features))
+
+        utils.io.log(f'outputting lexical token dataframe to {lexical_out}')
+        lexical_df.to_csv(lexical_out / 'token-features.tsv', sep='\t', index=False)
     
+        utils.io.log(f'--- finished lexical pipeline')
+
+
     if syntax:
         utils.io.log('*** running syntax submodule pipeline')
         syntax_features = [sentspace.syntax.get_features(sentence, dlt=True, left_corner=True, identifier=UIDs[i])
                             for i, sentence in enumerate(tqdm(sentences, desc='Syntax pipeline'))]
+        # syntax_features = utils.parallelize(sentspace.syntax.get_features, sentences, UIDs,
+        #                                     dlt=True, left_corner=True, 
+        #                                     wrap_tqdm=True, desc='Syntax pipeline')
 
         syntax_out = output_dir / 'syntax'
         syntax_out.mkdir(parents=True, exist_ok=True)
@@ -118,7 +109,8 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         # put all features in the sentence df except the token-level ones
         token_syntax_features = {'dlt', 'leftcorner'}
         sentence_df = pd.DataFrame([{k:v for k,v in feature_dict.items() if k not in token_syntax_features}
-                                      for feature_dict in syntax_features])
+                                     for feature_dict in syntax_features], index=UIDs)
+        utils.io.log(f'outputting syntax sentence dataframe to {syntax_out}')
         sentence_df.to_csv(syntax_out / 'sentence-features.tsv', sep='\t', index=False)
 
         # output gives us dataframes corresponding to each token-level feature. we need to combine these
@@ -130,9 +122,12 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         token_dfs = [reduce(lambda x, y: pd.concat([x, y], axis=1, sort=False),
                             (v for k, v in feature_dict.items() if k in token_syntax_features)).T.drop_duplicates().T
                      for feature_dict in syntax_features]
+        token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
 
-        reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs).to_csv(
-            syntax_out / 'token-features.tsv', sep='\t', index=False)
+        utils.io.log(f'outputting syntax token dataframe to {syntax_out}')
+        token_df.to_csv(syntax_out / 'token-features.tsv', sep='\t', index=False)
+        
+        utils.io.log(f'--- finished syntax pipeline')
 
 
     # Calculate PMI
@@ -144,25 +139,36 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         utils.io.log('*** running embedding submodule pipeline')
         # Get GloVE
 
+
         stripped_words = utils.text.strip_words(chain(*token_lists), method='punctuation')
         vocab = sentspace.embedding.utils.get_vocab(stripped_words)
-        embedding_features = [sentspace.embedding.get_features(sentence, vocab=vocab, data_dir=emb_data_dir,
-                                                               identifier=UIDs[i])
-                               for i, sentence in enumerate(tqdm(sentences, desc='Embedding pipeline'))]
+        _ = sentspace.embedding.utils.load_embeddings(emb_file='glove.840B.300d.txt',
+                                                      vocab=(*sorted(vocab),),
+                                                      data_dir=emb_data_dir)
+
+        # embedding_features = [sentspace.embedding.get_features(sentence, vocab=vocab, data_dir=emb_data_dir,
+        #                                                        identifier=UIDs[i])
+        #                        for i, sentence in enumerate(tqdm(sentences, desc='Embedding pipeline'))]
+        embedding_features = utils.parallelize(sentspace.embedding.get_features, sentences, UIDs, 
+                                               vocab=vocab, data_dir=emb_data_dir,
+                                               wrap_tqdm=True, desc='Embedding pipeline')
 
         embedding_out = output_dir / 'embedding'
         embedding_out.mkdir(parents=True, exist_ok=True)
 
         sentence_df = pd.DataFrame([{k: v for k, v in feature_dict.items() if k != 'token_embeds'}
-                              for feature_dict in embedding_features])
-  
+                                    for feature_dict in embedding_features])
+
+        utils.io.log(f'outputting embedding sentence dataframe to {embedding_out}')
         sentence_df.to_csv(embedding_out / 'sentence-features.tsv', sep='\t', index=False)
         
         token_dfs = [feature_dict['token_embeds'] for feature_dict in embedding_features]
+        token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
 
-        reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs).to_csv(
-            embedding_out / 'token-features.tsv', sep='\t', index=False)
+        utils.io.log(f'outputting embedding token dataframe to {embedding_out}')
+        token_df.to_csv(embedding_out / 'token-features.tsv', sep='\t', index=False)
 
+        utils.io.log(f'--- finished embedding pipeline')
 
         return
 
@@ -249,10 +255,10 @@ if __name__ == "__main__":
                          help='path to output directory where results may be stored')
 
     # Add an option for a user to choose to not do some analyses. Default is true
-    parser.add_argument('-lx','--lexical', type=strtobool, default=True, help='compute lexical features? [True]')
-    parser.add_argument('-sx','--syntax', type=strtobool, default=True, help='compute syntactic features? [True]')
-    parser.add_argument('-em','--embedding', type=strtobool, default=True, help='compute sentence embeddings? [True]')
-    parser.add_argument('-sm','--semantic', type=strtobool, default=True, help='compute semantic (multi-word) features? [True]')
+    parser.add_argument('-lex','--lexical', type=strtobool, default=True, help='compute lexical features? [True]')
+    parser.add_argument('-syn','--syntax', type=strtobool, default=True, help='compute syntactic features? [True]')
+    parser.add_argument('-emb','--embedding', type=strtobool, default=True, help='compute sentence embeddings? [True]')
+    parser.add_argument('-sem','--semantic', type=strtobool, default=True, help='compute semantic (multi-word) features? [True]')
     
     parser.add_argument('--emb_data_dir', default='/om/data/public/glove/', type=str,
                          help='path to output directory where results may be stored')
