@@ -1,9 +1,11 @@
+import json
 import os
+import subprocess
+import urllib
 from pathlib import Path
 from urllib import request
-import subprocess
 
-from sentspace.utils import caching, text, wordnet, io
+from sentspace.utils import caching, io, text, wordnet
 
 
 def path_decorator(func):
@@ -65,11 +67,16 @@ def tokenize(raw):
 @caching.cache_to_disk
 def compute_trees(sentence, server_url='http://localhost:8000/fullberk'):
 
-    data = f'{{ "sentence": "{sentence}" }}'
-    r = request.Request(server_url, data=bytes(data, 'utf-8'), method='GET',
+    # data = f'{{ "sentence": "{sentence}" }}'
+    data = {"sentence": sentence}
+    r = request.Request(server_url, data=bytes(json.dumps(data), 'utf-8'), method='GET',
                         headers={'Content-Type': 'application/json'})
-    with request.urlopen(r) as rq:
-        response = rq.read()
+    try:
+        with request.urlopen(r) as rq:
+            response = rq.read()
+    except urllib.error.HTTPError as e:
+        io.log(f'encountered HTTP error on sentence {sentence}; request=`{r}`', type='ERR')
+        raise e
     cmd = ['bash', 'postprocess_trees.sh', response]
 
     # fallback to manually initializing parser
@@ -81,5 +88,11 @@ def compute_trees(sentence, server_url='http://localhost:8000/fullberk'):
 @path_decorator
 def compute_feature(feature, trees):
     cmd = ['bash', feature, trees]
-    out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)
-    return out
+    try:
+        completed = subprocess.run(cmd, check=True, capture_output=True)
+    except  subprocess.CalledProcessError as e:
+        print('ERROR', e.output, e.returncode, sep='\n')
+        exit()
+    return completed.stdout
+    # out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)
+    # return out
