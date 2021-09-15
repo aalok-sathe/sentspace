@@ -151,6 +151,7 @@ sentspace/.cached_function_calls
 *.zs
 **/*.zs
 *.pkl
+*.gz
 *.csv
 *.xlsx
 *.pdf
