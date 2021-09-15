@@ -61,15 +61,15 @@ def get_features(sentence:str, identifier=None, vocab=None, data_dir=None):
     tagged_sentence = text.get_pos_tags(tokenized)
     lemmatized_sentence = text.get_lemmatized_tokens(tokenized, tagged_sentence)
     
-    token_df = pd.DataFrame({'index': identifier,
-                             'sentence': sentence,
-                             'tokens': tokenized,
-                             'lowercased': lowercased,
-                             'lemmas': lemmatized_sentence,
-                             'tags': tagged_sentence,
-                            #  **{k:[e for e in v] for k,v in token_embeddings.items()}
-                              **token_embeddings,
-                             }, dtype=str)
+    # token_df = pd.DataFrame({'index': identifier,
+    #                          'sentence': sentence,
+    #                          'tokens': tokenized,
+    #                          'lowercased': lowercased,
+    #                          'lemmas': lemmatized_sentence,
+    #                          'tags': tagged_sentence,
+    #                         #  **{k:[e for e in v] for k,v in token_embeddings.items()}
+    #                           **token_embeddings,
+    #                          }, dtype=str)
     
     # for which in token_embeddings:
     #     # token_df[which] = [v.reshape(-1).tolist() for v in token_embeddings[which]]
@@ -79,7 +79,7 @@ def get_features(sentence:str, identifier=None, vocab=None, data_dir=None):
         'index': identifier,
         'sentence': sentence,
 
-        'token_embeds': token_df,
+        # 'token_embeds': token_df,
         **pooled_embeddings,
     }
 
