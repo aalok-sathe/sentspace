@@ -122,31 +122,6 @@ def get_word_embeds(token_list, w2v, which='glove', dims=300, return_NA_words=Fa
     
     return embeddings
 
-    flat_token_list = sentspace.utils.text.get_flat_tokens(f1g)
-    flat_sentence_num = sentspace.utils.text.get_flat_sentence_num(f1g)
-    df = pd.DataFrame(glove_embed)
-    df.insert(0, 'Sentence no.', flat_sentence_num)
-    df.insert(0, 'Word', flat_token_list)
-
-    print(f'Number of words with NA glove embedding: {len(NA_words)},',
-          f'{len(NA_words)/len(flat_token_list)*100:.2f}%')
-    print('Example NA words:', NA_words[:5])
-    print('-'*79)
-
-    if save:
-        suffix = save_path.rsplit('.', -1)[1]
-        if suffix == 'csv':
-            df.to_csv(save_path, index=False)
-        elif suffix == 'mat':
-            sio.savemat(save_path, {'glove_word': df})
-        else:
-            raise ValueError('File type not supported!')
-
-    if return_NA_words:
-        return df, set(NA_words)
-    else:
-        return df
-
 
 
 def pool_sentence_embeds(tokens, token_embeddings, filters=[lambda i, x: True],
@@ -205,38 +180,3 @@ def pool_sentence_embeds(tokens, token_embeddings, filters=[lambda i, x: True],
 
     return all_pooled
 
-    sent_vectors = df.drop(columns=['Word']).groupby('Sentence no.').mean()  # ignores nans
-
-    na_frac = len(df.dropna())/len(df)
-    print(f'Fraction of words used for sentence embeddings: {na_frac*100:.2f}%')
-    print('-'*79)
-
-    if save:
-        suffix = save_path.rsplit('.', -1)[1]
-        if suffix == 'csv':
-            sent_vectors.to_csv(save_path)
-        elif suffix == 'mat':
-            sio.savemat(save_path, {'glove_sent': sent_vectors})
-        else:
-            raise ValueError('File type not supported!')
-    return sent_vectors
-
-
-# def compile_results_for_glove_only(wordlst, wordlst_l, wordlst_lem,
-#                                    taglst, is_content_lst, setlst,
-#                                    snlst, wordlen):
-#     """
-#     Return dataframe: each row is a word & its various associated values
-#     """
-#     result = pd.DataFrame({'Word': wordlst})
-#     result['Word cleaned'] = wordlst_l
-#     result['Word lemma'] = wordlst_lem
-
-#     result['POS'] = taglst
-#     result['Content/function'] = is_content_lst
-#     result['Set no.'] = setlst
-#     result['Sentence no.'] = snlst
-#     result['Specific topic'] = ['']*len(wordlst)
-#     result['Word length'] = wordlen
-
-#     return result
