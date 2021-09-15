@@ -21,6 +21,7 @@ import multiprocessing
 
 def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                    benchmark_file: str = None, output_dir: str = None,
+                                   output_format: str = None,
                                    lexical: bool = False, syntax: bool = False, 
                                    embedding: bool = False, semantic: bool = False,
                                    #
@@ -84,11 +85,14 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         
         # lexical is a special case since it returns dicts per token (rather than per sentence)
         # so we want to flatten it so that pandas creates a sensible dataframe from it.
-        lexical_df = pd.DataFrame(chain.from_iterable(lexical_features))
+        token_df = pd.DataFrame(chain.from_iterable(lexical_features))
 
         utils.io.log(f'outputting lexical token dataframe to {lexical_out}')
-        lexical_df.to_csv(lexical_out / 'token-features.tsv', sep='\t', index=False)
-    
+        if output_format == 'tsv':
+            token_df.to_csv(lexical_out / 'token-features.tsv', sep='\t', index=False)
+        if output_format == 'pkl':
+            token_df.to_pickle(lexical_out / 'token-features.pkl.gz', protocol=5)
+
         utils.io.log(f'--- finished lexical pipeline')
 
 
@@ -110,8 +114,6 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         token_syntax_features = {'dlt', 'leftcorner'}
         sentence_df = pd.DataFrame([{k:v for k,v in feature_dict.items() if k not in token_syntax_features}
                                      for feature_dict in syntax_features], index=UIDs)
-        utils.io.log(f'outputting syntax sentence dataframe to {syntax_out}')
-        sentence_df.to_csv(syntax_out / 'sentence-features.tsv', sep='\t', index=False)
 
         # output gives us dataframes corresponding to each token-level feature. we need to combine these
         # into a single dataframe
@@ -124,8 +126,13 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                      for feature_dict in syntax_features]
         token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
 
-        utils.io.log(f'outputting syntax token dataframe to {syntax_out}')
-        token_df.to_csv(syntax_out / 'token-features.tsv', sep='\t', index=False)
+        utils.io.log(f'outputting syntax dataframes to {syntax_out}')
+        if output_format == 'tsv':
+            sentence_df.to_csv(syntax_out / 'sentence-features.tsv', sep='\t', index=False)
+            token_df.to_csv(syntax_out / 'token-features.tsv', sep='\t', index=False)
+        elif output_format == 'pkl':
+            sentence_df.to_pickle(syntax_out / 'sentence-features.pkl.gz', protocol=5)
+            token_df.to_pickle(syntax_out / 'token-features.pkl.gz', protocol=5)
         
         utils.io.log(f'--- finished syntax pipeline')
 
@@ -159,42 +166,19 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         sentence_df = pd.DataFrame([{k: v for k, v in feature_dict.items() if k != 'token_embeds'}
                                     for feature_dict in embedding_features])
 
-        utils.io.log(f'outputting embedding sentence dataframe to {embedding_out}')
-        sentence_df.to_csv(embedding_out / 'sentence-features.tsv', sep='\t', index=False)
-        
-        token_dfs = [feature_dict['token_embeds'] for feature_dict in embedding_features]
-        token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
+        utils.io.log(f'outputting embedding dataframe(s) to {embedding_out}')
+        if output_format == 'tsv':
+            sentence_df.to_csv(embedding_out / 'sentence-features.tsv', sep='\t', index=False)
+        elif output_format == 'pkl':
+            sentence_df.to_pickle(embedding_out / 'sentence-features.pkl.gz', protocol=5)
 
-        utils.io.log(f'outputting embedding token dataframe to {embedding_out}')
-        token_df.to_csv(embedding_out / 'token-features.tsv', sep='\t', index=False)
+        # token_dfs = [feature_dict['token_embeds'] for feature_dict in embedding_features]
+        # token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
+
+        # utils.io.log(f'outputting embedding token dataframe to {embedding_out}')
+        # token_df.to_csv(embedding_out / 'token-features.tsv', sep='\t', index=False)
 
         utils.io.log(f'--- finished embedding pipeline')
-
-        return
-
-        result = utils.compile_results_for_glove_only(wordlst, wordlst_l, wordlst_lem,
-                                                      taglst, is_content_lst, setlst,
-                                                      sent_num_list, wordlen)
-
-        result['Word no. within sentence'] = word_num_list
-        sent_version = utils.get_sent_version('cleaned', result)
-        
-        # for name, size in sorted(((name, sys.getsizeof(value)) for name, value in locals().items()),
-        # 	key= lambda x: -x[1])[:10]:
-        # 	print("{:>30}: {:>8}".format(name, utils.sizeof_fmt(size)))
-            
-        print('Extracting Glove representations from vocabulary')
-        word2vects = utils.read_glove_embed(vocab, 'Glove/glove.840B.300d.txt')
-        print('Extracting glove for each word')
-        glove_words = utils.get_glove_word(sent_version, word2vects)
-        print('Extracting glove for each sentence')
-        glove_sents = utils.get_glove_sent(glove_words)
-        
-        # Save Glove
-        print('Writing Glove embeddings at '+glove_words_output_path)
-        glove_words.to_csv(glove_words_output_path, index=False)
-        glove_sents.to_csv(glove_sents_output_path, index=False)
-
 
 
     # Plot input data to benchmark data
@@ -205,13 +189,14 @@ def main(args):
     '''
 
     # Estimate sentence embeddings
-    features = run_sentence_features_pipeline(args.input_file, stop_words_file=args.stop_words, 
-                                              benchmark_file=args.benchmark, lexical=args.lexical, 
+    features = run_sentence_features_pipeline(args.input_file, stop_words_file=args.stop_words,
+                                              benchmark_file=args.benchmark, lexical=args.lexical,
                                               syntax=args.syntax, embedding=args.embedding,
                                               semantic=args.semantic,
                                               output_dir=args.output_dir,
+                                              output_format=args.output_format,
                                               #
-                                                 emb_data_dir=args.emb_data_dir)
+                                              emb_data_dir=args.emb_data_dir)
     #estimate_sentence_embeddings(args.input_file)
 
 
@@ -253,6 +238,9 @@ if __name__ == "__main__":
 
     parser.add_argument('-o', '--output_dir', default='./out', type=str,
                          help='path to output directory where results may be stored')
+
+    parser.add_argument('-of', '--output_format', default='pkl', type=str,
+                        choices=['pkl','tsv'])
 
     # Add an option for a user to choose to not do some analyses. Default is true
     parser.add_argument('-lex','--lexical', type=strtobool, default=True, help='compute lexical features? [True]')
