@@ -197,8 +197,8 @@ def pool_sentence_embeds(tokens, token_embeddings, filters=[lambda i, x: True],
         pooled = {
             'pooled_'+which+'_median': np.median(filtered_embeds, axis=0).reshape(-1).tolist(),
             'pooled_'+which+'_mean': filtered_embeds.mean(axis=0).reshape(-1).tolist(),
-            'pooled_'+which+'_max': filtered_embeds.max(axis=0).reshape(-1).tolist(),
-            'pooled_'+which+'_min': filtered_embeds.min(axis=0).reshape(-1).tolist(),
+            # 'pooled_'+which+'_max': filtered_embeds.max(axis=0).reshape(-1).tolist(),
+            # 'pooled_'+which+'_min': filtered_embeds.min(axis=0).reshape(-1).tolist(),
         }
 
         all_pooled.update(pooled)
