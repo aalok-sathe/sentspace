@@ -35,7 +35,7 @@ To use the image as a container using `singularity`, do:
 #### **next, running the container** (automatically built and deployed to Docker hub)
 [![CircleCI](https://circleci.com/gh/aalok-sathe/sentspace/tree/circle-ci.svg?style=svg)](https://circleci.com/gh/aalok-sathe/sentspace/tree/circle-ci)
 
-- `singularity shell docker://aloxatel/ubuntu:sent-space` (or alternatively, from the root of the repo, `bash singularity-shell.sh`). this step can take a while when you run it for the first time as it needs to download the image from docker hub and convert it to singularity image format (`.sif`). however, each subsequent run will execute rapidly.
+- `singularity shell docker://aloxatel/sentspace:latest` (or alternatively, from the root of the repo, `bash singularity-shell.sh`). this step can take a while when you run it for the first time as it needs to download the image from docker hub and convert it to singularity image format (`.sif`). however, each subsequent run will execute rapidly.
 - [now you are within the container] `source .singularitybashrc`, again from the root of the repo, to activate the environment variables and so on.
 - now you are ready to run the module!
 
@@ -53,10 +53,8 @@ Below, we provide more information and the capabilities/usage of each submodule 
 #### `syntax`
 
 #### `lexical`
-Not yet implemented
 
 #### `embedding`
-Not yet implemented
 
 #### `semantic`
 Not yet implemented
@@ -72,10 +70,10 @@ Any contributions you make are **greatly appreciated**, and no contribution is *
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-<!-- LICENSE -->
+<!-- LICENSE
 ## License
 
-MIT License.
+MIT License. -->
 
 
 
@@ -84,5 +82,3 @@ MIT License.
 
 - About the project: 
   - Greta Tuckute, EvLab, MIT BCS
-- For help:
-  - coming soon
