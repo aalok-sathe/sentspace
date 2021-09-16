@@ -1,0 +1,17 @@
+image: docker:latest
+services:
+    - docker:dind
+variables:
+    LATEST_VER: {aloxatel/sentspace:latest}
+stages:
+    - build
+docker_build_and_push:
+    stage: build
+    only:
+        - master
+    before_script:
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    script:
+        - docker info
+        - docker build -t $LATEST_VER .
+        - docker push $LATEST_VER
