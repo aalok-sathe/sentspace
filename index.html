@@ -62,7 +62,7 @@ To use the image as a container using <code>singularity</code>, do:</p>
 <h4 id="next-running-the-container-automatically-built-and-deployed-to-docker-hub"><strong>next, running the container</strong> (automatically built and deployed to Docker hub)</h4>
 <p><a href="https://circleci.com/gh/aalok-sathe/sentspace/tree/circle-ci"><img alt="CircleCI" src="https://circleci.com/gh/aalok-sathe/sentspace/tree/circle-ci.svg?style=svg"></a></p>
 <ul>
-<li><code>singularity shell docker://aloxatel/ubuntu:sent-space</code> (or alternatively, from the root of the repo, <code>bash singularity-shell.sh</code>). this step can take a while when you run it for the first time as it needs to download the image from docker hub and convert it to singularity image format (<code>.sif</code>). however, each subsequent run will execute rapidly.</li>
+<li><code>singularity shell docker://aloxatel/sentspace:latest</code> (or alternatively, from the root of the repo, <code>bash singularity-shell.sh</code>). this step can take a while when you run it for the first time as it needs to download the image from docker hub and convert it to singularity image format (<code>.sif</code>). however, each subsequent run will execute rapidly.</li>
 <li>[now you are within the container] <code>source .singularitybashrc</code>, again from the root of the repo, to activate the environment variables and so on.</li>
 <li>now you are ready to run the module!</li>
 </ul>
@@ -75,9 +75,7 @@ To use the image as a container using <code>singularity</code>, do:</p>
 Below, we provide more information and the capabilities/usage of each submodule in some greater depth.</p>
 <h4 id="sentspacesyntax"><code><a title="sentspace.syntax" href="syntax/index.html">sentspace.syntax</a></code></h4>
 <h4 id="sentspacelexical"><code><a title="sentspace.lexical" href="lexical/index.html">sentspace.lexical</a></code></h4>
-<p>Not yet implemented</p>
 <h4 id="sentspaceembedding"><code><a title="sentspace.embedding" href="embedding/index.html">sentspace.embedding</a></code></h4>
-<p>Not yet implemented</p>
 <h4 id="semantic"><code>semantic</code></h4>
 <p>Not yet implemented</p>
 <!-- CONTRIBUTING -->
@@ -90,16 +88,14 @@ Below, we provide more information and the capabilities/usage of each submodule 
 <li>Push to the Branch (<code>git push origin feature/AmazingFeature</code>)</li>
 <li>Open a Pull Request</li>
 </ol>
-<!-- LICENSE -->
-<h2 id="license">License</h2>
-<p>MIT License.</p>
+<!-- LICENSE
+## License
+MIT License. -->
 <!-- CONTACT -->
 <h2 id="contact">Contact</h2>
 <ul>
 <li>About the project: </li>
 <li>Greta Tuckute, EvLab, MIT BCS</li>
-<li>For help:</li>
-<li>coming soon</li>
 </ul>
 <details class="source">
 <summary>
@@ -556,7 +552,6 @@ compare the current input against; e.g. UD [optional]</dd>
 </ul>
 </li>
 <li><a href="#contributing">Contributing</a></li>
-<li><a href="#license">License</a></li>
 <li><a href="#contact">Contact</a></li>
 </ul>
 </li>
