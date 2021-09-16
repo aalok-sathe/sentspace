@@ -12,7 +12,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker:
-          docker_layer_caching: true
+          docker_layer_caching: false # not allowed in free tier
       - run:
           name: Build Docker image
           command: docker build -t $IMAGE_NAME:latest .
@@ -29,7 +29,7 @@ jobs:
       - attach_workspace:
           at: /tmp/workspace
       - setup_remote_docker:
-          docker_layer_caching: true
+          docker_layer_caching: false # not allowed in free tier
       - run:
           name: Load archived Docker image
           command: docker load -i /tmp/workspace/image.tar
