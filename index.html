@@ -36,7 +36,71 @@
 <li>Aalok Sathe <code>&lt;asathe % mit.edu&gt;</code> </li>
 <li>Greta Tuckute <code>&lt;gretatu % mit.edu&gt;</code></li>
 </ul>
-<p>.. include ../README.md</p>
+<h1 id="sentspace">sentspace</h1>
+<!-- ABOUT THE PROJECT -->
+<h2 id="about-the-project">About The Project</h2>
+<p><code><a title="sentspace" href="#sentspace">sentspace</a></code>
+aims to characterize language stimuli using a collection of metrics and comparisons.
+Imagine you generated a set of sentences based on some optimization algorithm or extracted
+them from an ANN language model. How do these 'artificially' generated sentences compare to
+naturally occurring sentences?</p>
+<p>In the present form of <code><a title="sentspace" href="#sentspace">sentspace</a></code>,
+the goal is for a user to feed the toolbox sentences and for the toolbox to return sentence feature values
+along the many metrics it implements (and will implementat in the future).</p>
+<h2 id="documentation">Documentation</h2>
+<p><a href="https://circleci.com/gh/aalok-sathe/sentspace/tree/main"><img alt="CircleCI" src="https://circleci.com/gh/aalok-sathe/sentspace/tree/main.svg?style=svg"></a></p>
+<p>For more information, <a href="https://aalok-sathe.github.io/sentspace/index.html">visit the docs!</a></p>
+<!-- request read access to the [project doc](https://docs.google.com/document/d/1O1M7T5Ji6KKRvDfI7KQXe_LJ7l9O6_OZA7TEaVP4f8E/edit#). -->
+<h2 id="usage">Usage</h2>
+<p>The recommended way to run this project with all its dependencies is using a prebuilt Docker image, <code>aloxatel/ubuntu:sent-space</code>.
+To use the image as a container using <code>singularity</code>, do:</p>
+<h4 id="first-some-important-housekeeping-stuff"><strong>first, some important housekeeping stuff</strong></h4>
+<ul>
+<li><code>which singularity</code> (make sure you have singularity, or load/install it otherwise)</li>
+<li>make sure you have set the ennvironment variables that specify where <code>singularity</code> will cache its images. if you don't do this, <code>singularity</code> will make assumptions and you may end up with a full disk and an unresponsive server. you need about 6gb of free space at the target location.</li>
+</ul>
+<h4 id="next-running-the-container-automatically-built-and-deployed-to-docker-hub"><strong>next, running the container</strong> (automatically built and deployed to Docker hub)</h4>
+<p><a href="https://circleci.com/gh/aalok-sathe/sentspace/tree/circle-ci"><img alt="CircleCI" src="https://circleci.com/gh/aalok-sathe/sentspace/tree/circle-ci.svg?style=svg"></a></p>
+<ul>
+<li><code>singularity shell docker://aloxatel/ubuntu:sent-space</code> (or alternatively, from the root of the repo, <code>bash singularity-shell.sh</code>). this step can take a while when you run it for the first time as it needs to download the image from docker hub and convert it to singularity image format (<code>.sif</code>). however, each subsequent run will execute rapidly.</li>
+<li>[now you are within the container] <code>source .singularitybashrc</code>, again from the root of the repo, to activate the environment variables and so on.</li>
+<li>now you are ready to run the module!</li>
+</ul>
+<p>For a complete list of options and default values, see the <code>help</code> page like so:</p>
+<pre><code class="language-bash">python3 -m sentspace -h
+</code></pre>
+<h3 id="submodules">Submodules</h3>
+<p>In general, each submodule exists as a standalone implementation. You can run each module on its own by specifying it like so:
+<code>python -m sentspace.syntax -h</code>, which will print out the usage for that submodule.
+Below, we provide more information and the capabilities/usage of each submodule in some greater depth.</p>
+<h4 id="sentspacesyntax"><code><a title="sentspace.syntax" href="syntax/index.html">sentspace.syntax</a></code></h4>
+<h4 id="sentspacelexical"><code><a title="sentspace.lexical" href="lexical/index.html">sentspace.lexical</a></code></h4>
+<p>Not yet implemented</p>
+<h4 id="sentspaceembedding"><code><a title="sentspace.embedding" href="embedding/index.html">sentspace.embedding</a></code></h4>
+<p>Not yet implemented</p>
+<h4 id="semantic"><code>semantic</code></h4>
+<p>Not yet implemented</p>
+<!-- CONTRIBUTING -->
+<h2 id="contributing">Contributing</h2>
+<p>Any contributions you make are <strong>greatly appreciated</strong>, and no contribution is <em>too small</em> to contribute.</p>
+<ol>
+<li>Fork the Project</li>
+<li>Create your Feature Branch (<code>git checkout -b feature/AmazingFeature</code>)</li>
+<li>Commit your Changes (<code>git commit -m 'Add some AmazingFeature'</code>)</li>
+<li>Push to the Branch (<code>git push origin feature/AmazingFeature</code>)</li>
+<li>Open a Pull Request</li>
+</ol>
+<!-- LICENSE -->
+<h2 id="license">License</h2>
+<p>MIT License.</p>
+<!-- CONTACT -->
+<h2 id="contact">Contact</h2>
+<ul>
+<li>About the project: </li>
+<li>Greta Tuckute, EvLab, MIT BCS</li>
+<li>For help:</li>
+<li>coming soon</li>
+</ul>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -58,7 +122,7 @@
     - Aalok Sathe `&lt;asathe % mit.edu&gt;` 
     - Greta Tuckute `&lt;gretatu % mit.edu&gt;`
 
-    .. include ../README.md
+    .. include:: ../README.md
 &#39;&#39;&#39;
 
 __pdoc__ = {&#39;semantic&#39;: False,
@@ -476,6 +540,26 @@ compare the current input against; e.g. UD [optional]</dd>
 <div class="toc">
 <ul>
 <li><a href="#sentspace-001-c-2020-2021-evlab-mit-bcs-all-rights-reserved">Sentspace 0.0.1 (C) 2020-2021 EvLab , MIT BCS. All rights reserved.</a></li>
+<li><a href="#sentspace">sentspace</a><ul>
+<li><a href="#about-the-project">About The Project</a></li>
+<li><a href="#documentation">Documentation</a></li>
+<li><a href="#usage">Usage</a><ul>
+<li><a href="#first-some-important-housekeeping-stuff">first, some important housekeeping stuff</a></li>
+<li><a href="#next-running-the-container-automatically-built-and-deployed-to-docker-hub">next, running the container (automatically built and deployed to Docker hub)</a></li>
+<li><a href="#submodules">Submodules</a><ul>
+<li><a href="#syntax">syntax</a></li>
+<li><a href="#lexical">lexical</a></li>
+<li><a href="#embedding">embedding</a></li>
+<li><a href="#semantic">semantic</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#contributing">Contributing</a></li>
+<li><a href="#license">License</a></li>
+<li><a href="#contact">Contact</a></li>
+</ul>
+</li>
 </ul>
 </div>
 <ul id="index">
