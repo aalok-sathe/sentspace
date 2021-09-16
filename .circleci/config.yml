@@ -47,7 +47,7 @@ jobs:
           name: Build docs
           command: pdoc3 --html sentspace --force 
       - persist_to_workspace:
-          root: html
+          root: html/sentspace
           paths: sentspace
   docs-deploy:
     docker:
