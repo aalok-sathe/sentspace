@@ -44,8 +44,8 @@ def get_features(sentence:str, identifier=None, vocab=None, data_dir=None):
     # if lock is not None:
     #     lock.acquire()
     w2v['glove'] = utils.load_embeddings(emb_file='glove.840B.300d.txt',
-                                            vocab=(*sorted(vocab or tokenized),),
-                                            data_dir=data_dir)
+                                         vocab=(*sorted(vocab or tokenized),),
+                                         data_dir=data_dir)
     # if lock is not None:
     #     lock.release()
 
@@ -83,28 +83,6 @@ def get_features(sentence:str, identifier=None, vocab=None, data_dir=None):
         **pooled_embeddings,
     }
 
-
-    result = sentspace.utils.compile_results(sentence, cleaned_sentence, lemmatized_sentence,
-                                             tagged_sentence, content_words, setlst,
-                                             flat_sentence_num, flat_token_lens, merged_vals)
-
-    result = utils.transform_features(result, *['default', None, None])
-
-    # print('Computing sentence embeddings')
-    # sent_embed = utils.get_sent_vectors(result, features_used, embed_method,
-    #                                     content_only=content_only,
-    #                                     pronoun_ratios=pronoun_ratios,
-    #                                     )
-    # lex_per_word_with_uniform_column = utils.conform_word_lex_df_columns(
-    #     result)
-    # lex_per_word_with_uniform_column.to_csv(word_lex_output_path, index=False)
-
-    # print('Writing lex sentence embedding to csv at ' + embed_lex_output_path)
-    # sent_embed.to_csv(embed_lex_output_path, index=False)
-
-    # # Make the syntax excel sheet
-    # print('Writing syntax sentence embedding to csv at ' + sent_output_path)
-    # #pdb.set_trace()
 
     # # Read in benchmark data
     # df_benchmark = pd.read_csv(benchmark_file)
