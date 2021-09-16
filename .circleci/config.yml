@@ -45,7 +45,7 @@ jobs:
       - checkout
       - run:
           name: Build docs
-          command: pdoc3 --html --force
+          command: pdoc3 --html sentspace --force 
       - persist_to_workspace:
           root: .
           paths: html
