@@ -8,6 +8,13 @@ from sentspace.syntax.features import DLT, Feature, LeftCorner, Tree
 from sentspace.utils import io, text
 from sentspace.utils.caching import cache_to_disk
 
+__pdoc__ = {'compute_tree_dlt_left_corner': False,
+            'utils.calcEmbd': False,
+            'utils.calcDLT': False,
+            'utils.printlemmas': False,
+            'utils.tree': False
+            }
+
 os.environ['PERL_BADLANG'] = '0'
 
 
