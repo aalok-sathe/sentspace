@@ -27,6 +27,3 @@ RUN apt remove -y git
 RUN apt autoremove -y
 RUN pip cache purge
 RUN apt clean && rm -rf /var/lib/apt/lists/*
-
-# RUN yarn install --production
-# CMD ["node", "src/index.js"]
