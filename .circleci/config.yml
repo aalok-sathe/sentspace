@@ -43,10 +43,10 @@ workflows:
       - build:
           filters:
             branches:
-              only: main
+              only: circle-ci
       - publish-latest:
           requires:
             - build
           filters:
             branches:
-              only: main
+              only: circle-ci
