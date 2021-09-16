@@ -14,6 +14,8 @@
     
     - Aalok Sathe `<asathe % mit.edu>` 
     - Greta Tuckute `<gretatu % mit.edu>`
+
+    .. include ../README.md
 '''
 
 __pdoc__ = {'semantic': False,
