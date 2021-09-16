@@ -38,6 +38,36 @@ jobs:
           command: |
             echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
             docker push $IMAGE_NAME:latest
+  docs-build:
+    docker:
+      - image: aloxatel/sentspace
+    steps:
+      - checkout
+      - run:
+          name: Build docs
+          command: pdoc3 --html --force
+      - persist_to_workspace:
+          root: .
+          paths: html
+  docs-deploy:
+    docker:
+      - image: node:8.10.0
+    steps:
+      - checkout
+      - attach_workspace:
+          at: html
+      - add_ssh_keys:
+          fingerprints:
+            - "69:08:74:89:7c:dd:ed:e2:e3:a8:85:3b:73:3d:dd:24"
+      - run:
+          name: Install and configure dependencies
+          command: |
+            npm install -g --silent gh-pages@2.0.1
+            git config user.email "pdoc3@circleci.com"
+            git config user.name "asathe"
+      - run:
+          name: Deploy docs to gh-pages branch
+          command: gh-pages --dotfiles --message "[skip ci] Docs updates" --dist html
 workflows:
   version: 2
   build-master:
@@ -52,3 +82,13 @@ workflows:
           filters:
             branches:
               only: circle-ci
+      - docs-build:
+          filters:
+            branches:
+              only: main
+      - docs-deploy:
+          requires:
+            - docs-build
+          filters:
+            branches:
+              only: main
