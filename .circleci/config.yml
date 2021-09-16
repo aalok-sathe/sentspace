@@ -47,15 +47,15 @@ jobs:
           name: Build docs
           command: pdoc3 --html sentspace --force 
       - persist_to_workspace:
-          root: html
-          paths: sentspace
+          root: .
+          paths: html/sentspace
   docs-deploy:
     docker:
       - image: node:8.10.0
     steps:
       - checkout
       - attach_workspace:
-          at: sentspace
+          at: html
       - add_ssh_keys:
           fingerprints:
             - "69:08:74:89:7c:dd:ed:e2:e3:a8:85:3b:73:3d:dd:24"
@@ -67,7 +67,7 @@ jobs:
             git config user.name "asathe"
       - run:
           name: Deploy docs to gh-pages branch
-          command: gh-pages --dotfiles --message "[skip ci] Docs updates" --dist sentspace
+          command: gh-pages --dotfiles --message "[skip ci] Docs updates" --dist html/sentspace
 workflows:
   version: 2
   build-master:
