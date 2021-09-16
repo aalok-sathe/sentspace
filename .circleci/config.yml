@@ -48,7 +48,7 @@ jobs:
           command: pdoc3 --html sentspace --force 
       - persist_to_workspace:
           root: html/sentspace
-          paths: sentspace
+          paths: *
   docs-deploy:
     docker:
       - image: node:8.10.0
