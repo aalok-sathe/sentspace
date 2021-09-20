@@ -29,9 +29,9 @@ def main(args):
 
     # Estimate sentence embeddings
     features = sentspace.run_sentence_features_pipeline(args.input_file, stop_words_file=args.stop_words,
-                                                        benchmark_file=args.benchmark, lexical=args.lexical,
-                                                        syntax=args.syntax, embedding=args.embedding,
-                                                        semantic=args.semantic,
+                                                        benchmark_file=args.benchmark, process_lexical=args.lexical,
+                                                        process_syntax=args.syntax, process_embedding=args.embedding,
+                                                        process_semantic=args.semantic,
                                                         output_dir=args.output_dir,
                                                         output_format=args.output_format,
                                                         #
