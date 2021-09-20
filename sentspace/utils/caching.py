@@ -29,7 +29,11 @@ def cache_to_mem(fn):
         def fibonacci(n):
             ...
     '''
-    return partial(lru_cache, fn, maxsize=None)
+    @lru_cache(maxsize=None)
+    def wrapped_fn(*args, **kwargs): 
+        return fn(*args, **kwargs)
+
+    return wrapped_fn
 
 # DEBUG: uncomment below line to disable caching by making a dummy wrapper
 # cache_to_disk = lambda x: x
