@@ -135,13 +135,20 @@ import sentspace.semantic as semantic
 import sentspace.embedding as embedding
 # ...
 
+# TODO: remove processing overhead in API call; ideally the below imports 
+# should not exist in this file. TODO: create functions in sentspace.utils
+# or otherwise submodule-specific utils to compile such data into a pandas
+# dataframe
+import pandas as pd
+from functools import reduce 
+from itertools import chain
 
 
 def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                    benchmark_file: str = None, output_dir: str = None,
                                    output_format: str = None,
-                                   lexical: bool = False, syntax: bool = False,
-                                   embedding: bool = False, semantic: bool = False,
+                                   process_lexical: bool = False, process_syntax: bool = False,
+                                   process_embedding: bool = False, process_semantic: bool = False,
                                    #
                                    emb_data_dir: str = None) -&gt; Path:
     &#34;&#34;&#34;
@@ -190,7 +197,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
     # TODO: where was this supposed to be used?
     # poly_morphemes = utils.get_poly_morpheme(flat_sentence_num, flat_token_list)
 
-    if lexical:
+    if process_lexical:
         utils.io.log(&#39;*** running lexical submodule pipeline&#39;)
         _ = lexical.utils.load_databases(features=&#39;all&#39;)
 
@@ -217,7 +224,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
         utils.io.log(f&#39;--- finished lexical pipeline&#39;)
 
-    if syntax:
+    if process_syntax:
         utils.io.log(&#39;*** running syntax submodule pipeline&#39;)
         syntax_features = [syntax.get_features(sentence, dlt=True, left_corner=True, identifier=UIDs[i])
                            for i, sentence in enumerate(tqdm(sentences, desc=&#39;Syntax pipeline&#39;))]
@@ -262,7 +269,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
     # utils.pPMI(sent_rows, pmi_paths)
     # pdb.set_trace()
 
-    if embedding:
+    if process_embedding:
         utils.io.log(&#39;*** running embedding submodule pipeline&#39;)
         # Get GloVE
 
@@ -302,12 +309,19 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
     # Plot input data to benchmark data
     #utils.plot_usr_input_against_benchmark_dist_plots(df_benchmark, sent_embed)
 
+    if process_semantic:
+        pass
+
     return output_dir</code></pre>
 </details>
 </section>
 <section>
 <h2 class="section-title" id="header-submodules">Sub-modules</h2>
 <dl>
+<dt><code class="name"><a title="sentspace.Sentence" href="Sentence.html">sentspace.Sentence</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt><code class="name"><a title="sentspace.embedding" href="embedding/index.html">sentspace.embedding</a></code></dt>
 <dd>
 <div class="desc"></div>
@@ -332,7 +346,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="sentspace.run_sentence_features_pipeline"><code class="name flex">
-<span>def <span class="ident">run_sentence_features_pipeline</span></span>(<span>input_file: str, stop_words_file: str = None, benchmark_file: str = None, output_dir: str = None, output_format: str = None, lexical: bool = False, syntax: bool = False, embedding: bool = False, semantic: bool = False, emb_data_dir: str = None) ‑> pathlib.Path</span>
+<span>def <span class="ident">run_sentence_features_pipeline</span></span>(<span>input_file: str, stop_words_file: str = None, benchmark_file: str = None, output_dir: str = None, output_format: str = None, process_lexical: bool = False, process_syntax: bool = False, process_embedding: bool = False, process_semantic: bool = False, emb_data_dir: str = None) ‑> pathlib.Path</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Runs the full sentence features pipeline on the given input according to
@@ -361,8 +375,8 @@ compare the current input against; e.g. UD [optional]</dd>
 <pre><code class="python">def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                    benchmark_file: str = None, output_dir: str = None,
                                    output_format: str = None,
-                                   lexical: bool = False, syntax: bool = False,
-                                   embedding: bool = False, semantic: bool = False,
+                                   process_lexical: bool = False, process_syntax: bool = False,
+                                   process_embedding: bool = False, process_semantic: bool = False,
                                    #
                                    emb_data_dir: str = None) -&gt; Path:
     &#34;&#34;&#34;
@@ -411,7 +425,7 @@ compare the current input against; e.g. UD [optional]</dd>
     # TODO: where was this supposed to be used?
     # poly_morphemes = utils.get_poly_morpheme(flat_sentence_num, flat_token_list)
 
-    if lexical:
+    if process_lexical:
         utils.io.log(&#39;*** running lexical submodule pipeline&#39;)
         _ = lexical.utils.load_databases(features=&#39;all&#39;)
 
@@ -438,7 +452,7 @@ compare the current input against; e.g. UD [optional]</dd>
 
         utils.io.log(f&#39;--- finished lexical pipeline&#39;)
 
-    if syntax:
+    if process_syntax:
         utils.io.log(&#39;*** running syntax submodule pipeline&#39;)
         syntax_features = [syntax.get_features(sentence, dlt=True, left_corner=True, identifier=UIDs[i])
                            for i, sentence in enumerate(tqdm(sentences, desc=&#39;Syntax pipeline&#39;))]
@@ -483,7 +497,7 @@ compare the current input against; e.g. UD [optional]</dd>
     # utils.pPMI(sent_rows, pmi_paths)
     # pdb.set_trace()
 
-    if embedding:
+    if process_embedding:
         utils.io.log(&#39;*** running embedding submodule pipeline&#39;)
         # Get GloVE
 
@@ -522,6 +536,9 @@ compare the current input against; e.g. UD [optional]</dd>
 
     # Plot input data to benchmark data
     #utils.plot_usr_input_against_benchmark_dist_plots(df_benchmark, sent_embed)
+
+    if process_semantic:
+        pass
 
     return output_dir</code></pre>
 </details>
@@ -560,6 +577,7 @@ compare the current input against; e.g. UD [optional]</dd>
 <ul id="index">
 <li><h3><a href="#header-submodules">Sub-modules</a></h3>
 <ul>
+<li><code><a title="sentspace.Sentence" href="Sentence.html">sentspace.Sentence</a></code></li>
 <li><code><a title="sentspace.embedding" href="embedding/index.html">sentspace.embedding</a></code></li>
 <li><code><a title="sentspace.lexical" href="lexical/index.html">sentspace.lexical</a></code></li>
 <li><code><a title="sentspace.syntax" href="syntax/index.html">sentspace.syntax</a></code></li>

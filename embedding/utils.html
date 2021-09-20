@@ -183,19 +183,36 @@ def pool_sentence_embeds(tokens, token_embeddings, filters=[lambda i, x: True],
 
     all_pooled = {}
     for which in token_embeddings:
-        filtered_embeds = [e for i, (t, e) in enumerate(zip(tokens, token_embeddings[which]))
-                           if all(fn(i, t) for fn in filters)]
-        filtered_embeds = np.array(filtered_embeds, dtype=np.float32)
-        shape = filtered_embeds.shape
+        # all the embeddings corresponding to the tokens
+        all_embeds = [e for i, (t, e) in enumerate(zip(tokens, token_embeddings[which]))]
+        all_tokens = [t for i, (t, e) in enumerate(zip(tokens, token_embeddings[which]))]
+        all_embeds = np.array(all_embeds, dtype=np.float32)
+        all_tokens = np.array(all_tokens, dtype=str)
 
-        try:
-            filtered_embeds = filtered_embeds[~np.isnan(filtered_embeds[:, 0]), :]
-        except IndexError as e:
-            pass
+        # exclude OOV words&#39; embeddings (as they are all NaNs)
+        # make a note of the shape of the vector (n x embed_dim)
+        not_nan_tokens = all_tokens[~np.isnan(all_embeds[:, 0])   ]
+        not_nan_embeds = all_embeds[~np.isnan(all_embeds[:, 0]), :]
 
-        if len(filtered_embeds) == 0:
+        shape = not_nan_embeds.shape
+        # TODO: vectorize operation on all tokensnow that it is an numpy array
+        mask = [all(fn(i, t) for fn in filters) for i, t in enumerate(not_nan_tokens)]
+
+        filtered_embeds = not_nan_embeds[mask]
+        filtered_shape = filtered_embeds.shape
+
+        # if filtering left no tokens, we will use all_embeds instead
+        if filtered_shape[0] == 0:
             io.log(f&#39;all embeddings for current sentence are NaN ({shape} -&gt; {filtered_embeds.shape}): {tokens}&#39;, type=&#39;WARN&#39;)
-            filtered_embeds = np.zeros((1,shape[-1]))
+            
+            # now what? use all_embeds (as a fallback)
+            filtered_embeds = not_nan_embeds
+            
+        # [very rarely] if no word has a corresponding embedding, then we have no choice
+        # but to return a zero vector (or, sometime in the future, a random vector?)
+        if shape[0] == 0:
+            filtered_embeds = np.zeros((1, shape[-1]))
+
 
         pooled = {
             &#39;pooled_&#39;+which+&#39;_median&#39;: np.median(filtered_embeds, axis=0).reshape(-1).tolist(),
@@ -411,19 +428,36 @@ only tokens that satisfy all filters are retained.</p>
 
     all_pooled = {}
     for which in token_embeddings:
-        filtered_embeds = [e for i, (t, e) in enumerate(zip(tokens, token_embeddings[which]))
-                           if all(fn(i, t) for fn in filters)]
-        filtered_embeds = np.array(filtered_embeds, dtype=np.float32)
-        shape = filtered_embeds.shape
+        # all the embeddings corresponding to the tokens
+        all_embeds = [e for i, (t, e) in enumerate(zip(tokens, token_embeddings[which]))]
+        all_tokens = [t for i, (t, e) in enumerate(zip(tokens, token_embeddings[which]))]
+        all_embeds = np.array(all_embeds, dtype=np.float32)
+        all_tokens = np.array(all_tokens, dtype=str)
 
-        try:
-            filtered_embeds = filtered_embeds[~np.isnan(filtered_embeds[:, 0]), :]
-        except IndexError as e:
-            pass
+        # exclude OOV words&#39; embeddings (as they are all NaNs)
+        # make a note of the shape of the vector (n x embed_dim)
+        not_nan_tokens = all_tokens[~np.isnan(all_embeds[:, 0])   ]
+        not_nan_embeds = all_embeds[~np.isnan(all_embeds[:, 0]), :]
 
-        if len(filtered_embeds) == 0:
+        shape = not_nan_embeds.shape
+        # TODO: vectorize operation on all tokensnow that it is an numpy array
+        mask = [all(fn(i, t) for fn in filters) for i, t in enumerate(not_nan_tokens)]
+
+        filtered_embeds = not_nan_embeds[mask]
+        filtered_shape = filtered_embeds.shape
+
+        # if filtering left no tokens, we will use all_embeds instead
+        if filtered_shape[0] == 0:
             io.log(f&#39;all embeddings for current sentence are NaN ({shape} -&gt; {filtered_embeds.shape}): {tokens}&#39;, type=&#39;WARN&#39;)
-            filtered_embeds = np.zeros((1,shape[-1]))
+            
+            # now what? use all_embeds (as a fallback)
+            filtered_embeds = not_nan_embeds
+            
+        # [very rarely] if no word has a corresponding embedding, then we have no choice
+        # but to return a zero vector (or, sometime in the future, a random vector?)
+        if shape[0] == 0:
+            filtered_embeds = np.zeros((1, shape[-1]))
+
 
         pooled = {
             &#39;pooled_&#39;+which+&#39;_median&#39;: np.median(filtered_embeds, axis=0).reshape(-1).tolist(),

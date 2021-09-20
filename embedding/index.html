@@ -82,32 +82,17 @@ def get_features(sentence:str, identifier=None, vocab=None, data_dir=None):
                                        which=&#39;glove&#39;, dims=300),
     }
 
-    # content_word_filter = lambda i, token: is_content_word[i]
-    # filters = [content_word_filter]
+    content_word_filter = lambda i, token: is_content_word[i]
+    filters = [content_word_filter]
     pooled_embeddings = utils.pool_sentence_embeds(lowercased, token_embeddings)
 
     tagged_sentence = text.get_pos_tags(tokenized)
     lemmatized_sentence = text.get_lemmatized_tokens(tokenized, tagged_sentence)
     
-    # token_df = pd.DataFrame({&#39;index&#39;: identifier,
-    #                          &#39;sentence&#39;: sentence,
-    #                          &#39;tokens&#39;: tokenized,
-    #                          &#39;lowercased&#39;: lowercased,
-    #                          &#39;lemmas&#39;: lemmatized_sentence,
-    #                          &#39;tags&#39;: tagged_sentence,
-    #                         #  **{k:[e for e in v] for k,v in token_embeddings.items()}
-    #                           **token_embeddings,
-    #                          }, dtype=str)
-    
-    # for which in token_embeddings:
-    #     # token_df[which] = [v.reshape(-1).tolist() for v in token_embeddings[which]]
-    #     token_df[which] = token_embeddings[which]]
-
     return {
         &#39;index&#39;: identifier,
         &#39;sentence&#39;: sentence,
 
-        # &#39;token_embeds&#39;: token_df,
         **pooled_embeddings,
     }
 
@@ -201,32 +186,17 @@ byte offset of a particular token in the Glove file for speedy reading.</dd>
                                        which=&#39;glove&#39;, dims=300),
     }
 
-    # content_word_filter = lambda i, token: is_content_word[i]
-    # filters = [content_word_filter]
+    content_word_filter = lambda i, token: is_content_word[i]
+    filters = [content_word_filter]
     pooled_embeddings = utils.pool_sentence_embeds(lowercased, token_embeddings)
 
     tagged_sentence = text.get_pos_tags(tokenized)
     lemmatized_sentence = text.get_lemmatized_tokens(tokenized, tagged_sentence)
     
-    # token_df = pd.DataFrame({&#39;index&#39;: identifier,
-    #                          &#39;sentence&#39;: sentence,
-    #                          &#39;tokens&#39;: tokenized,
-    #                          &#39;lowercased&#39;: lowercased,
-    #                          &#39;lemmas&#39;: lemmatized_sentence,
-    #                          &#39;tags&#39;: tagged_sentence,
-    #                         #  **{k:[e for e in v] for k,v in token_embeddings.items()}
-    #                           **token_embeddings,
-    #                          }, dtype=str)
-    
-    # for which in token_embeddings:
-    #     # token_df[which] = [v.reshape(-1).tolist() for v in token_embeddings[which]]
-    #     token_df[which] = token_embeddings[which]]
-
     return {
         &#39;index&#39;: identifier,
         &#39;sentence&#39;: sentence,
 
-        # &#39;token_embeds&#39;: token_df,
         **pooled_embeddings,
     }
 
