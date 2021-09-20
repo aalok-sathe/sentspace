@@ -32,13 +32,20 @@ import sentspace.semantic as semantic
 import sentspace.embedding as embedding
 # ...
 
+# TODO: remove processing overhead in API call; ideally the below imports 
+# should not exist in this file. TODO: create functions in sentspace.utils
+# or otherwise submodule-specific utils to compile such data into a pandas
+# dataframe
+import pandas as pd
+from functools import reduce 
+from itertools import chain
 
 
 def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                    benchmark_file: str = None, output_dir: str = None,
                                    output_format: str = None,
-                                   lexical: bool = False, syntax: bool = False,
-                                   embedding: bool = False, semantic: bool = False,
+                                   process_lexical: bool = False, process_syntax: bool = False,
+                                   process_embedding: bool = False, process_semantic: bool = False,
                                    #
                                    emb_data_dir: str = None) -> Path:
     """
@@ -87,7 +94,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
     # TODO: where was this supposed to be used?
     # poly_morphemes = utils.get_poly_morpheme(flat_sentence_num, flat_token_list)
 
-    if lexical:
+    if process_lexical:
         utils.io.log('*** running lexical submodule pipeline')
         _ = lexical.utils.load_databases(features='all')
 
@@ -114,7 +121,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
         utils.io.log(f'--- finished lexical pipeline')
 
-    if syntax:
+    if process_syntax:
         utils.io.log('*** running syntax submodule pipeline')
         syntax_features = [syntax.get_features(sentence, dlt=True, left_corner=True, identifier=UIDs[i])
                            for i, sentence in enumerate(tqdm(sentences, desc='Syntax pipeline'))]
@@ -159,7 +166,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
     # utils.pPMI(sent_rows, pmi_paths)
     # pdb.set_trace()
 
-    if embedding:
+    if process_embedding:
         utils.io.log('*** running embedding submodule pipeline')
         # Get GloVE
 
@@ -198,5 +205,8 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
     # Plot input data to benchmark data
     #utils.plot_usr_input_against_benchmark_dist_plots(df_benchmark, sent_embed)
+
+    if process_semantic:
+        pass
 
     return output_dir
