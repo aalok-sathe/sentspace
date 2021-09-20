@@ -25,7 +25,7 @@ For more information, [visit the docs!](https://aalok-sathe.github.io/sentspace/
 
 ## Usage
 
-The recommended way to run this project with all its dependencies is using a prebuilt Docker image, `aloxatel/ubuntu:sent-space`.
+The recommended way to run this project with all its dependencies is using a prebuilt Docker image, `aloxatel/sentspace:latest`.
 To use the image as a container using `singularity`, do:
 
 #### **first, some important housekeeping stuff**
