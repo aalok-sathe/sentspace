@@ -55,8 +55,8 @@ def get_features(sentence:str, identifier=None, vocab=None, data_dir=None):
     }
 
     content_word_filter = lambda i, token: is_content_word[i]
-    filters = [content_word_filter]
-    pooled_embeddings = utils.pool_sentence_embeds(lowercased, token_embeddings)
+    filters = {'content_words': content_word_filter}
+    pooled_embeddings = utils.pool_sentence_embeds(lowercased, token_embeddings, filters=filters)
 
     tagged_sentence = text.get_pos_tags(tokenized)
     lemmatized_sentence = text.get_lemmatized_tokens(tokenized, tagged_sentence)
@@ -64,6 +64,7 @@ def get_features(sentence:str, identifier=None, vocab=None, data_dir=None):
     return {
         'index': identifier,
         'sentence': sentence,
+        'filters': ','.join(filters.keys()),
 
         **pooled_embeddings,
     }

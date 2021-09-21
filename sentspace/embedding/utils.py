@@ -168,7 +168,7 @@ def pool_sentence_embeds(tokens, token_embeddings, filters=[lambda i, x: True],
 
         shape = not_nan_embeds.shape
         # TODO: vectorize operation on all tokensnow that it is an numpy array
-        mask = [all(fn(i, t) for fn in filters) for i, t in enumerate(not_nan_tokens)]
+        mask = [all(fn(i, t) for filt_name, fn in filters.items()) for i, t in enumerate(not_nan_tokens)]
 
         filtered_embeds = not_nan_embeds[mask]
         filtered_shape = filtered_embeds.shape
