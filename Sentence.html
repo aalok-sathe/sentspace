@@ -34,6 +34,13 @@ import sentspace.utils as utils
 
 
 class Sentence:
+    &#39;&#39;&#39;
+    a class to keep track of an individual sentence, its tokenized form,
+    lemmas, POS tags, and so on.
+    contains handy methods to perform the above segmentation/processing
+    operations as well as methods for string representation, equality, and
+    indexing (on tokenized form)
+    &#39;&#39;&#39;
     _uid: str = None
     _raw: str = None
     _tokens: tuple = None
@@ -41,42 +48,109 @@ class Sentence:
     _lemmas: tuple = None
     _content: tuple = None
     
-    def __init__(self, raw: str, uid: str = None) -&gt; None:
+    def __init__(self, raw: str, uid: str = None, warn: bool = True) -&gt; None:
+        &#34;&#34;&#34;Sentence constructor
+
+        Args:
+            raw (str): sentence in contiguous string form (will be segmented using a tokenizer)
+            uid (str, optional): Unique ID of this sentence in a corpus. Defaults to None.
+            warn (bool, optional): whether to warn that a UID is not supplied if one isn&#39;t given.
+                                   can be set to False to suppress warning in case of intentional
+                                   UID-less usage
+        &#34;&#34;&#34;        
         self._raw = raw
-        if uid is None:
+        if uid is None and warn:
             utils.io.log(f&#39;no UID supplied for sentence {raw}\r&#39;, type=&#39;WARN&#39;)
         self._uid = uid
 
     def __eq__(self, other) -&gt; bool:
-        return self._raw == other._raw
+        &#34;&#34;&#34;Equality operation with other sentences. Simply compares raw string.
+
+        Args:
+            other ([type]): [description]
+
+        Returns:
+            bool: True if self is equal to other, else False
+        &#34;&#34;&#34;        
+        return str(self) == str(other)
 
     def __repr__(self) -&gt; str:
-        return f&#39;&lt;{self._uid:.&gt;7}&gt;\t {self._raw:&lt;32}&#39;
+        &#34;&#34;&#34;Implement representation repr() of Sentence.
+            prints out the UID followed by sentence
+
+        Returns:
+            str: representation of self
+        &#34;&#34;&#34;        
+        return f&#39;&lt;{self._uid}&gt;\t {self._raw:&lt;32}&#39;
     def __str__(self) -&gt; str:
+        &#34;&#34;&#34;Returns raw string representation
+
+        Returns:
+            str: raw string
+        &#34;&#34;&#34;        
         return f&#39;{self._raw}&#39;
 
     def __len__(self) -&gt; int:
+        &#34;&#34;&#34;Compute length of the sentence in terms of # of tokens
+
+        Returns:
+            int: length of the tokenized sentence
+        &#34;&#34;&#34;        
         return len(self.tokenized())
 
     def __getitem__(self, index: int) -&gt; str:
+        &#34;&#34;&#34;Support indexing into the tokens of the sentence
+
+        Args:
+            index (int): index&#39;th token to retrieve
+
+        Returns:
+            str: token at the indexed position in the tokenized form
+        &#34;&#34;&#34;        
         return self.tokenized()[index]
 
-    def tokenized(self, tokenize_method=utils.text.tokenize) -&gt; tuple:
+    def tokenized(self, tokenize_method=utils.text.tokenize) -&gt; typing.Tuple[str]:
+        &#34;&#34;&#34;Tokenize and store tokenized form as a tuple. The tokenize_method is executed only
+            the first time; each subsequent call to tokenized() returns the value of a stored variable
+
+        Args:
+            tokenize_method ([function], optional): a custom tokenization function. Defaults to utils.text.tokenize.
+
+        Returns:
+            tuple: tokenized form
+        &#34;&#34;&#34;        
         if self._tokens is None:
             self._tokens = tuple(tokenize_method(self._raw))
         return self._tokens
 
-    def pos_tagged(self) -&gt; tuple:
+    def pos_tagged(self) -&gt; typing.Tuple[str]:
+        &#34;&#34;&#34;POS-tag the sentence and return the result. Note, this method is also executed
+            only once ever; each subsequent time a stored value is returned.
+
+        Returns:
+            tuple: POS tags
+        &#34;&#34;&#34;        
         if self._pos is None:
             self._pos = utils.text.get_pos_tags(self.tokenized())
         return self._pos
 
-    def lemmatized(self):
+    def lemmatized(self) -&gt; typing.Tuple[str]:
+        &#34;&#34;&#34;Lemmatize and return the lemmas
+
+        Returns:
+            tuple: Lemmas
+        &#34;&#34;&#34;        
         if self._lemmas is None:
             self._lemmas = utils.text.get_lemmatized_tokens(self.tokenized(), utils.text.get_pos_tags(self.tokenized()))
         return self._lemmas
 
-    def content_words(self):
+    def content_words(self) -&gt; typing.List[int]:
+        &#34;&#34;&#34;Check whether each word is a &#39;content word&#39;. Returns a list containing 0 or 1 as boolean
+            mask indicating whether the word at that position is a content word or not
+
+        Returns:
+            List[int]: boolean mask indicating content words
+        &#34;&#34;&#34;        
         if self._content is None:
             self._content = utils.text.get_is_content(self.pos_tagged(), content_pos=utils.text.pos_for_content)
         return self._content</code></pre>
@@ -93,15 +167,38 @@ class Sentence:
 <dl>
 <dt id="sentspace.Sentence.Sentence"><code class="flex name class">
 <span>class <span class="ident">Sentence</span></span>
-<span>(</span><span>raw: str, uid: str = None)</span>
+<span>(</span><span>raw: str, uid: str = None, warn: bool = True)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>a class to keep track of an individual sentence, its tokenized form,
+lemmas, POS tags, and so on.
+contains handy methods to perform the above segmentation/processing
+operations as well as methods for string representation, equality, and
+indexing (on tokenized form)</p>
+<p>Sentence constructor</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>raw</code></strong> :&ensp;<code>str</code></dt>
+<dd>sentence in contiguous string form (will be segmented using a tokenizer)</dd>
+<dt><strong><code>uid</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Unique ID of this sentence in a corpus. Defaults to None.</dd>
+<dt><strong><code>warn</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>whether to warn that a UID is not supplied if one isn't given.
+can be set to False to suppress warning in case of intentional
+UID-less usage</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class Sentence:
+    &#39;&#39;&#39;
+    a class to keep track of an individual sentence, its tokenized form,
+    lemmas, POS tags, and so on.
+    contains handy methods to perform the above segmentation/processing
+    operations as well as methods for string representation, equality, and
+    indexing (on tokenized form)
+    &#39;&#39;&#39;
     _uid: str = None
     _raw: str = None
     _tokens: tuple = None
@@ -109,42 +206,109 @@ class Sentence:
     _lemmas: tuple = None
     _content: tuple = None
     
-    def __init__(self, raw: str, uid: str = None) -&gt; None:
+    def __init__(self, raw: str, uid: str = None, warn: bool = True) -&gt; None:
+        &#34;&#34;&#34;Sentence constructor
+
+        Args:
+            raw (str): sentence in contiguous string form (will be segmented using a tokenizer)
+            uid (str, optional): Unique ID of this sentence in a corpus. Defaults to None.
+            warn (bool, optional): whether to warn that a UID is not supplied if one isn&#39;t given.
+                                   can be set to False to suppress warning in case of intentional
+                                   UID-less usage
+        &#34;&#34;&#34;        
         self._raw = raw
-        if uid is None:
+        if uid is None and warn:
             utils.io.log(f&#39;no UID supplied for sentence {raw}\r&#39;, type=&#39;WARN&#39;)
         self._uid = uid
 
     def __eq__(self, other) -&gt; bool:
-        return self._raw == other._raw
+        &#34;&#34;&#34;Equality operation with other sentences. Simply compares raw string.
+
+        Args:
+            other ([type]): [description]
+
+        Returns:
+            bool: True if self is equal to other, else False
+        &#34;&#34;&#34;        
+        return str(self) == str(other)
 
     def __repr__(self) -&gt; str:
-        return f&#39;&lt;{self._uid:.&gt;7}&gt;\t {self._raw:&lt;32}&#39;
+        &#34;&#34;&#34;Implement representation repr() of Sentence.
+            prints out the UID followed by sentence
+
+        Returns:
+            str: representation of self
+        &#34;&#34;&#34;        
+        return f&#39;&lt;{self._uid}&gt;\t {self._raw:&lt;32}&#39;
     def __str__(self) -&gt; str:
+        &#34;&#34;&#34;Returns raw string representation
+
+        Returns:
+            str: raw string
+        &#34;&#34;&#34;        
         return f&#39;{self._raw}&#39;
 
     def __len__(self) -&gt; int:
+        &#34;&#34;&#34;Compute length of the sentence in terms of # of tokens
+
+        Returns:
+            int: length of the tokenized sentence
+        &#34;&#34;&#34;        
         return len(self.tokenized())
 
     def __getitem__(self, index: int) -&gt; str:
+        &#34;&#34;&#34;Support indexing into the tokens of the sentence
+
+        Args:
+            index (int): index&#39;th token to retrieve
+
+        Returns:
+            str: token at the indexed position in the tokenized form
+        &#34;&#34;&#34;        
         return self.tokenized()[index]
 
-    def tokenized(self, tokenize_method=utils.text.tokenize) -&gt; tuple:
+    def tokenized(self, tokenize_method=utils.text.tokenize) -&gt; typing.Tuple[str]:
+        &#34;&#34;&#34;Tokenize and store tokenized form as a tuple. The tokenize_method is executed only
+            the first time; each subsequent call to tokenized() returns the value of a stored variable
+
+        Args:
+            tokenize_method ([function], optional): a custom tokenization function. Defaults to utils.text.tokenize.
+
+        Returns:
+            tuple: tokenized form
+        &#34;&#34;&#34;        
         if self._tokens is None:
             self._tokens = tuple(tokenize_method(self._raw))
         return self._tokens
 
-    def pos_tagged(self) -&gt; tuple:
+    def pos_tagged(self) -&gt; typing.Tuple[str]:
+        &#34;&#34;&#34;POS-tag the sentence and return the result. Note, this method is also executed
+            only once ever; each subsequent time a stored value is returned.
+
+        Returns:
+            tuple: POS tags
+        &#34;&#34;&#34;        
         if self._pos is None:
             self._pos = utils.text.get_pos_tags(self.tokenized())
         return self._pos
 
-    def lemmatized(self):
+    def lemmatized(self) -&gt; typing.Tuple[str]:
+        &#34;&#34;&#34;Lemmatize and return the lemmas
+
+        Returns:
+            tuple: Lemmas
+        &#34;&#34;&#34;        
         if self._lemmas is None:
             self._lemmas = utils.text.get_lemmatized_tokens(self.tokenized(), utils.text.get_pos_tags(self.tokenized()))
         return self._lemmas
 
-    def content_words(self):
+    def content_words(self) -&gt; typing.List[int]:
+        &#34;&#34;&#34;Check whether each word is a &#39;content word&#39;. Returns a list containing 0 or 1 as boolean
+            mask indicating whether the word at that position is a content word or not
+
+        Returns:
+            List[int]: boolean mask indicating content words
+        &#34;&#34;&#34;        
         if self._content is None:
             self._content = utils.text.get_is_content(self.pos_tagged(), content_pos=utils.text.pos_for_content)
         return self._content</code></pre>
@@ -152,60 +316,114 @@ class Sentence:
 <h3>Methods</h3>
 <dl>
 <dt id="sentspace.Sentence.Sentence.content_words"><code class="name flex">
-<span>def <span class="ident">content_words</span></span>(<span>self)</span>
+<span>def <span class="ident">content_words</span></span>(<span>self) ‑> List[int]</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Check whether each word is a 'content word'. Returns a list containing 0 or 1 as boolean
+mask indicating whether the word at that position is a content word or not</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>List[int]</code></dt>
+<dd>boolean mask indicating content words</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def content_words(self):
+<pre><code class="python">def content_words(self) -&gt; typing.List[int]:
+    &#34;&#34;&#34;Check whether each word is a &#39;content word&#39;. Returns a list containing 0 or 1 as boolean
+        mask indicating whether the word at that position is a content word or not
+
+    Returns:
+        List[int]: boolean mask indicating content words
+    &#34;&#34;&#34;        
     if self._content is None:
         self._content = utils.text.get_is_content(self.pos_tagged(), content_pos=utils.text.pos_for_content)
     return self._content</code></pre>
 </details>
 </dd>
 <dt id="sentspace.Sentence.Sentence.lemmatized"><code class="name flex">
-<span>def <span class="ident">lemmatized</span></span>(<span>self)</span>
+<span>def <span class="ident">lemmatized</span></span>(<span>self) ‑> Tuple[str]</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Lemmatize and return the lemmas</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>tuple</code></dt>
+<dd>Lemmas</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def lemmatized(self):
+<pre><code class="python">def lemmatized(self) -&gt; typing.Tuple[str]:
+    &#34;&#34;&#34;Lemmatize and return the lemmas
+
+    Returns:
+        tuple: Lemmas
+    &#34;&#34;&#34;        
     if self._lemmas is None:
         self._lemmas = utils.text.get_lemmatized_tokens(self.tokenized(), utils.text.get_pos_tags(self.tokenized()))
     return self._lemmas</code></pre>
 </details>
 </dd>
 <dt id="sentspace.Sentence.Sentence.pos_tagged"><code class="name flex">
-<span>def <span class="ident">pos_tagged</span></span>(<span>self) ‑> tuple</span>
+<span>def <span class="ident">pos_tagged</span></span>(<span>self) ‑> Tuple[str]</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>POS-tag the sentence and return the result. Note, this method is also executed
+only once ever; each subsequent time a stored value is returned.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>tuple</code></dt>
+<dd>POS tags</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def pos_tagged(self) -&gt; tuple:
+<pre><code class="python">def pos_tagged(self) -&gt; typing.Tuple[str]:
+    &#34;&#34;&#34;POS-tag the sentence and return the result. Note, this method is also executed
+        only once ever; each subsequent time a stored value is returned.
+
+    Returns:
+        tuple: POS tags
+    &#34;&#34;&#34;        
     if self._pos is None:
         self._pos = utils.text.get_pos_tags(self.tokenized())
     return self._pos</code></pre>
 </details>
 </dd>
 <dt id="sentspace.Sentence.Sentence.tokenized"><code class="name flex">
-<span>def <span class="ident">tokenized</span></span>(<span>self, tokenize_method=&lt;bound method TreebankWordTokenizer.tokenize of &lt;nltk.tokenize.treebank.TreebankWordTokenizer object&gt;&gt;) ‑> tuple</span>
+<span>def <span class="ident">tokenized</span></span>(<span>self, tokenize_method=&lt;bound method TreebankWordTokenizer.tokenize of &lt;nltk.tokenize.treebank.TreebankWordTokenizer object&gt;&gt;) ‑> Tuple[str]</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Tokenize and store tokenized form as a tuple. The tokenize_method is executed only
+the first time; each subsequent call to tokenized() returns the value of a stored variable</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>tokenize_method</code></strong> :&ensp;<code>[function]</code>, optional</dt>
+<dd>a custom tokenization function. Defaults to utils.text.tokenize.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>tuple</code></dt>
+<dd>tokenized form</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def tokenized(self, tokenize_method=utils.text.tokenize) -&gt; tuple:
+<pre><code class="python">def tokenized(self, tokenize_method=utils.text.tokenize) -&gt; typing.Tuple[str]:
+    &#34;&#34;&#34;Tokenize and store tokenized form as a tuple. The tokenize_method is executed only
+        the first time; each subsequent call to tokenized() returns the value of a stored variable
+
+    Args:
+        tokenize_method ([function], optional): a custom tokenization function. Defaults to utils.text.tokenize.
+
+    Returns:
+        tuple: tokenized form
+    &#34;&#34;&#34;        
     if self._tokens is None:
         self._tokens = tuple(tokenize_method(self._raw))
     return self._tokens</code></pre>
