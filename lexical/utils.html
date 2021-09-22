@@ -36,6 +36,7 @@ from sentspace.utils.caching import cache_to_disk, cache_to_mem
 from sentspace.utils.utils import Word, merge_lists, wordnet
 
 
+
 def get_all_features(wordlist, databases):
     &#34;&#34;&#34;
     Given list of words, return dict mapping feature to list of feature values
@@ -60,13 +61,6 @@ def get_all_features_merged(flat_token_list, flat_lemmatized_token_list, databas
         merged[feature] = merge_lists(all_vals[feature], all_vals_lem[feature], feature=feature)
     return merged
 
-
-# @cache_to_mem
-def get_is_content(taglst: tuple, content_pos=(wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV)):
-    &#34;&#34;&#34;
-    Given list of POS tags, return list of 1 - content word, 0 - not content word
-    &#34;&#34;&#34;
-    return tuple(int(text.get_wordnet_pos(tag) in content_pos) for tag in taglst)
 
 
 # --------- Lexical features
@@ -140,6 +134,29 @@ def get_feature(flat_token_list, feature, databases):
         features_list += [get_feature_(word, feature)]
 
     return features_list
+
+
+def return_percentile_df(bench_df, usr_df):
+    # Initialize df
+    perc_df = pd.DataFrame(columns=usr_df.columns)
+    # For each sentence get the percentile scores for each feature
+    for index, row in usr_df.iterrows():
+        temp_df = {}
+        # Iterate through the features
+        for col in usr_df.columns:
+            if col == &#39;Sentence no.&#39;:
+                temp_df[col] = row[col]
+                continue
+            #print(percentileofscore(bench_df[col],row[col]))
+            temp_df[col] = percentileofscore(bench_df[col], row[col])
+            #pdb.set_trace()
+        # Append percentile feature row
+        perc_df = perc_df.append(temp_df, ignore_index=True)
+
+    perc_df.drop(columns=[&#39;Sentence no.&#39;])
+    return perc_df
+
+
 
 
 @cache_to_mem
@@ -338,22 +355,6 @@ if not, use value associated with the lemmatized version)</p></div>
     return [&#39;polysemy&#39;, &#39;num_morpheme_poly&#39;]</code></pre>
 </details>
 </dd>
-<dt id="sentspace.lexical.utils.get_is_content"><code class="name flex">
-<span>def <span class="ident">get_is_content</span></span>(<span>taglst: tuple, content_pos=('a', 'v', 'n', 'r'))</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Given list of POS tags, return list of 1 - content word, 0 - not content word</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def get_is_content(taglst: tuple, content_pos=(wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV)):
-    &#34;&#34;&#34;
-    Given list of POS tags, return list of 1 - content word, 0 - not content word
-    &#34;&#34;&#34;
-    return tuple(int(text.get_wordnet_pos(tag) in content_pos) for tag in taglst)</code></pre>
-</details>
-</dd>
 <dt id="sentspace.lexical.utils.get_poly_morpheme"><code class="name flex">
 <span>def <span class="ident">get_poly_morpheme</span></span>(<span>sent_num, word_list)</span>
 </code></dt>
@@ -368,6 +369,36 @@ if not, use value associated with the lemmatized version)</p></div>
         Given sent_number and word_list, calculate the morphemes of each word in each sentence
     &#39;&#39;&#39;
     raise NotImplementedError</code></pre>
+</details>
+</dd>
+<dt id="sentspace.lexical.utils.return_percentile_df"><code class="name flex">
+<span>def <span class="ident">return_percentile_df</span></span>(<span>bench_df, usr_df)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def return_percentile_df(bench_df, usr_df):
+    # Initialize df
+    perc_df = pd.DataFrame(columns=usr_df.columns)
+    # For each sentence get the percentile scores for each feature
+    for index, row in usr_df.iterrows():
+        temp_df = {}
+        # Iterate through the features
+        for col in usr_df.columns:
+            if col == &#39;Sentence no.&#39;:
+                temp_df[col] = row[col]
+                continue
+            #print(percentileofscore(bench_df[col],row[col]))
+            temp_df[col] = percentileofscore(bench_df[col], row[col])
+            #pdb.set_trace()
+        # Append percentile feature row
+        perc_df = perc_df.append(temp_df, ignore_index=True)
+
+    perc_df.drop(columns=[&#39;Sentence no.&#39;])
+    return perc_df</code></pre>
 </details>
 </dd>
 <dt id="sentspace.lexical.utils.sanity_check_databases"><code class="name flex">
@@ -426,8 +457,8 @@ to ensure validity of the loaded data</p></div>
 <li><code><a title="sentspace.lexical.utils.get_feature_list" href="#sentspace.lexical.utils.get_feature_list">get_feature_list</a></code></li>
 <li><code><a title="sentspace.lexical.utils.get_feature_list_requiring_calculation" href="#sentspace.lexical.utils.get_feature_list_requiring_calculation">get_feature_list_requiring_calculation</a></code></li>
 <li><code><a title="sentspace.lexical.utils.get_feature_list_using_third_party_libraries" href="#sentspace.lexical.utils.get_feature_list_using_third_party_libraries">get_feature_list_using_third_party_libraries</a></code></li>
-<li><code><a title="sentspace.lexical.utils.get_is_content" href="#sentspace.lexical.utils.get_is_content">get_is_content</a></code></li>
 <li><code><a title="sentspace.lexical.utils.get_poly_morpheme" href="#sentspace.lexical.utils.get_poly_morpheme">get_poly_morpheme</a></code></li>
+<li><code><a title="sentspace.lexical.utils.return_percentile_df" href="#sentspace.lexical.utils.return_percentile_df">return_percentile_df</a></code></li>
 <li><code><a title="sentspace.lexical.utils.sanity_check_databases" href="#sentspace.lexical.utils.sanity_check_databases">sanity_check_databases</a></code></li>
 </ul>
 </li>

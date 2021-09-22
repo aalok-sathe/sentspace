@@ -29,20 +29,57 @@
 <pre><code class="python">&#39;&#39;&#39;
 &#39;&#39;&#39;
 
-
-import sentspace.utils
+import typing
+import sentspace.utils as utils
 
 
 class Sentence:
+    _uid: str = None
     _raw: str = None
-    _tokens = None
+    _tokens: tuple = None
+    _pos: tuple = None
+    _lemmas: tuple = None
+    _content: tuple = None
     
-    def __init__(self) -&gt; None:
-        super().__init__()
+    def __init__(self, raw: str, uid: str = None) -&gt; None:
+        self._raw = raw
+        if uid is None:
+            utils.io.log(f&#39;no UID supplied for sentence {raw}\r&#39;, type=&#39;WARN&#39;)
+        self._uid = uid
 
-    def tokenized(self, tokenize_method=sentspace.utils.text.tokenize):
+    def __eq__(self, other) -&gt; bool:
+        return self._raw == other._raw
+
+    def __repr__(self) -&gt; str:
+        return f&#39;&lt;{self._uid:.&gt;7}&gt;\t {self._raw:&lt;32}&#39;
+    def __str__(self) -&gt; str:
+        return f&#39;{self._raw}&#39;
+
+    def __len__(self) -&gt; int:
+        return len(self.tokenized())
+
+    def __getitem__(self, index: int) -&gt; str:
+        return self.tokenized()[index]
+
+    def tokenized(self, tokenize_method=utils.text.tokenize) -&gt; tuple:
         if self._tokens is None:
-            self._tokens = tokenize_method()</code></pre>
+            self._tokens = tuple(tokenize_method(self._raw))
+        return self._tokens
+
+    def pos_tagged(self) -&gt; tuple:
+        if self._pos is None:
+            self._pos = utils.text.get_pos_tags(self.tokenized())
+        return self._pos
+
+    def lemmatized(self):
+        if self._lemmas is None:
+            self._lemmas = utils.text.get_lemmatized_tokens(self.tokenized(), utils.text.get_pos_tags(self.tokenized()))
+        return self._lemmas
+
+    def content_words(self):
+        if self._content is None:
+            self._content = utils.text.get_is_content(self.pos_tagged(), content_pos=utils.text.pos_for_content)
+        return self._content</code></pre>
 </details>
 </section>
 <section>
@@ -56,6 +93,7 @@ class Sentence:
 <dl>
 <dt id="sentspace.Sentence.Sentence"><code class="flex name class">
 <span>class <span class="ident">Sentence</span></span>
+<span>(</span><span>raw: str, uid: str = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -64,20 +102,57 @@ class Sentence:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class Sentence:
+    _uid: str = None
     _raw: str = None
-    _tokens = None
+    _tokens: tuple = None
+    _pos: tuple = None
+    _lemmas: tuple = None
+    _content: tuple = None
     
-    def __init__(self) -&gt; None:
-        super().__init__()
+    def __init__(self, raw: str, uid: str = None) -&gt; None:
+        self._raw = raw
+        if uid is None:
+            utils.io.log(f&#39;no UID supplied for sentence {raw}\r&#39;, type=&#39;WARN&#39;)
+        self._uid = uid
 
-    def tokenized(self, tokenize_method=sentspace.utils.text.tokenize):
+    def __eq__(self, other) -&gt; bool:
+        return self._raw == other._raw
+
+    def __repr__(self) -&gt; str:
+        return f&#39;&lt;{self._uid:.&gt;7}&gt;\t {self._raw:&lt;32}&#39;
+    def __str__(self) -&gt; str:
+        return f&#39;{self._raw}&#39;
+
+    def __len__(self) -&gt; int:
+        return len(self.tokenized())
+
+    def __getitem__(self, index: int) -&gt; str:
+        return self.tokenized()[index]
+
+    def tokenized(self, tokenize_method=utils.text.tokenize) -&gt; tuple:
         if self._tokens is None:
-            self._tokens = tokenize_method()</code></pre>
+            self._tokens = tuple(tokenize_method(self._raw))
+        return self._tokens
+
+    def pos_tagged(self) -&gt; tuple:
+        if self._pos is None:
+            self._pos = utils.text.get_pos_tags(self.tokenized())
+        return self._pos
+
+    def lemmatized(self):
+        if self._lemmas is None:
+            self._lemmas = utils.text.get_lemmatized_tokens(self.tokenized(), utils.text.get_pos_tags(self.tokenized()))
+        return self._lemmas
+
+    def content_words(self):
+        if self._content is None:
+            self._content = utils.text.get_is_content(self.pos_tagged(), content_pos=utils.text.pos_for_content)
+        return self._content</code></pre>
 </details>
 <h3>Methods</h3>
 <dl>
-<dt id="sentspace.Sentence.Sentence.tokenized"><code class="name flex">
-<span>def <span class="ident">tokenized</span></span>(<span>self, tokenize_method=&lt;bound method TreebankWordTokenizer.tokenize of &lt;nltk.tokenize.treebank.TreebankWordTokenizer object&gt;&gt;)</span>
+<dt id="sentspace.Sentence.Sentence.content_words"><code class="name flex">
+<span>def <span class="ident">content_words</span></span>(<span>self)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -85,9 +160,55 @@ class Sentence:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def tokenized(self, tokenize_method=sentspace.utils.text.tokenize):
+<pre><code class="python">def content_words(self):
+    if self._content is None:
+        self._content = utils.text.get_is_content(self.pos_tagged(), content_pos=utils.text.pos_for_content)
+    return self._content</code></pre>
+</details>
+</dd>
+<dt id="sentspace.Sentence.Sentence.lemmatized"><code class="name flex">
+<span>def <span class="ident">lemmatized</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def lemmatized(self):
+    if self._lemmas is None:
+        self._lemmas = utils.text.get_lemmatized_tokens(self.tokenized(), utils.text.get_pos_tags(self.tokenized()))
+    return self._lemmas</code></pre>
+</details>
+</dd>
+<dt id="sentspace.Sentence.Sentence.pos_tagged"><code class="name flex">
+<span>def <span class="ident">pos_tagged</span></span>(<span>self) ‑> tuple</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def pos_tagged(self) -&gt; tuple:
+    if self._pos is None:
+        self._pos = utils.text.get_pos_tags(self.tokenized())
+    return self._pos</code></pre>
+</details>
+</dd>
+<dt id="sentspace.Sentence.Sentence.tokenized"><code class="name flex">
+<span>def <span class="ident">tokenized</span></span>(<span>self, tokenize_method=&lt;bound method TreebankWordTokenizer.tokenize of &lt;nltk.tokenize.treebank.TreebankWordTokenizer object&gt;&gt;) ‑> tuple</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def tokenized(self, tokenize_method=utils.text.tokenize) -&gt; tuple:
     if self._tokens is None:
-        self._tokens = tokenize_method()</code></pre>
+        self._tokens = tuple(tokenize_method(self._raw))
+    return self._tokens</code></pre>
 </details>
 </dd>
 </dl>
@@ -111,6 +232,9 @@ class Sentence:
 <li>
 <h4><code><a title="sentspace.Sentence.Sentence" href="#sentspace.Sentence.Sentence">Sentence</a></code></h4>
 <ul class="">
+<li><code><a title="sentspace.Sentence.Sentence.content_words" href="#sentspace.Sentence.Sentence.content_words">content_words</a></code></li>
+<li><code><a title="sentspace.Sentence.Sentence.lemmatized" href="#sentspace.Sentence.Sentence.lemmatized">lemmatized</a></code></li>
+<li><code><a title="sentspace.Sentence.Sentence.pos_tagged" href="#sentspace.Sentence.Sentence.pos_tagged">pos_tagged</a></code></li>
 <li><code><a title="sentspace.Sentence.Sentence.tokenized" href="#sentspace.Sentence.Sentence.tokenized">tokenized</a></code></li>
 </ul>
 </li>
