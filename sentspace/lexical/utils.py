@@ -8,6 +8,7 @@ from sentspace.utils.caching import cache_to_disk, cache_to_mem
 from sentspace.utils.utils import Word, merge_lists, wordnet
 
 
+
 def get_all_features(wordlist, databases):
     """
     Given list of words, return dict mapping feature to list of feature values
@@ -32,13 +33,6 @@ def get_all_features_merged(flat_token_list, flat_lemmatized_token_list, databas
         merged[feature] = merge_lists(all_vals[feature], all_vals_lem[feature], feature=feature)
     return merged
 
-
-# @cache_to_mem
-def get_is_content(taglst: tuple, content_pos=(wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV)):
-    """
-    Given list of POS tags, return list of 1 - content word, 0 - not content word
-    """
-    return tuple(int(text.get_wordnet_pos(tag) in content_pos) for tag in taglst)
 
 
 # --------- Lexical features
@@ -112,6 +106,29 @@ def get_feature(flat_token_list, feature, databases):
         features_list += [get_feature_(word, feature)]
 
     return features_list
+
+
+def return_percentile_df(bench_df, usr_df):
+    # Initialize df
+    perc_df = pd.DataFrame(columns=usr_df.columns)
+    # For each sentence get the percentile scores for each feature
+    for index, row in usr_df.iterrows():
+        temp_df = {}
+        # Iterate through the features
+        for col in usr_df.columns:
+            if col == 'Sentence no.':
+                temp_df[col] = row[col]
+                continue
+            #print(percentileofscore(bench_df[col],row[col]))
+            temp_df[col] = percentileofscore(bench_df[col], row[col])
+            #pdb.set_trace()
+        # Append percentile feature row
+        perc_df = perc_df.append(temp_df, ignore_index=True)
+
+    perc_df.drop(columns=['Sentence no.'])
+    return perc_df
+
+
 
 
 @cache_to_mem

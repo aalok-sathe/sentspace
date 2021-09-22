@@ -191,7 +191,7 @@ def get_lemmatized_tokens(flat_token_list, flat_pos_tags, lemmatized_pos=[wordne
         pos = get_wordnet_pos(POS)
         lemmatized_tokens.append(lemmatize_token(word, pos))
 
-    return lemmatized_tokens
+    return tuple(lemmatized_tokens)
 
     # n = 0
     # for word, lemma in zip(wordlst, wordlst_lem):
@@ -200,6 +200,14 @@ def get_lemmatized_tokens(flat_token_list, flat_pos_tags, lemmatized_pos=[wordne
     # print(
     #     f'Entries for which lemmatized form of word differs from the actual word: {n} words, {n/len(wordlst)*100:.2f}%')
     # print('-'*79)
+
+
+# @cache_to_mem
+def get_is_content(taglst: tuple, content_pos=(wordnet.ADJ, wordnet.VERB, wordnet.NOUN, wordnet.ADV)):
+    """
+    Given list of POS tags, return list of 1 - content word, 0 - not content word
+    """
+    return tuple(int(get_wordnet_pos(tag) in content_pos) for tag in taglst)
 
 
 def get_wordnet_pos(treebank_tag):
