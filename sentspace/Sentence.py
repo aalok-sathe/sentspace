@@ -1,8 +1,11 @@
 '''
 '''
 
+from collections import defaultdict
 import typing
-import sentspace.utils as utils
+import sentspace.utils.text as text
+import sentspace.utils.io as io
+import re
 
 
 class Sentence:
@@ -18,7 +21,9 @@ class Sentence:
     _tokens: tuple = None
     _pos: tuple = None
     _lemmas: tuple = None
+    _cleaned: tuple = None
     _content: tuple = None
+    _lower: tuple = None
     
     def __init__(self, raw: str, uid: str = None, warn: bool = True) -> None:
         """Sentence constructor
@@ -30,10 +35,18 @@ class Sentence:
                                    can be set to False to suppress warning in case of intentional
                                    UID-less usage
         """        
-        self._raw = raw
+        self._raw = re.sub(r' +', r' ', raw.strip())
         if uid is None and warn:
-            utils.io.log(f'no UID supplied for sentence {raw}\r', type='WARN')
+            io.log(f'no UID supplied for sentence {raw}\r', type='WARN')
         self._uid = uid
+        self.OOV = defaultdict(set)
+
+    def __hash__(self) -> int:
+        return hash(self._raw)
+
+    def __bool__(self) -> bool:
+        '''Boolean value the sentence evaluates to.'''
+        return self._raw != ''
 
     def __eq__(self, other) -> bool:
         """Equality operation with other sentences. Simply compares raw string.
@@ -81,7 +94,14 @@ class Sentence:
         """        
         return self.tokenized()[index]
 
-    def tokenized(self, tokenize_method=utils.text.tokenize) -> typing.Tuple[str]:
+    def __iter__(self):
+        '''we are iterable, so we return an iterator over tokens'''
+        return iter(self.tokenized())
+
+    def uid(self) -> str:
+        return self._uid
+
+    def tokenized(self, tokenize_method=text.tokenize) -> typing.Tuple[str]:
         """Tokenize and store tokenized form as a tuple. The tokenize_method is executed only
             the first time; each subsequent call to tokenized() returns the value of a stored variable
 
@@ -95,6 +115,16 @@ class Sentence:
             self._tokens = tuple(tokenize_method(self._raw))
         return self._tokens
 
+    def lowercased_tokens(self) -> typing.Tuple[str]:
+        """Return lowercased tokens of this sentence
+
+        Returns:
+            typing.Tuple[str]: tuple of lowercased tokens from this sentence
+        """        
+        if self._lower is None:
+            self._lower = [*map(lambda x: x.lower, self.tokenized())]
+        return self._lower
+
     def pos_tagged(self) -> typing.Tuple[str]:
         """POS-tag the sentence and return the result. Note, this method is also executed
             only once ever; each subsequent time a stored value is returned.
@@ -103,7 +133,7 @@ class Sentence:
             tuple: POS tags
         """        
         if self._pos is None:
-            self._pos = utils.text.get_pos_tags(self.tokenized())
+            self._pos = text.get_pos_tags(self.tokenized())
         return self._pos
 
     def lemmatized(self) -> typing.Tuple[str]:
@@ -113,8 +143,14 @@ class Sentence:
             tuple: Lemmas
         """        
         if self._lemmas is None:
-            self._lemmas = utils.text.get_lemmatized_tokens(self.tokenized(), utils.text.get_pos_tags(self.tokenized()))
+            self._lemmas = text.get_lemmatized_tokens(self.tokenized(), text.get_pos_tags(self.tokenized()))
         return self._lemmas
+
+    def clean_tokens(self) -> typing.Tuple[str]:
+        if self._cleaned is None:
+            nonletters = text.get_nonletters(self.tokenized(), exceptions=[])
+            self._cleaned = text.strip_words(self.tokenized(), method='punctuation', nonletters=nonletters)
+        return self._cleaned
 
     def content_words(self) -> typing.List[int]:
         """Check whether each word is a 'content word'. Returns a list containing 0 or 1 as boolean
@@ -124,5 +160,5 @@ class Sentence:
             List[int]: boolean mask indicating content words
         """        
         if self._content is None:
-            self._content = utils.text.get_is_content(self.pos_tagged(), content_pos=utils.text.pos_for_content)
+            self._content = text.get_is_content(self.pos_tagged(), content_pos=text.pos_for_content)
         return self._content

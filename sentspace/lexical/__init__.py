@@ -8,7 +8,7 @@ from sentspace.utils import io, text
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
 
 
-def get_features(sentence: str,  identifier=None, lock=None) -> dict:
+def get_features(sentence: sentspace.Sentence.Sentence,  identifier=None, lock=None) -> dict:
 
     # io.log(f'computing lexical featuures for `{sentence}`')
 
@@ -19,41 +19,43 @@ def get_features(sentence: str,  identifier=None, lock=None) -> dict:
     #     lock.release()
 
     # tokenized = tuple(sentence.split())
-    tokenized = text.tokenize(sentence)
+    # tokenized = text.tokenize(sentence)
 
-    lemmatized_sentence = text.get_lemmatized_tokens(tokenized, text.get_pos_tags(tokenized))
+    # lemmatized_sentence = text.get_lemmatized_tokens(tokenized, text.get_pos_tags(tokenized))
     # clean words: strip nonletters/punctuation and lowercase
     # find all non-letter characters in file
-    nonletters = text.get_nonletters(tokenized, exceptions=[])
-    cleaned_sentence = text.strip_words(tokenized, method='punctuation', nonletters=nonletters)
-    tagged_sentence = text.get_pos_tags(tokenized)
+
+    # nonletters = text.get_nonletters(sentence.tokenized(), exceptions=[])
+    # cleaned_sentence = text.strip_words(sentence.tokenized(), method='punctuation', nonletters=nonletters)
+    # tagged_sentence = text.get_pos_tags(tokenized)
     # pronoun_ratio = utils.get_pronoun_ratio(tagged_sentence)
-    is_content_word = utils.get_is_content(tagged_sentence, content_pos=text.pos_for_content) # content or function word
+    # is_content_word = text.get_is_content(tagged_sentence, content_pos=text.pos_for_content)  # content or function word
     # content_ratio = utils.get_content_ratio(is_content_word)
 
-    database_features = utils.get_all_features_merged(tokenized, lemmatized_sentence, databases)  # lexical features
+    database_features = utils.get_all_features_merged(sentence.tokenized(), sentence.lemmatized(), databases)  # lexical features
     
     return [{
                 'index': identifier,
-                'sentence': sentence,
+                'sentence': str(sentence),
                 'token': token,
                 'lemma': lemma,
-                'cleaned_token': cleaned_token,
+                # 'cleaned_token': cleaned_token,
                 'tag': tag,
                 'content_word': content_word,
                 **dict(zip(database_features.keys(), db_vals))
             } for (token, 
                    lemma, 
-                   cleaned_token, 
+                #    cleaned_token, 
                    tag, 
                    content_word,
-                   db_vals) in zip(tokenized,
-                                   cleaned_sentence, 
-                                   lemmatized_sentence, 
-                                   tagged_sentence, 
-                                   is_content_word,
+                   db_vals) in zip(sentence.tokenized(),
+                                   sentence.lemmatized(),
+                                #    sentence.cleaned(), 
+                                   sentence.pos_tagged(),
+                                   sentence.content_words(),
                                    database_features.values())
     ]
+    
     {
         # 'index': None,
         'sentence': sentence,
