@@ -27,9 +27,9 @@
 <p>Authors (reverse alphabet.; insert <code>@</code> symbol for valid email):</p>
 <ul>
 <li>Greta Tuckute <code>&lt;gretatu % mit.edu&gt;</code></li>
-<li>Josef Affourtit <code>&lt;jaffourt % mit.edu&gt;</code></li>
-<li>Alvince Pongos <code>&lt;apongos % mit.edu&gt;</code></li>
 <li>Aalok Sathe <code>&lt;asathe % mit.edu&gt;</code></li>
+<li>Alvince Pongos <code>&lt;apongos % mit.edu&gt;</code></li>
+<li>Josef Affourtit <code>&lt;jaffourt % mit.edu&gt;</code></li>
 </ul>
 <p>Please contact any of the following with questions about the code or license.</p>
 <ul>
@@ -109,9 +109,9 @@ MIT License. -->
     Authors (reverse alphabet.; insert `@` symbol for valid email):
     
     - Greta Tuckute `&lt;gretatu % mit.edu&gt;`
-    - Josef Affourtit `&lt;jaffourt % mit.edu&gt;`
-    - Alvince Pongos `&lt;apongos % mit.edu&gt;`
     - Aalok Sathe `&lt;asathe % mit.edu&gt;`
+    - Alvince Pongos `&lt;apongos % mit.edu&gt;`
+    - Josef Affourtit `&lt;jaffourt % mit.edu&gt;`
 
     Please contact any of the following with questions about the code or license.
     
@@ -127,7 +127,6 @@ __pdoc__ = {&#39;semantic&#39;: False,
 
 from pathlib import Path
 
-
 import sentspace.utils as utils
 import sentspace.syntax as syntax
 import sentspace.lexical as lexical
@@ -142,7 +141,7 @@ import sentspace.embedding as embedding
 import pandas as pd
 from functools import reduce 
 from itertools import chain
-
+from tqdm import tqdm
 
 def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                    benchmark_file: str = None, output_dir: str = None,
@@ -186,7 +185,8 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
     #     print(args, file=f)
 
     utils.io.log(&#39;reading input sentences&#39;)
-    UIDs, token_lists, sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
+    # UIDs, token_lists, sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
+    sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
     utils.io.log(&#39;---done--- reading input sentences&#39;)
 
     # surprisal_database = &#39;pickle/surprisal-3_dict.pkl&#39; # default: 3-gram surprisal
@@ -203,7 +203,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
         # lexical_features = [sentspace.lexical.get_features(sentence, identifier=UIDs[i])
         #                     for i, sentence in enumerate(tqdm(sentences, desc=&#39;Lexical pipeline&#39;))]
-        lexical_features = utils.parallelize(lexical.get_features, sentences, UIDs,
+        lexical_features = utils.parallelize(lexical.get_features, sentences,
                                              wrap_tqdm=True, desc=&#39;Lexical pipeline&#39;)
 
         lexical_out = output_dir / &#39;lexical&#39;
@@ -226,7 +226,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
     if process_syntax:
         utils.io.log(&#39;*** running syntax submodule pipeline&#39;)
-        syntax_features = [syntax.get_features(sentence, dlt=True, left_corner=True, identifier=UIDs[i])
+        syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid())
                            for i, sentence in enumerate(tqdm(sentences, desc=&#39;Syntax pipeline&#39;))]
         # syntax_features = utils.parallelize(sentspace.syntax.get_features, sentences, UIDs,
         #                                     dlt=True, left_corner=True,
@@ -241,7 +241,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         # put all features in the sentence df except the token-level ones
         token_syntax_features = {&#39;dlt&#39;, &#39;leftcorner&#39;}
         sentence_df = pd.DataFrame([{k: v for k, v in feature_dict.items() if k not in token_syntax_features}
-                                    for feature_dict in syntax_features], index=UIDs)
+                                    for feature_dict in syntax_features], index=[s.uid() for s in sentences])
 
         # output gives us dataframes corresponding to each token-level feature. we need to combine these
         # into a single dataframe
@@ -273,18 +273,22 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         utils.io.log(&#39;*** running embedding submodule pipeline&#39;)
         # Get GloVE
 
-        stripped_words = utils.text.strip_words(chain(*token_lists), method=&#39;punctuation&#39;)
+        stripped_words = utils.text.strip_words(chain(*[s.tokenized() for s in sentences]), method=&#39;punctuation&#39;)
         vocab = embedding.utils.get_vocab(stripped_words)
         _ = embedding.utils.load_embeddings(emb_file=&#39;glove.840B.300d.txt&#39;,
-                                                      vocab=(*sorted(vocab),),
-                                                      data_dir=emb_data_dir)
+                                            vocab=(*sorted(vocab),),
+                                            data_dir=emb_data_dir)
 
         # embedding_features = [sentspace.embedding.get_features(sentence, vocab=vocab, data_dir=emb_data_dir,
         #                                                        identifier=UIDs[i])
         #                        for i, sentence in enumerate(tqdm(sentences, desc=&#39;Embedding pipeline&#39;))]
-        embedding_features = utils.parallelize(embedding.get_features, sentences, UIDs,
+        embedding_features = utils.parallelize(embedding.get_features, 
+                                               sentences,
+                                            #    [s._raw for s in sentences], [s.uid() for s in sentences],
                                                vocab=vocab, data_dir=emb_data_dir,
                                                wrap_tqdm=True, desc=&#39;Embedding pipeline&#39;)
+        no_content_words = len(sentences)-sum(any(s.content_words()) for s in sentences)
+        utils.io.log(f&#39;sentences with no content words: {no_content_words}/{len(sentences)}; {no_content_words/len(sentences):.2f}&#39;)
 
         embedding_out = output_dir / &#39;embedding&#39;
         embedding_out.mkdir(parents=True, exist_ok=True)
@@ -414,7 +418,8 @@ compare the current input against; e.g. UD [optional]</dd>
     #     print(args, file=f)
 
     utils.io.log(&#39;reading input sentences&#39;)
-    UIDs, token_lists, sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
+    # UIDs, token_lists, sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
+    sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
     utils.io.log(&#39;---done--- reading input sentences&#39;)
 
     # surprisal_database = &#39;pickle/surprisal-3_dict.pkl&#39; # default: 3-gram surprisal
@@ -431,7 +436,7 @@ compare the current input against; e.g. UD [optional]</dd>
 
         # lexical_features = [sentspace.lexical.get_features(sentence, identifier=UIDs[i])
         #                     for i, sentence in enumerate(tqdm(sentences, desc=&#39;Lexical pipeline&#39;))]
-        lexical_features = utils.parallelize(lexical.get_features, sentences, UIDs,
+        lexical_features = utils.parallelize(lexical.get_features, sentences,
                                              wrap_tqdm=True, desc=&#39;Lexical pipeline&#39;)
 
         lexical_out = output_dir / &#39;lexical&#39;
@@ -454,7 +459,7 @@ compare the current input against; e.g. UD [optional]</dd>
 
     if process_syntax:
         utils.io.log(&#39;*** running syntax submodule pipeline&#39;)
-        syntax_features = [syntax.get_features(sentence, dlt=True, left_corner=True, identifier=UIDs[i])
+        syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid())
                            for i, sentence in enumerate(tqdm(sentences, desc=&#39;Syntax pipeline&#39;))]
         # syntax_features = utils.parallelize(sentspace.syntax.get_features, sentences, UIDs,
         #                                     dlt=True, left_corner=True,
@@ -469,7 +474,7 @@ compare the current input against; e.g. UD [optional]</dd>
         # put all features in the sentence df except the token-level ones
         token_syntax_features = {&#39;dlt&#39;, &#39;leftcorner&#39;}
         sentence_df = pd.DataFrame([{k: v for k, v in feature_dict.items() if k not in token_syntax_features}
-                                    for feature_dict in syntax_features], index=UIDs)
+                                    for feature_dict in syntax_features], index=[s.uid() for s in sentences])
 
         # output gives us dataframes corresponding to each token-level feature. we need to combine these
         # into a single dataframe
@@ -501,18 +506,22 @@ compare the current input against; e.g. UD [optional]</dd>
         utils.io.log(&#39;*** running embedding submodule pipeline&#39;)
         # Get GloVE
 
-        stripped_words = utils.text.strip_words(chain(*token_lists), method=&#39;punctuation&#39;)
+        stripped_words = utils.text.strip_words(chain(*[s.tokenized() for s in sentences]), method=&#39;punctuation&#39;)
         vocab = embedding.utils.get_vocab(stripped_words)
         _ = embedding.utils.load_embeddings(emb_file=&#39;glove.840B.300d.txt&#39;,
-                                                      vocab=(*sorted(vocab),),
-                                                      data_dir=emb_data_dir)
+                                            vocab=(*sorted(vocab),),
+                                            data_dir=emb_data_dir)
 
         # embedding_features = [sentspace.embedding.get_features(sentence, vocab=vocab, data_dir=emb_data_dir,
         #                                                        identifier=UIDs[i])
         #                        for i, sentence in enumerate(tqdm(sentences, desc=&#39;Embedding pipeline&#39;))]
-        embedding_features = utils.parallelize(embedding.get_features, sentences, UIDs,
+        embedding_features = utils.parallelize(embedding.get_features, 
+                                               sentences,
+                                            #    [s._raw for s in sentences], [s.uid() for s in sentences],
                                                vocab=vocab, data_dir=emb_data_dir,
                                                wrap_tqdm=True, desc=&#39;Embedding pipeline&#39;)
+        no_content_words = len(sentences)-sum(any(s.content_words()) for s in sentences)
+        utils.io.log(f&#39;sentences with no content words: {no_content_words}/{len(sentences)}; {no_content_words/len(sentences):.2f}&#39;)
 
         embedding_out = output_dir / &#39;embedding&#39;
         embedding_out.mkdir(parents=True, exist_ok=True)

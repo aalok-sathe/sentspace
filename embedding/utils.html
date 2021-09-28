@@ -111,12 +111,12 @@ def load_embeddings(emb_file: str = &#39;glove.840B.300d.txt&#39;,
     return w2v
 
 
-def get_word_embeds(token_list, w2v, which=&#39;glove&#39;, dims=300, return_NA_words=False, save=False, save_path=False):
+def get_word_embeds(sentence, w2v, which=&#39;glove&#39;, dims=300, return_NA_words=False, save=False, save_path=False):
     &#34;&#34;&#34;[summary]
 
     Args:
-        tokenized ([type]): [description]
-        w2v ([type]): [description]
+        sentence ([sentspace.Sentence.Sentence]): a Sentence object
+        w2v ([dict]): word embeddings dictionary as a mapping from token -&gt; vector
         which (str, optional): [description]. Defaults to &#39;glove&#39;.
         dims (int, optional): [description]. Defaults to 300.
 
@@ -140,19 +140,21 @@ def get_word_embeds(token_list, w2v, which=&#39;glove&#39;, dims=300, return_NA_
 
     embeddings = []
     
-    OOV_words = set()
-    for token in token_list:
+    # OOV_words = set()
+    for token in sentence:
         if token in w2v[which]:
             embeddings.append(w2v[which][token])
         else:
             embeddings.append([np.nan]*dims)
-            OOV_words.add(token)
+            sentence.OOV[which].add(token)
+            # OOV_words.add(token)
+    
     
     return embeddings
 
 
 
-def pool_sentence_embeds(tokens, token_embeddings, filters=[lambda i, x: True],
+def pool_sentence_embeds(sentence, token_embeddings, filters=[lambda i, x: True],
                          which=&#39;glove&#39;):
     &#34;&#34;&#34;pools embeddings of an entire sentence (given as a list of embeddings)
        using averaging, maxpooling, minpooling, etc., after applying all the
@@ -184,16 +186,17 @@ def pool_sentence_embeds(tokens, token_embeddings, filters=[lambda i, x: True],
     all_pooled = {}
     for which in token_embeddings:
         # all the embeddings corresponding to the tokens
+        tokens = sentence.tokenized()
         all_embeds = [e for i, (t, e) in enumerate(zip(tokens, token_embeddings[which]))]
         all_tokens = [t for i, (t, e) in enumerate(zip(tokens, token_embeddings[which]))]
         all_embeds = np.array(all_embeds, dtype=np.float32)
         all_tokens = np.array(all_tokens, dtype=str)
 
-        # exclude OOV words&#39; embeddings (as they are all NaNs)
-        # make a note of the shape of the vector (n x embed_dim)
+        # exclude OOV words&#39; embeddings (they are all NaNs)
         not_nan_tokens = all_tokens[~np.isnan(all_embeds[:, 0])   ]
         not_nan_embeds = all_embeds[~np.isnan(all_embeds[:, 0]), :]
 
+        # make a note of the shape of the vector (n x embed_dim)
         shape = not_nan_embeds.shape
         # TODO: vectorize operation on all tokensnow that it is an numpy array
         mask = [all(fn(i, t) for filt_name, fn in filters.items()) for i, t in enumerate(not_nan_tokens)]
@@ -203,9 +206,9 @@ def pool_sentence_embeds(tokens, token_embeddings, filters=[lambda i, x: True],
 
         # if filtering left no tokens, we will use all_embeds instead
         if filtered_shape[0] == 0:
-            io.log(f&#39;all embeddings for current sentence are NaN ({shape} -&gt; {filtered_embeds.shape}): {tokens}&#39;, type=&#39;WARN&#39;)
-            
-            # now what? use all_embeds (as a fallback)
+            io.log(f&#39;filtered embeddings for current sentence are empty. retrying without filters: {tokens}&#39;, type=&#39;WARN&#39;)
+
+            # now what? use unfiltered (as a fallback)
             filtered_embeds = not_nan_embeds
             
         # [very rarely] if no word has a corresponding embedding, then we have no choice
@@ -288,16 +291,16 @@ Options for version: 'raw', 'cleaned', 'lemmatized'</p></div>
 </details>
 </dd>
 <dt id="sentspace.embedding.utils.get_word_embeds"><code class="name flex">
-<span>def <span class="ident">get_word_embeds</span></span>(<span>token_list, w2v, which='glove', dims=300, return_NA_words=False, save=False, save_path=False)</span>
+<span>def <span class="ident">get_word_embeds</span></span>(<span>sentence, w2v, which='glove', dims=300, return_NA_words=False, save=False, save_path=False)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>[summary]</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>tokenized</code></strong> :&ensp;<code>[type]</code></dt>
-<dd>[description]</dd>
-<dt><strong><code>w2v</code></strong> :&ensp;<code>[type]</code></dt>
-<dd>[description]</dd>
+<dt><strong><code>sentence</code></strong> :&ensp;<code>[<a title="sentspace.Sentence.Sentence" href="../Sentence.html#sentspace.Sentence.Sentence">Sentence</a>]</code></dt>
+<dd>a Sentence object</dd>
+<dt><strong><code>w2v</code></strong> :&ensp;<code>[dict]</code></dt>
+<dd>word embeddings dictionary as a mapping from token -&gt; vector</dd>
 <dt><strong><code>which</code></strong> :&ensp;<code>str</code>, optional</dt>
 <dd>[description]. Defaults to 'glove'.</dd>
 <dt><strong><code>dims</code></strong> :&ensp;<code>int</code>, optional</dt>
@@ -317,12 +320,12 @@ Options for version: 'raw', 'cleaned', 'lemmatized'</p></div>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_word_embeds(token_list, w2v, which=&#39;glove&#39;, dims=300, return_NA_words=False, save=False, save_path=False):
+<pre><code class="python">def get_word_embeds(sentence, w2v, which=&#39;glove&#39;, dims=300, return_NA_words=False, save=False, save_path=False):
     &#34;&#34;&#34;[summary]
 
     Args:
-        tokenized ([type]): [description]
-        w2v ([type]): [description]
+        sentence ([sentspace.Sentence.Sentence]): a Sentence object
+        w2v ([dict]): word embeddings dictionary as a mapping from token -&gt; vector
         which (str, optional): [description]. Defaults to &#39;glove&#39;.
         dims (int, optional): [description]. Defaults to 300.
 
@@ -346,13 +349,15 @@ Options for version: 'raw', 'cleaned', 'lemmatized'</p></div>
 
     embeddings = []
     
-    OOV_words = set()
-    for token in token_list:
+    # OOV_words = set()
+    for token in sentence:
         if token in w2v[which]:
             embeddings.append(w2v[which][token])
         else:
             embeddings.append([np.nan]*dims)
-            OOV_words.add(token)
+            sentence.OOV[which].add(token)
+            # OOV_words.add(token)
+    
     
     return embeddings</code></pre>
 </details>
@@ -374,7 +379,7 @@ Options for version: 'raw', 'cleaned', 'lemmatized'</p></div>
 </details>
 </dd>
 <dt id="sentspace.embedding.utils.pool_sentence_embeds"><code class="name flex">
-<span>def <span class="ident">pool_sentence_embeds</span></span>(<span>tokens, token_embeddings, filters=[&lt;function &lt;lambda&gt;&gt;], which='glove')</span>
+<span>def <span class="ident">pool_sentence_embeds</span></span>(<span>sentence, token_embeddings, filters=[&lt;function &lt;lambda&gt;&gt;], which='glove')</span>
 </code></dt>
 <dd>
 <div class="desc"><p>pools embeddings of an entire sentence (given as a list of embeddings)
@@ -397,7 +402,7 @@ only tokens that satisfy all filters are retained.</p>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def pool_sentence_embeds(tokens, token_embeddings, filters=[lambda i, x: True],
+<pre><code class="python">def pool_sentence_embeds(sentence, token_embeddings, filters=[lambda i, x: True],
                          which=&#39;glove&#39;):
     &#34;&#34;&#34;pools embeddings of an entire sentence (given as a list of embeddings)
        using averaging, maxpooling, minpooling, etc., after applying all the
@@ -429,16 +434,17 @@ only tokens that satisfy all filters are retained.</p>
     all_pooled = {}
     for which in token_embeddings:
         # all the embeddings corresponding to the tokens
+        tokens = sentence.tokenized()
         all_embeds = [e for i, (t, e) in enumerate(zip(tokens, token_embeddings[which]))]
         all_tokens = [t for i, (t, e) in enumerate(zip(tokens, token_embeddings[which]))]
         all_embeds = np.array(all_embeds, dtype=np.float32)
         all_tokens = np.array(all_tokens, dtype=str)
 
-        # exclude OOV words&#39; embeddings (as they are all NaNs)
-        # make a note of the shape of the vector (n x embed_dim)
+        # exclude OOV words&#39; embeddings (they are all NaNs)
         not_nan_tokens = all_tokens[~np.isnan(all_embeds[:, 0])   ]
         not_nan_embeds = all_embeds[~np.isnan(all_embeds[:, 0]), :]
 
+        # make a note of the shape of the vector (n x embed_dim)
         shape = not_nan_embeds.shape
         # TODO: vectorize operation on all tokensnow that it is an numpy array
         mask = [all(fn(i, t) for filt_name, fn in filters.items()) for i, t in enumerate(not_nan_tokens)]
@@ -448,9 +454,9 @@ only tokens that satisfy all filters are retained.</p>
 
         # if filtering left no tokens, we will use all_embeds instead
         if filtered_shape[0] == 0:
-            io.log(f&#39;all embeddings for current sentence are NaN ({shape} -&gt; {filtered_embeds.shape}): {tokens}&#39;, type=&#39;WARN&#39;)
-            
-            # now what? use all_embeds (as a fallback)
+            io.log(f&#39;filtered embeddings for current sentence are empty. retrying without filters: {tokens}&#39;, type=&#39;WARN&#39;)
+
+            # now what? use unfiltered (as a fallback)
             filtered_embeds = not_nan_embeds
             
         # [very rarely] if no word has a corresponding embedding, then we have no choice

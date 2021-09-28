@@ -39,6 +39,8 @@ import sentspace.utils
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
 from sentspace.utils.s3 import load_feature
 from tqdm import tqdm
+from sentspace.Sentence import Sentence
+
 
 # from sentspace.utils.sanity_checks import sanity_check_databases
 
@@ -148,21 +150,20 @@ def read_sentences(filename: str, stop_words_file: str = None):
             UID_prefix = f&#39;{filename[-8:]:#&gt;10}&#39; + &#39;_&#39; + sentspace.utils.md5(filename)[-5:]
             for i, line in enumerate(f):
 
-                if line.strip():
-                    tokens = sentspace.utils.text.tokenize(line) # line.split()
-                else:
-                    continue
+                uid = UID_prefix + &#39;_&#39; + f&#39;{len(UIDs):0&gt;5}&#39;
+                UIDs += [uid]
+                
+                s = Sentence(line, uid)
 
-                UIDs += [UID_prefix + &#39;_&#39; + f&#39;{len(UIDs):0&gt;5}&#39;]
-                if stop_words_file:
-                    filtered = [x for x in tokens if x not in stop_words]
-                    token_lists.append(filtered)
-                    sentences.append(&#39; &#39;.join(filtered))
-                # no stopwords supplied; do not filter
-                else:
-                    token_lists.append(tokens)
-                    sentences.append(line.strip())
-        return UIDs, token_lists, sentences
+                # if line.strip():
+                #     tokens = sentspace.utils.text.tokenize(line) # line.split()
+                if s: 
+                    sentences.append(s)
+
+                # token_lists.append(tokens)
+
+        # return UIDs, token_lists, sentences
+        return sentences
 
     elif filename.endswith(&#39;.pkl&#39;):
         df = pd.read_pickle(filename)
@@ -180,10 +181,11 @@ def read_sentences(filename: str, stop_words_file: str = None):
     except AttributeError:
         raise(&#39;does your dataframe have a unique index for each sentence?&#39;)
 
-    sentences = df[&#39;sentence&#39;].tolist()
-    token_lists = df[&#39;sentence&#39;].apply(lambda s: sentspace.utils.text.tokenize(s)).tolist()
+    sentences = [Sentence(raw, uid) for raw, uid in zip(df[&#39;sentence&#39;].tolist(), UIDs)]
+    # token_lists = df[&#39;sentence&#39;].apply(lambda s: sentspace.utils.text.tokenize(s)).tolist()
 
-    return UIDs, token_lists, sentences
+    # return UIDs, token_lists, sentences
+    return sentences
 
 
 
@@ -196,10 +198,37 @@ def load_surprisal(file=&#39;pickle/surprisal-3_dict.pkl&#39;):
 
 
 def log(message, type=&#39;INFO&#39;):
+    
+    class T:
+        HEADER = &#39;\033[95m&#39;
+        OKBLUE = &#39;\033[94m&#39;
+        OKCYAN = &#39;\033[96m&#39;
+        OKGREEN = &#39;\033[92m&#39;
+        WARNING = &#39;\033[93m&#39;
+        FAIL = &#39;\033[91m&#39;
+        ENDC = &#39;\033[0m&#39;
+        BOLD = &#39;\033[1m&#39;
+        UNDERLINE = &#39;\033[4m&#39;
+
+    if type == &#39;INFO&#39;:
+        c = T.OKCYAN
+    elif type == &#39;WARN&#39;:
+        c = T.BOLD + T.WARNING
+    elif type == &#39;ERR&#39;:
+        c = &#39;\n&#39; + T.BOLD + T.FAIL
+    else:
+        c = T.OKBLUE
+
     timestamp = f&#39;{sentspace.utils.time() - sentspace.utils.START_TIME():.2f}s&#39;
-    lines = textwrap.wrap(message, width=120, initial_indent=&#39;=&#39;*4 + f&#39; [{type} @ {timestamp}] &#39;, subsequent_indent=&#39;=&#39;*8+&#39; &#39;)
+    lines = textwrap.wrap(message+T.ENDC,
+                          width=120, 
+                          initial_indent = c + &#39;%&#39;*4 + f&#39; [{type} @ {timestamp}] &#39;, 
+                          subsequent_indent=&#39;.&#39;*20+&#39; &#39;)
     tqdm.write(&#39;\n&#39;.join(lines), file=stderr)
-    # print(*lines, sep=&#39;\n&#39;, file=stderr)</code></pre>
+    # print(*lines, sep=&#39;\n&#39;, file=stderr)
+
+
+# def compile_token_dicts() -&gt; pd.DataFrame:</code></pre>
 </details>
 </section>
 <section>
@@ -298,8 +327,32 @@ def log(message, type=&#39;INFO&#39;):
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def log(message, type=&#39;INFO&#39;):
+    
+    class T:
+        HEADER = &#39;\033[95m&#39;
+        OKBLUE = &#39;\033[94m&#39;
+        OKCYAN = &#39;\033[96m&#39;
+        OKGREEN = &#39;\033[92m&#39;
+        WARNING = &#39;\033[93m&#39;
+        FAIL = &#39;\033[91m&#39;
+        ENDC = &#39;\033[0m&#39;
+        BOLD = &#39;\033[1m&#39;
+        UNDERLINE = &#39;\033[4m&#39;
+
+    if type == &#39;INFO&#39;:
+        c = T.OKCYAN
+    elif type == &#39;WARN&#39;:
+        c = T.BOLD + T.WARNING
+    elif type == &#39;ERR&#39;:
+        c = &#39;\n&#39; + T.BOLD + T.FAIL
+    else:
+        c = T.OKBLUE
+
     timestamp = f&#39;{sentspace.utils.time() - sentspace.utils.START_TIME():.2f}s&#39;
-    lines = textwrap.wrap(message, width=120, initial_indent=&#39;=&#39;*4 + f&#39; [{type} @ {timestamp}] &#39;, subsequent_indent=&#39;=&#39;*8+&#39; &#39;)
+    lines = textwrap.wrap(message+T.ENDC,
+                          width=120, 
+                          initial_indent = c + &#39;%&#39;*4 + f&#39; [{type} @ {timestamp}] &#39;, 
+                          subsequent_indent=&#39;.&#39;*20+&#39; &#39;)
     tqdm.write(&#39;\n&#39;.join(lines), file=stderr)
     # print(*lines, sep=&#39;\n&#39;, file=stderr)</code></pre>
 </details>
@@ -355,21 +408,20 @@ for stopwords</p>
             UID_prefix = f&#39;{filename[-8:]:#&gt;10}&#39; + &#39;_&#39; + sentspace.utils.md5(filename)[-5:]
             for i, line in enumerate(f):
 
-                if line.strip():
-                    tokens = sentspace.utils.text.tokenize(line) # line.split()
-                else:
-                    continue
+                uid = UID_prefix + &#39;_&#39; + f&#39;{len(UIDs):0&gt;5}&#39;
+                UIDs += [uid]
+                
+                s = Sentence(line, uid)
 
-                UIDs += [UID_prefix + &#39;_&#39; + f&#39;{len(UIDs):0&gt;5}&#39;]
-                if stop_words_file:
-                    filtered = [x for x in tokens if x not in stop_words]
-                    token_lists.append(filtered)
-                    sentences.append(&#39; &#39;.join(filtered))
-                # no stopwords supplied; do not filter
-                else:
-                    token_lists.append(tokens)
-                    sentences.append(line.strip())
-        return UIDs, token_lists, sentences
+                # if line.strip():
+                #     tokens = sentspace.utils.text.tokenize(line) # line.split()
+                if s: 
+                    sentences.append(s)
+
+                # token_lists.append(tokens)
+
+        # return UIDs, token_lists, sentences
+        return sentences
 
     elif filename.endswith(&#39;.pkl&#39;):
         df = pd.read_pickle(filename)
@@ -387,10 +439,11 @@ for stopwords</p>
     except AttributeError:
         raise(&#39;does your dataframe have a unique index for each sentence?&#39;)
 
-    sentences = df[&#39;sentence&#39;].tolist()
-    token_lists = df[&#39;sentence&#39;].apply(lambda s: sentspace.utils.text.tokenize(s)).tolist()
+    sentences = [Sentence(raw, uid) for raw, uid in zip(df[&#39;sentence&#39;].tolist(), UIDs)]
+    # token_lists = df[&#39;sentence&#39;].apply(lambda s: sentspace.utils.text.tokenize(s)).tolist()
 
-    return UIDs, token_lists, sentences</code></pre>
+    # return UIDs, token_lists, sentences
+    return sentences</code></pre>
 </details>
 </dd>
 </dl>
