@@ -45,57 +45,111 @@ Imagine you generated a set of sentences based on some optimization algorithm or
 them from an ANN language model. How do these 'artificially' generated sentences compare to
 naturally occurring sentences?</p>
 <p>In the present form of <code><a title="sentspace" href="#sentspace">sentspace</a></code>,
-the goal is for a user to feed the toolbox sentences and for the toolbox to return sentence feature values
-along the many metrics it implements (and will implementat in the future).</p>
+a user can feed <code><a title="sentspace" href="#sentspace">sentspace</a></code> sentences and obtain sentence feature values
+along many metrics in a single interface.</p>
 <h2 id="documentation">Documentation</h2>
 <p><a href="https://circleci.com/gh/aalok-sathe/sentspace/tree/main"><img alt="CircleCI" src="https://circleci.com/gh/aalok-sathe/sentspace/tree/main.svg?style=svg"></a></p>
 <p>For more information, <a href="https://aalok-sathe.github.io/sentspace/index.html">visit the docs!</a></p>
 <!-- request read access to the [project doc](https://docs.google.com/document/d/1O1M7T5Ji6KKRvDfI7KQXe_LJ7l9O6_OZA7TEaVP4f8E/edit#). -->
 <h2 id="usage">Usage</h2>
+<p>Example: get only lexical and syntax features for stimuli from a csv containing columns for 'sentence' and 'index'.</p>
+<pre><code class="language-bash">python3 -m sentspace -lex 1 -syn 1 -emb 0 -sem 0 in/wsj_stimuli.csv
+</code></pre>
+<p>Example: get embedding features in a custom script</p>
+<pre><code class="language-python">import sentspace
+
+s = sentspace.Sentence.Sentence('The person purchased two mugs at the price of one.')
+emb_feat = sentspace.embedding.get_features(s)
+</code></pre>
+<p>Example: parallelize getting features for multiple sentences using multithreading</p>
+<pre><code class="language-python">import sentspace
+
+sentences = [
+    'Hello, how may I help you today?',
+    'The person purchased three mugs at the price of five!',
+    &quot;She's leaving home today.&quot;,
+    'This is an example sentence we want features of.'
+             ]
+
+sentences = [*map(sentspace.Sentence.Sentence, sentences)]
+lex_feat = sentspace.utils.parallelize(sentspace.lexical.get_features, sentences,
+                                       wrap_tqdm=True, desc='Lexical features pipeline')
+</code></pre>
+<h2 id="installing">Installing</h2>
 <p>The recommended way to run this project with all its dependencies is using a prebuilt Docker image, <code>aloxatel/sentspace:latest</code>.
-To use the image as a container using <code>singularity</code>, do:</p>
+However, you are welcome to manually install all the dependencies locally too, which would be useful to be able to import the
+package into your custom script and extract sentence features there.</p>
+<h3 id="container-based-usage">Container-based usage</h3>
+<p>To use the image as a container using <code>singularity/docker</code>:</p>
 <h4 id="first-some-important-housekeeping-stuff"><strong>first, some important housekeeping stuff</strong></h4>
 <ul>
-<li><code>which singularity</code> (make sure you have singularity, or load/install it otherwise)</li>
-<li>make sure you have set the ennvironment variables that specify where <code>singularity</code> will cache its images. if you don't do this, <code>singularity</code> will make assumptions and you may end up with a full disk and an unresponsive server. you need about 6gb of free space at the target location.</li>
+<li>make sure you have <code>singularity</code>/<code>docker</code>, or load/install it otherwise</li>
+<li><code>which singularity</code>
+or
+<code>which docker</code> </li>
+<li>make sure you have set the ennvironment variables that specify where <code>singularity/docker</code> will cache its images. if you don't do this, <code>singularity</code> will make assumptions and you may end up with a full disk and an unresponsive server, if running on a server with filesystem restrictions. you should have about 5GB free space at the target location.</li>
 </ul>
 <h4 id="next-running-the-container-automatically-built-and-deployed-to-docker-hub"><strong>next, running the container</strong> (automatically built and deployed to Docker hub)</h4>
 <p><a href="https://circleci.com/gh/aalok-sathe/sentspace/tree/circle-ci"><img alt="CircleCI" src="https://circleci.com/gh/aalok-sathe/sentspace/tree/circle-ci.svg?style=svg"></a></p>
 <ul>
-<li><code>singularity shell docker://aloxatel/sentspace:latest</code> (or alternatively, from the root of the repo, <code>bash singularity-shell.sh</code>). this step can take a while when you run it for the first time as it needs to download the image from docker hub and convert it to singularity image format (<code>.sif</code>). however, each subsequent run will execute rapidly.</li>
-<li>[now you are within the container] <code>source .singularitybashrc</code>, again from the root of the repo, to activate the environment variables and so on.</li>
-<li>now you are ready to run the module!</li>
+<li><code>singularity shell docker://aloxatel/sentspace:latest</code> (or alternatively, from the root of the repo, <code>bash singularity-shell.sh</code>). this step can take a while when you run it for the first time as it needs to download the image from docker hub and convert it to singularity image format (<code>.sif</code>). however, each subsequent run will execute rapidly. alternatively, use <a href="https://docs.docker.com/engine/reference/commandline/exec/">corresponding commands for Docker</a>.</li>
+<li>now you are inside the container and ready to run Sentspace!</li>
 </ul>
 <p>For a complete list of options and default values, see the <code>help</code> page like so:</p>
 <pre><code class="language-bash">python3 -m sentspace -h
 </code></pre>
-<h3 id="submodules">Submodules</h3>
-<p>In general, each submodule exists as a standalone implementation. You can run each module on its own by specifying it like so:
-<code>python -m sentspace.syntax -h</code>, which will print out the usage for that submodule.
+<h3 id="manual-dependency-install-not-officially-supported-needs-elevated-privileges">Manual dependency install (not officially supported; needs elevated privileges)</h3>
+<pre><code class="language-bash"># optional (but recommended): 
+# create a virtual environment using your favorite method (venv, conda, ...) 
+# before any of the following
+
+# install basic packages using apt (you likely already have these)
+sudo apt update
+sudo apt install python3.8 python3.8-dev python3-pip
+sudo apt install python2.7 python2.7-dev 
+sudo apt install build-essential git
+
+# install ICU
+DEBIAN_FRONTEND=&quot;noninteractive&quot; TZ=&quot;America/New_York&quot; sudo apt install python3-icu
+
+# install ZS package separately (pypi install fails)
+python3.8 -m pip install -U pip cython
+git clone https://github.com/njsmith/zs
+cd zs &amp;&amp; git checkout v0.10.0 &amp;&amp; pip install .
+
+# install rest of the requirements using pip
+cd .. # make sure you're in the sentspace/ directory
+pip install -r ./requirements.txt
+polyglot download morph2.en
+</code></pre>
+<h2 id="submodules">Submodules</h2>
+<p>In general, each submodule implements a major class of features. You can run each module on its own by specifying it like so:</p>
+<pre><code class="language-bash">python -m sentspace.syntax -h
+</code></pre>
+<p>which will print out the help page for that submodule.
 Below, we provide more information and the capabilities/usage of each submodule in some greater depth.</p>
-<h4 id="sentspacesyntax"><code><a title="sentspace.syntax" href="syntax/index.html">sentspace.syntax</a></code></h4>
 <h4 id="sentspacelexical"><code><a title="sentspace.lexical" href="lexical/index.html">sentspace.lexical</a></code></h4>
+<p>Description pending</p>
+<h4 id="sentspacesyntax"><code><a title="sentspace.syntax" href="syntax/index.html">sentspace.syntax</a></code></h4>
+<p>Description pending</p>
 <h4 id="sentspaceembedding"><code><a title="sentspace.embedding" href="embedding/index.html">sentspace.embedding</a></code></h4>
+<p><em>Can only be used as an import or through the main pipeline at the moment.</em></p>
 <h4 id="semantic"><code>semantic</code></h4>
-<p>Not yet implemented</p>
-<!-- CONTRIBUTING -->
+<p><em>Not Implemented yet</em></p>
 <h2 id="contributing">Contributing</h2>
 <p>Any contributions you make are <strong>greatly appreciated</strong>, and no contribution is <em>too small</em> to contribute.</p>
 <ol>
-<li>Fork the Project</li>
-<li>Create your Feature Branch (<code>git checkout -b feature/AmazingFeature</code>)</li>
-<li>Commit your Changes (<code>git commit -m 'Add some AmazingFeature'</code>)</li>
-<li>Push to the Branch (<code>git push origin feature/AmazingFeature</code>)</li>
-<li>Open a Pull Request</li>
+<li>Fork the project using Github <a href="https://docs.github.com/en/get-started/quickstart/fork-a-repo">(how to fork)</a></li>
+<li>Create your feature/patch branch (<code>git checkout -b feature/AmazingFeature</code>)</li>
+<li>Make some changes! Implement your patch/feature. Test to make sure it works!</li>
+<li>Commit your bhanges (<code>git commit -m 'Add some AmazingFeature'</code>)</li>
+<li>Push the branch (<code>git push origin feature/AmazingFeature</code>)</li>
+<li>Open a Pull Request (PR) and we will take a look!</li>
 </ol>
-<!-- LICENSE
-## License
-MIT License. -->
-<!-- CONTACT -->
-<h2 id="contact">Contact</h2>
+<h2 id="license-contact">License &amp; Contact</h2>
 <ul>
-<li>About the project: </li>
-<li>Greta Tuckute, EvLab, MIT BCS</li>
+<li><code>gretatu % mit ^ edu</code></li>
+<li><code>asathe % mit ^ edu</code></li>
 </ul>
 <details class="source">
 <summary>
@@ -565,20 +619,25 @@ compare the current input against; e.g. UD [optional]</dd>
 <li><a href="#sentspace">sentspace</a><ul>
 <li><a href="#about-the-project">About The Project</a></li>
 <li><a href="#documentation">Documentation</a></li>
-<li><a href="#usage">Usage</a><ul>
+<li><a href="#usage">Usage</a></li>
+<li><a href="#installing">Installing</a><ul>
+<li><a href="#container-based-usage">Container-based usage</a><ul>
 <li><a href="#first-some-important-housekeeping-stuff">first, some important housekeeping stuff</a></li>
 <li><a href="#next-running-the-container-automatically-built-and-deployed-to-docker-hub">next, running the container (automatically built and deployed to Docker hub)</a></li>
+</ul>
+</li>
+<li><a href="#manual-dependency-install-not-officially-supported-needs-elevated-privileges">Manual dependency install (not officially supported; needs elevated privileges)</a></li>
+</ul>
+</li>
 <li><a href="#submodules">Submodules</a><ul>
-<li><a href="#syntax">syntax</a></li>
 <li><a href="#lexical">lexical</a></li>
+<li><a href="#syntax">syntax</a></li>
 <li><a href="#embedding">embedding</a></li>
 <li><a href="#semantic">semantic</a></li>
 </ul>
 </li>
-</ul>
-</li>
 <li><a href="#contributing">Contributing</a></li>
-<li><a href="#contact">Contact</a></li>
+<li><a href="#license-contact">License &amp; Contact</a></li>
 </ul>
 </li>
 </ul>
