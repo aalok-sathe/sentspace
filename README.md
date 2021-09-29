@@ -11,8 +11,8 @@ them from an ANN language model. How do these 'artificially' generated sentences
 naturally occurring sentences?
 
 In the present form of `sentspace`, 
-the goal is for a user to feed the toolbox sentences and for the toolbox to return sentence feature values
-along the many metrics it implements (and will implementat in the future).
+a user can feed `sentspace` sentences and obtain sentence feature values
+along many metrics in a single interface.
 
 ## Documentation 
 [![CircleCI](https://circleci.com/gh/aalok-sathe/sentspace/tree/main.svg?style=svg)](https://circleci.com/gh/aalok-sathe/sentspace/tree/main)
@@ -25,60 +25,130 @@ For more information, [visit the docs!](https://aalok-sathe.github.io/sentspace/
 
 ## Usage
 
+Example: get only lexical and syntax features for stimuli from a csv containing columns for 'sentence' and 'index'.
+```bash
+python3 -m sentspace -lex 1 -syn 1 -emb 0 -sem 0 in/wsj_stimuli.csv
+```
+
+Example: get embedding features in a custom script
+```python
+import sentspace
+
+s = sentspace.Sentence.Sentence('The person purchased two mugs at the price of one.')
+emb_feat = sentspace.embedding.get_features(s)
+```
+
+Example: parallelize getting features for multiple sentences using multithreading
+```python
+import sentspace
+
+sentences = [
+    'Hello, how may I help you today?',
+    'The person purchased three mugs at the price of five!',
+    "She's leaving home today.",
+    'This is an example sentence we want features of.'
+             ]
+             
+sentences = [*map(sentspace.Sentence.Sentence, sentences)]
+lex_feat = sentspace.utils.parallelize(sentspace.lexical.get_features, sentences,
+                                       wrap_tqdm=True, desc='Lexical features pipeline')
+```
+
+
+## Installing
+
 The recommended way to run this project with all its dependencies is using a prebuilt Docker image, `aloxatel/sentspace:latest`.
-To use the image as a container using `singularity`, do:
+However, you are welcome to manually install all the dependencies locally too, which would be useful to be able to import the 
+package into your custom script and extract sentence features there.
+
+
+
+
+### Container-based usage
+
+To use the image as a container using `singularity/docker`:
 
 #### **first, some important housekeeping stuff**
-- `which singularity` (make sure you have singularity, or load/install it otherwise)
-- make sure you have set the ennvironment variables that specify where `singularity` will cache its images. if you don't do this, `singularity` will make assumptions and you may end up with a full disk and an unresponsive server. you need about 6gb of free space at the target location.
+- make sure you have `singularity`/`docker`, or load/install it otherwise
+  - `which singularity`   or  `which docker` 
+- make sure you have set the ennvironment variables that specify where `singularity/docker` will cache its images. if you don't do this, `singularity` will make assumptions and you may end up with a full disk and an unresponsive server, if running on a server with filesystem restrictions. you should have about 5GB free space at the target location.
 
 #### **next, running the container** (automatically built and deployed to Docker hub)
 [![CircleCI](https://circleci.com/gh/aalok-sathe/sentspace/tree/circle-ci.svg?style=svg)](https://circleci.com/gh/aalok-sathe/sentspace/tree/circle-ci)
 
-- `singularity shell docker://aloxatel/sentspace:latest` (or alternatively, from the root of the repo, `bash singularity-shell.sh`). this step can take a while when you run it for the first time as it needs to download the image from docker hub and convert it to singularity image format (`.sif`). however, each subsequent run will execute rapidly.
-- [now you are within the container] `source .singularitybashrc`, again from the root of the repo, to activate the environment variables and so on.
-- now you are ready to run the module!
+- `singularity shell docker://aloxatel/sentspace:latest` (or alternatively, from the root of the repo, `bash singularity-shell.sh`). this step can take a while when you run it for the first time as it needs to download the image from docker hub and convert it to singularity image format (`.sif`). however, each subsequent run will execute rapidly. alternatively, use [corresponding commands for Docker](https://docs.docker.com/engine/reference/commandline/exec/).
+- now you are inside the container and ready to run Sentspace!
 
 For a complete list of options and default values, see the `help` page like so:
 ```bash
 python3 -m sentspace -h
 ```
 
-### Submodules
+### Manual dependency install (not officially supported; needs elevated privileges)
+```bash
+# optional (but recommended): 
+# create a virtual environment using your favorite method (venv, conda, ...) 
+# before any of the following
 
-In general, each submodule exists as a standalone implementation. You can run each module on its own by specifying it like so:
-`python -m sentspace.syntax -h`, which will print out the usage for that submodule.
+# install basic packages using apt (you likely already have these)
+sudo apt update
+sudo apt install python3.8 python3.8-dev python3-pip
+sudo apt install python2.7 python2.7-dev 
+sudo apt install build-essential git
+
+# install ICU
+DEBIAN_FRONTEND="noninteractive" TZ="America/New_York" sudo apt install python3-icu
+
+# install ZS package separately (pypi install fails)
+python3.8 -m pip install -U pip cython
+git clone https://github.com/njsmith/zs
+cd zs && git checkout v0.10.0 && pip install .
+
+# install rest of the requirements using pip
+cd .. # make sure you're in the sentspace/ directory
+pip install -r ./requirements.txt
+polyglot download morph2.en
+```
+
+
+
+## Submodules
+
+In general, each submodule implements a major class of features. You can run each module on its own by specifying it like so:
+```bash
+python -m sentspace.syntax -h
+```
+which will print out the help page for that submodule.
 Below, we provide more information and the capabilities/usage of each submodule in some greater depth.
 
-#### `syntax`
+
 
 #### `lexical`
+Description pending
+
+#### `syntax`
+Description pending
 
 #### `embedding`
+*Can only be used as an import or through the main pipeline at the moment.*
 
 #### `semantic`
-Not yet implemented
+*Not Implemented yet*
 
-<!-- CONTRIBUTING -->
+
+
+
 ## Contributing
 
 Any contributions you make are **greatly appreciated**, and no contribution is *too small* to contribute.
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. Fork the project using Github [(how to fork)](https://docs.github.com/en/get-started/quickstart/fork-a-repo)
+2. Create your feature/patch branch (`git checkout -b feature/AmazingFeature`)
+3. Make some changes! Implement your patch/feature. Test to make sure it works!
+4. Commit your bhanges (`git commit -m 'Add some AmazingFeature'`)
+5. Push the branch (`git push origin feature/AmazingFeature`)
+6. Open a Pull Request (PR) and we will take a look!
 
-<!-- LICENSE
-## License
-
-MIT License. -->
-
-
-
-<!-- CONTACT -->
-## Contact
-
-- About the project: 
-  - Greta Tuckute, EvLab, MIT BCS
+## License & Contact
+- `gretatu % mit ^ edu`
+- `asathe % mit ^ edu`
