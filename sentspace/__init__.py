@@ -30,7 +30,7 @@ import sentspace.lexical as lexical
 # import sentspace.semantic as semantic
 import sentspace.embedding as embedding
 
-import sentspace.Sentence.Sentence as Sentence
+from sentspace.Sentence import Sentence
 # ...
 
 # TODO: remove processing overhead in API call; ideally the below imports 
