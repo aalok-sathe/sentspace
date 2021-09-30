@@ -27,8 +27,10 @@ from pathlib import Path
 import sentspace.utils as utils
 import sentspace.syntax as syntax
 import sentspace.lexical as lexical
-import sentspace.semantic as semantic
+# import sentspace.semantic as semantic
 import sentspace.embedding as embedding
+
+import sentspace.Sentence.Sentence as Sentence
 # ...
 
 # TODO: remove processing overhead in API call; ideally the below imports 
