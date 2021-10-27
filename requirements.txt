@@ -14,7 +14,8 @@ morfessor==2.0.6
 pyyaml==5.4.1
 pdoc3==0.10.0
 transformers==4.10.0
-torch==1.9.0
-torchvision
-torchaudio
+jupyter
+# torch==1.9.0
+# torchvision
+# torchaudio
 # zs
