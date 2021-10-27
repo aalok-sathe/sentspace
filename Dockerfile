@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM ubuntu:latest
+FROM ubuntu:20.04
 
 # install necessary packages using apt
 RUN apt update
@@ -21,6 +21,7 @@ RUN rm -rf zs
 # install rest of the requirements using pip
 RUN pip install -r ./requirements.txt
 RUN polyglot download morph2.en
+RUN pip install -U ipython ipykernel jupyter
 
 # cleanup
 RUN apt remove -y git
