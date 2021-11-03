@@ -8,6 +8,9 @@ import sentspace.utils.io as io
 import re
 
 
+class SentenceBatch(list):
+    pass
+
 class Sentence:
     '''
     a class to keep track of an individual sentence, its tokenized form,
@@ -83,16 +86,16 @@ class Sentence:
         """        
         return len(self.tokenized())
 
-    def __getitem__(self, index: int) -> str:
+    def __getitem__(self, key: slice) -> str:
         """Support indexing into the tokens of the sentence
 
         Args:
-            index (int): index'th token to retrieve
+            slice: slice of the tokenized sentence to retrieve
 
         Returns:
             str: token at the indexed position in the tokenized form
-        """        
-        return self.tokenized()[index]
+        """
+        return self.tokenized()[key]
 
     def __iter__(self):
         '''we are iterable, so we return an iterator over tokens'''
