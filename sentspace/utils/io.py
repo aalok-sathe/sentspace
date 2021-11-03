@@ -148,7 +148,8 @@ def read_sentences(filename: str, stop_words_file: str = None):
         raise ValueError('unknown type of file supplied (must be txt/pkl/csv/tsv. if pickle, must be a dataframe object)')
 
     try:
-        UIDs = df['index'].tolist()
+        UIDs = df['corpora_identifier']
+        #df['index'].tolist()
     except KeyError:
         UIDs = df.index.tolist()
     except AttributeError:
@@ -185,6 +186,8 @@ def log(message, type='INFO'):
 
     if type == 'INFO':
         c = T.OKCYAN
+    elif type == 'EMPH':
+        c = T.OKGREEN
     elif type == 'WARN':
         c = T.BOLD + T.WARNING
     elif type == 'ERR':
