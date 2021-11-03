@@ -1,9 +1,12 @@
 import json
 import os
+import sentspace
 import subprocess
+import time
 import urllib
 from pathlib import Path
 from urllib import request
+import http
 
 from sentspace.utils import caching, io, text, wordnet
 
@@ -63,22 +66,49 @@ def tokenize(raw):
     return tokens
 
 
+
 @path_decorator
-@caching.cache_to_disk
+# @caching.cache_to_disk
 def compute_trees(sentence, server_url='http://localhost:8000/fullberk'):
 
     # data = f'{{ "sentence": "{sentence}" }}'
     data = {"sentence": sentence}
     r = request.Request(server_url, data=bytes(json.dumps(data), 'utf-8'), method='GET',
                         headers={'Content-Type': 'application/json'})
-    try:
-        with request.urlopen(r) as rq:
-            response = rq.read()
-    except urllib.error.HTTPError as e:
-        io.log(f'encountered HTTP error on sentence {sentence}; request=`{r}`', type='ERR')
-        raise e
-    cmd = ['bash', 'postprocess_trees.sh', response]
+    retries = 3
+    for attempt in range(1, retries+1):
+        try:
+            with request.urlopen(r) as rq:
+                response = rq.read()
 
+        except urllib.error.HTTPError as e:
+            io.log(f'encountered HTTPError on sentence [{sentence}]; attempt {attempt}/{retries}; are you sure the server is running? https://github.com/aalok-sathe/berkeley-interact for instructions',
+                type='ERR')
+            print(e)
+            time.sleep(6)
+            continue
+            exit(1)
+
+        except urllib.error.URLError as e:
+            io.log(f'encountered URLError on sentence [{sentence}]; attempt {attempt}/{retries}', type='ERR')
+            print(e)
+            time.sleep(6)
+            continue
+            exit(1)
+
+        except http.client.RemoteDisconnected as e:
+            io.log(f'encountered http.client.RemoteDisconnected on sentence [{sentence}]; attempt {attempt}/{retries}', type='ERR')
+            print(e)
+            time.sleep(6)
+            continue
+            exit(1)
+        
+        break
+    else:
+        raise RuntimeError(f'failed to process [{sentence}] after {retries} retries')
+
+
+    cmd = ['bash', 'postprocess_trees.sh', response]
     # fallback to manually initializing parser
     # cmd = ['bash', 'parse_trees.sh', tokens]
     trees = subprocess.check_output(cmd)
