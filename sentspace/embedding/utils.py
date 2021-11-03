@@ -1,5 +1,8 @@
+from collections import defaultdict
+from contextlib import contextmanager
 import os
 import pickle
+import typing
 import warnings
 from pathlib import Path
 import random
@@ -11,6 +14,9 @@ from sentspace.utils import io, text
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
 from sentspace.utils.utils import Word, merge_lists, wordnet
 from tqdm import tqdm
+
+# import torch
+from transformers import AutoModel, AutoConfig, AutoTokenizer
 
 
 # --------- GloVe
@@ -83,8 +89,9 @@ def load_embeddings(emb_file: str = 'glove.840B.300d.txt',
     return w2v
 
 
-def get_word_embeds(sentence, w2v, which='glove', dims=300, return_NA_words=False, save=False, save_path=False):
-    """[summary]
+def get_word_embeds(sentence: sentspace.Sentence.Sentence, w2v: typing.Dict[str, typing.Dict[str, np.array]], 
+                    which: str = 'glove', dims: int = None) -> typing.Dict[str, typing.DefaultDict[None, list]]:
+    """Extracts [static] word embeddings for tokens in the given sentence 
 
     Args:
         sentence ([sentspace.Sentence.Sentence]): a Sentence object
@@ -97,37 +104,107 @@ def get_word_embeds(sentence, w2v, which='glove', dims=300, return_NA_words=Fals
 
     Returns:
         [type]: [description]
-    """    
-    #
     """
-    Return dataframe of each word, sentence no., and its glove embedding
-    If embedding does not exist for a word, fill cells with np.nan
-    Parameters:
-        f1g: list of sentences as lists of tokens
-        w2v: dict mapping word to embedding
-        return_NA_words: optionally return unique words that are NA
-        save: whether to save results
-        save_path: path to save, support .csv & .mat files
-    """
-
-    embeddings = []
+    # layer -> [emb_t1 emb_t2 emb_t3 ...]
+    embeddings = defaultdict(list)
     
+    dims = dims or next(iter(w2v[which].values())).shape[-1]
+
     # OOV_words = set()
     for token in sentence:
         if token in w2v[which]:
-            embeddings.append(w2v[which][token])
+            embeddings[None].append(w2v[which][token])
         else:
-            embeddings.append([np.nan]*dims)
-            sentence.OOV[which].add(token)
+            embeddings[None].append(np.repeat(np.nan, dims))
+            # sentence.OOV[which].add(token)
             # OOV_words.add(token)
     
-    
-    return embeddings
+    return {which: embeddings}
+
+
+@cache_to_mem
+def load_huggingface(model_name_or_path: str = 'distilgpt2', device='cpu'):
+    """loads and caches a huggingface model and tokenizer
+
+    Args:
+        model_name_or_path (str): Huggingface model hub identifier or path to directory 
+                                  containing config and model weights. Defaults to 'gpt2'.
+
+    Returns:
+        Tuple[AutoModel, AutoTokenizer]: returns a model and a tokenizer
+    """
+    if 'TRANSFORMERS_CACHE' not in os.environ:
+        os.environ['TRANSFORMERS_CACHE'] = str(Path(__file__).parent.parent.parent / 'TRANSFORMERS_CACHE/')
+    io.log(f"loading HuggingFace model [{model_name_or_path}] using TRANSFORMERS_CACHE={os.environ['TRANSFORMERS_CACHE']}")
+    t = AutoTokenizer.from_pretrained(model_name_or_path, cache_dir=os.environ['TRANSFORMERS_CACHE'])
+    m = AutoModel.from_pretrained(model_name_or_path, cache_dir=os.environ['TRANSFORMERS_CACHE'])
+    m.to(device)
+    m.eval()
+
+    return m, t
+
+
+def get_huggingface_embeds(sentence: sentspace.Sentence.Sentence, 
+                           which: str = 'distilgpt2',
+                           #layer: int = -1,
+                           dims: int = None) -> typing.Dict[str, typing.DefaultDict[int, list]]:
+    """Extracts [static] word embeddings for tokens in the given sentence 
+
+    Args:
+        sentence (sentspace.Sentence.Sentence): [description]
+        which (str, optional): [description]. Defaults to 'distilgpt2'.
+        dims (int, optional): [description]. Defaults to None.
+
+    Raises:
+        ValueError: [description]
+
+    Returns:
+        typing.Dict[str, typing.DefaultDict[int, list]]: [description]
+    """
+    # layer -> [emb_t1 emb_t2 emb_t3 ...]
+    embeddings = defaultdict(np.array)
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model, tokenizer = load_huggingface(which, device=device)
+
+    n_layer = model.config.n_layer
+    # max_n_tokens = model.config.n_positions
+
+    # # [sentence_no -> (layer_no -> representation)]
+    # reps = defaultdict(defaultdict(list))
+
+    # we don't want to track gradients; only interested in encoding
+    with torch.no_grad():
+
+        # current procedure processes sentences individually. consider minibatching.
+        batch_encoding = tokenizer(str(sentence), return_tensors="pt", truncation='longest_first').to(device)
+        input_ids = batch_encoding['input_ids']
+        
+        overflow_tokens = max(0, len(input_ids) - model.config.n_positions)
+        if overflow_tokens > 0: 
+            io.log(f"Stimulus too long! Truncated the first {overflow_tokens} tokens", type='WARN')
+        input_ids = input_ids[overflow_tokens:]
+        
+        # print(tokenizer.convert_ids_to_tokens(input_ids))
+
+        output = model(input_ids, output_hidden_states=True, return_dict=True)
+
+        hidden_states = output['hidden_states']
+
+        for layer in range(len(hidden_states)):
+            token = slice(None, None)
+            rep = hidden_states[layer].detach().cpu().squeeze().numpy()[token, :]
+            embeddings[layer] = rep 
+
+        # print(input_ids.shape, rep.shape)
+
+    return {which: embeddings}
+
 
 
 
 def pool_sentence_embeds(sentence, token_embeddings, filters=[lambda i, x: True],
-                         which='glove'):
+                         keys=None, methods={'mean', 'median'}):
     """pools embeddings of an entire sentence (given as a list of embeddings)
        using averaging, maxpooling, minpooling, etc., after applying all the
        provided filters as functions (such as content words only).
@@ -155,48 +232,71 @@ def pool_sentence_embeds(sentence, token_embeddings, filters=[lambda i, x: True]
     # if content_only:
     #     df = df[np.array(is_content_lst) == 1]
 
-    all_pooled = {}
+    all_pooled = {} #defaultdict(lambda: defaultdict(dict))
     for which in token_embeddings:
-        # all the embeddings corresponding to the tokens
-        tokens = sentence.tokenized()
-        all_embeds = [e for i, (t, e) in enumerate(zip(tokens, token_embeddings[which]))]
-        all_tokens = [t for i, (t, e) in enumerate(zip(tokens, token_embeddings[which]))]
-        all_embeds = np.array(all_embeds, dtype=np.float32)
-        all_tokens = np.array(all_tokens, dtype=str)
+        for layer in token_embeddings[which]:
 
-        # exclude OOV words' embeddings (they are all NaNs)
-        not_nan_tokens = all_tokens[~np.isnan(all_embeds[:, 0])   ]
-        not_nan_embeds = all_embeds[~np.isnan(all_embeds[:, 0]), :]
+            if keys and which not in keys: continue
+            # all the embeddings corresponding to the tokens
+            tokens = sentence.tokenized()
+            all_embeds = [e for i, (t, e) in enumerate(zip(tokens, token_embeddings[which][layer]))]
+            all_tokens = [t for i, (t, e) in enumerate(zip(tokens, token_embeddings[which][layer]))]
+            all_embeds = np.array(all_embeds, dtype=np.float32)
+            all_tokens = np.array(all_tokens, dtype=str)
 
-        # make a note of the shape of the vector (n x embed_dim)
-        shape = not_nan_embeds.shape
-        # TODO: vectorize operation on all tokensnow that it is an numpy array
-        mask = [all(fn(i, t) for filt_name, fn in filters.items()) for i, t in enumerate(not_nan_tokens)]
+            # print(all_tokens, all_embeds.shape)
 
-        filtered_embeds = not_nan_embeds[mask]
-        filtered_shape = filtered_embeds.shape
+            # exclude OOV words' embeddings (they are all NaNs)
+            not_nan_tokens = all_tokens[~np.isnan(all_embeds[:, 0])   ]
+            not_nan_embeds = all_embeds[~np.isnan(all_embeds[:, 0]), :]
 
-        # if filtering left no tokens, we will use all_embeds instead
-        if filtered_shape[0] == 0:
-            io.log(f'filtered embeddings for current sentence are empty. retrying without filters: {tokens}', type='WARN')
+            # make a note of the shape of the vector (n x embed_dim)
+            shape = not_nan_embeds.shape
+            # TODO: vectorize operation on all tokensnow that it is an numpy array
+            if filters:
+                mask = [all(fn(i, t) for filt_name, fn in filters.items()) for i, t in enumerate(not_nan_tokens)]
+            else:
+                mask = slice(None, None, None)
 
-            # now what? use unfiltered (as a fallback)
-            filtered_embeds = not_nan_embeds
-            
-        # [very rarely] if no word has a corresponding embedding, then we have no choice
-        # but to return a zero vector (or, sometime in the future, a random vector?)
-        if shape[0] == 0:
-            filtered_embeds = np.zeros((1, shape[-1]))
+            filtered_embeds = not_nan_embeds[mask]
+            filtered_shape = filtered_embeds.shape
+
+            # if filtering left no tokens, we will use all_embeds instead
+            if filtered_shape[0] == 0:
+                io.log(f'filtered embeddings for current sentence are empty. retrying without filters: {tokens}', type='WARN')
+
+                # now what? use unfiltered (as a fallback)
+                filtered_embeds = not_nan_embeds
+                
+            # [very rarely] if no word has a corresponding embedding, then we have no choice
+            # but to return a zero vector (or, sometime in the future, a random vector?)
+            if shape[0] == 0:
+                filtered_embeds = np.zeros((1, shape[-1]))
 
 
-        pooled = {
-            'pooled_'+which+'_median': np.median(filtered_embeds, axis=0).reshape(-1).tolist(),
-            'pooled_'+which+'_mean': filtered_embeds.mean(axis=0).reshape(-1).tolist(),
-            # 'pooled_'+which+'_max': filtered_embeds.max(axis=0).reshape(-1).tolist(),
-            # 'pooled_'+which+'_min': filtered_embeds.min(axis=0).reshape(-1).tolist(),
-        }
+            pooled = defaultdict(lambda: defaultdict(dict))
 
-        all_pooled.update(pooled)
+            for method in methods:
+                if type(method) is str:
+                    method_name = method
+                    if method_name == 'median':
+                        pooled[layer][method_name][which] = np.median(filtered_embeds, axis=0).reshape(-1)#.tolist()
+                    if method_name == 'mean':
+                        pooled[layer][method_name][which] = filtered_embeds.mean(axis=0).reshape(-1)#.tolist()
+                    if method_name == 'last':
+                        pooled[layer][method_name][which] = filtered_embeds[-1, :].reshape(-1)#.tolist()
+                    if method_name == 'first':
+                        pooled[layer][method_name][which] = filtered_embeds[0, :].reshape(-1)#.tolist()
+                elif type(method) is tuple:
+                    method_name, fn = method
+                    pooled[layer][method_name][which] = fn(filtered_embeds).reshape(-1)#.tolist()
+                else:
+                    raise ValueError(method)
+
+                # 'pooled_'+which+'_max': filtered_embeds.max(axis=0).reshape(-1).tolist(),
+                # 'pooled_'+which+'_min': filtered_embeds.min(axis=0).reshape(-1).tolist(),
+
+            all_pooled.update(pooled)
 
     return all_pooled
 
