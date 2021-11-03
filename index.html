@@ -175,10 +175,11 @@ Below, we provide more information and the capabilities/usage of each submodule 
     .. include:: ../README.md
 &#39;&#39;&#39;
 
-__pdoc__ = {&#39;semantic&#39;: False,
-            }
+# __pdoc__ = {&#39;semantic&#39;: False,
+#             }
 
 
+from collections import defaultdict
 from pathlib import Path
 
 import sentspace.utils as utils
@@ -198,12 +199,14 @@ import pandas as pd
 from functools import reduce 
 from itertools import chain
 from tqdm import tqdm
+import pickle 
 
 def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                    benchmark_file: str = None, output_dir: str = None,
                                    output_format: str = None,
                                    process_lexical: bool = False, process_syntax: bool = False,
                                    process_embedding: bool = False, process_semantic: bool = False,
+                                   parallelize: bool = True,
                                    #
                                    emb_data_dir: str = None) -&gt; Path:
     &#34;&#34;&#34;
@@ -231,23 +234,16 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
     # create output folder
     utils.io.log(&#39;creating output folder&#39;)
-    # (sent_output_path,
-    #  glove_words_output_path,
-    #  glove_sents_output_path)
     output_dir = utils.io.create_output_paths(input_file,
                                               output_dir=output_dir,
                                               stop_words_file=stop_words_file)
-    # with (output_dir / &#39;config.txt&#39;).open(&#39;w+&#39;) as f:
+    config_out = (output_dir / &#39;this_session_log.txt&#39;)
+    # with config_out.open(&#39;a+&#39;) as f:
     #     print(args, file=f)
 
     utils.io.log(&#39;reading input sentences&#39;)
-    # UIDs, token_lists, sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
     sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
     utils.io.log(&#39;---done--- reading input sentences&#39;)
-
-    # surprisal_database = &#39;pickle/surprisal-3_dict.pkl&#39; # default: 3-gram surprisal
-    # features_ignore_case = True
-    # features_transform = [&#39;default&#39;, None, None] # format: [method, cols to log transform, cols to z-score] (if method is specified, the other two are ignored)
 
     # Get morpheme from polyglot library instead of library
     # TODO: where was this supposed to be used?
@@ -257,16 +253,15 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         utils.io.log(&#39;*** running lexical submodule pipeline&#39;)
         _ = lexical.utils.load_databases(features=&#39;all&#39;)
 
-        # lexical_features = [sentspace.lexical.get_features(sentence, identifier=UIDs[i])
-        #                     for i, sentence in enumerate(tqdm(sentences, desc=&#39;Lexical pipeline&#39;))]
-        lexical_features = utils.parallelize(lexical.get_features, sentences,
-                                             wrap_tqdm=True, desc=&#39;Lexical pipeline&#39;)
+        if parallelize:
+            lexical_features = utils.parallelize(lexical.get_features, sentences,
+                                                 wrap_tqdm=True, desc=&#39;Lexical pipeline&#39;)
+        else:
+            lexical_features = [lexical.get_features(sentence)
+                                for _, sentence in enumerate(tqdm(sentences, desc=&#39;Lexical pipeline&#39;))]
 
         lexical_out = output_dir / &#39;lexical&#39;
         lexical_out.mkdir(parents=True, exist_ok=True)
-
-        # with (lexical_out/&#39;token-features.json&#39;).open(&#39;w&#39;) as f:
-        #       json.dump(lexical_features, f)
 
         # lexical is a special case since it returns dicts per token (rather than per sentence)
         # so we want to flatten it so that pandas creates a sensible dataframe from it.
@@ -282,17 +277,15 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
     if process_syntax:
         utils.io.log(&#39;*** running syntax submodule pipeline&#39;)
+
+        # as an exception, we do *not* parallelize syntax since the backend server is somehow unable to handle
+        # multiple requests :(
         syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid())
+                                                                     # !!! TODO:DEBUG
                            for i, sentence in enumerate(tqdm(sentences, desc=&#39;Syntax pipeline&#39;))]
-        # syntax_features = utils.parallelize(sentspace.syntax.get_features, sentences, UIDs,
-        #                                     dlt=True, left_corner=True,
-        #                                     wrap_tqdm=True, desc=&#39;Syntax pipeline&#39;)
 
         syntax_out = output_dir / &#39;syntax&#39;
         syntax_out.mkdir(parents=True, exist_ok=True)
-
-        # with (syntax_out/&#39;features.json&#39;).open(&#39;w&#39;) as f:
-        #       f.write(str(syntax_features))
 
         # put all features in the sentence df except the token-level ones
         token_syntax_features = {&#39;dlt&#39;, &#39;leftcorner&#39;}
@@ -303,12 +296,21 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         # into a single dataframe
         # we use functools.reduce to apply the pd.concat function to all the dataframes and join dataframes
         # that contain different features for the same tokens
+        # NOTE: do NOT use .T.drop_duplicates!!!!
         # we use df.T.drop_duplicates().T to remove duplicate columns (&#39;token&#39;, &#39;sentence&#39;, &#39;index&#39; etc) that appear in
         # all/multiple dataframes as part of the standard output schema
         token_dfs = [reduce(lambda x, y: pd.concat([x, y], axis=1, sort=False),
-                            (v for k, v in feature_dict.items() if k in token_syntax_features)).T.drop_duplicates().T
+                            (v for k, v in feature_dict.items() if k in token_syntax_features)) #.T.drop_duplicates().T
                      for feature_dict in syntax_features]
+
+        # TODO: DEBUG
+        # import IPython
+        # IPython.embed()
+
+        # by this point we have merged dataframes with tokens along a column (rather than a sentence)
+        # now we need to stack them on top of each other to have all sentences in a single dataframe
         token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
+        token_df = token_df.loc[:, ~token_df.columns.duplicated()]
 
         utils.io.log(f&#39;outputting syntax dataframes to {syntax_out}&#39;)
         if output_format == &#39;tsv&#39;:
@@ -406,7 +408,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="sentspace.run_sentence_features_pipeline"><code class="name flex">
-<span>def <span class="ident">run_sentence_features_pipeline</span></span>(<span>input_file: str, stop_words_file: str = None, benchmark_file: str = None, output_dir: str = None, output_format: str = None, process_lexical: bool = False, process_syntax: bool = False, process_embedding: bool = False, process_semantic: bool = False, emb_data_dir: str = None) ‑> pathlib.Path</span>
+<span>def <span class="ident">run_sentence_features_pipeline</span></span>(<span>input_file: str, stop_words_file: str = None, benchmark_file: str = None, output_dir: str = None, output_format: str = None, process_lexical: bool = False, process_syntax: bool = False, process_embedding: bool = False, process_semantic: bool = False, parallelize: bool = True, emb_data_dir: str = None) ‑> pathlib.Path</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Runs the full sentence features pipeline on the given input according to
@@ -437,6 +439,7 @@ compare the current input against; e.g. UD [optional]</dd>
                                    output_format: str = None,
                                    process_lexical: bool = False, process_syntax: bool = False,
                                    process_embedding: bool = False, process_semantic: bool = False,
+                                   parallelize: bool = True,
                                    #
                                    emb_data_dir: str = None) -&gt; Path:
     &#34;&#34;&#34;
@@ -464,23 +467,16 @@ compare the current input against; e.g. UD [optional]</dd>
 
     # create output folder
     utils.io.log(&#39;creating output folder&#39;)
-    # (sent_output_path,
-    #  glove_words_output_path,
-    #  glove_sents_output_path)
     output_dir = utils.io.create_output_paths(input_file,
                                               output_dir=output_dir,
                                               stop_words_file=stop_words_file)
-    # with (output_dir / &#39;config.txt&#39;).open(&#39;w+&#39;) as f:
+    config_out = (output_dir / &#39;this_session_log.txt&#39;)
+    # with config_out.open(&#39;a+&#39;) as f:
     #     print(args, file=f)
 
     utils.io.log(&#39;reading input sentences&#39;)
-    # UIDs, token_lists, sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
     sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
     utils.io.log(&#39;---done--- reading input sentences&#39;)
-
-    # surprisal_database = &#39;pickle/surprisal-3_dict.pkl&#39; # default: 3-gram surprisal
-    # features_ignore_case = True
-    # features_transform = [&#39;default&#39;, None, None] # format: [method, cols to log transform, cols to z-score] (if method is specified, the other two are ignored)
 
     # Get morpheme from polyglot library instead of library
     # TODO: where was this supposed to be used?
@@ -490,16 +486,15 @@ compare the current input against; e.g. UD [optional]</dd>
         utils.io.log(&#39;*** running lexical submodule pipeline&#39;)
         _ = lexical.utils.load_databases(features=&#39;all&#39;)
 
-        # lexical_features = [sentspace.lexical.get_features(sentence, identifier=UIDs[i])
-        #                     for i, sentence in enumerate(tqdm(sentences, desc=&#39;Lexical pipeline&#39;))]
-        lexical_features = utils.parallelize(lexical.get_features, sentences,
-                                             wrap_tqdm=True, desc=&#39;Lexical pipeline&#39;)
+        if parallelize:
+            lexical_features = utils.parallelize(lexical.get_features, sentences,
+                                                 wrap_tqdm=True, desc=&#39;Lexical pipeline&#39;)
+        else:
+            lexical_features = [lexical.get_features(sentence)
+                                for _, sentence in enumerate(tqdm(sentences, desc=&#39;Lexical pipeline&#39;))]
 
         lexical_out = output_dir / &#39;lexical&#39;
         lexical_out.mkdir(parents=True, exist_ok=True)
-
-        # with (lexical_out/&#39;token-features.json&#39;).open(&#39;w&#39;) as f:
-        #       json.dump(lexical_features, f)
 
         # lexical is a special case since it returns dicts per token (rather than per sentence)
         # so we want to flatten it so that pandas creates a sensible dataframe from it.
@@ -515,17 +510,15 @@ compare the current input against; e.g. UD [optional]</dd>
 
     if process_syntax:
         utils.io.log(&#39;*** running syntax submodule pipeline&#39;)
+
+        # as an exception, we do *not* parallelize syntax since the backend server is somehow unable to handle
+        # multiple requests :(
         syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid())
+                                                                     # !!! TODO:DEBUG
                            for i, sentence in enumerate(tqdm(sentences, desc=&#39;Syntax pipeline&#39;))]
-        # syntax_features = utils.parallelize(sentspace.syntax.get_features, sentences, UIDs,
-        #                                     dlt=True, left_corner=True,
-        #                                     wrap_tqdm=True, desc=&#39;Syntax pipeline&#39;)
 
         syntax_out = output_dir / &#39;syntax&#39;
         syntax_out.mkdir(parents=True, exist_ok=True)
-
-        # with (syntax_out/&#39;features.json&#39;).open(&#39;w&#39;) as f:
-        #       f.write(str(syntax_features))
 
         # put all features in the sentence df except the token-level ones
         token_syntax_features = {&#39;dlt&#39;, &#39;leftcorner&#39;}
@@ -536,12 +529,21 @@ compare the current input against; e.g. UD [optional]</dd>
         # into a single dataframe
         # we use functools.reduce to apply the pd.concat function to all the dataframes and join dataframes
         # that contain different features for the same tokens
+        # NOTE: do NOT use .T.drop_duplicates!!!!
         # we use df.T.drop_duplicates().T to remove duplicate columns (&#39;token&#39;, &#39;sentence&#39;, &#39;index&#39; etc) that appear in
         # all/multiple dataframes as part of the standard output schema
         token_dfs = [reduce(lambda x, y: pd.concat([x, y], axis=1, sort=False),
-                            (v for k, v in feature_dict.items() if k in token_syntax_features)).T.drop_duplicates().T
+                            (v for k, v in feature_dict.items() if k in token_syntax_features)) #.T.drop_duplicates().T
                      for feature_dict in syntax_features]
+
+        # TODO: DEBUG
+        # import IPython
+        # IPython.embed()
+
+        # by this point we have merged dataframes with tokens along a column (rather than a sentence)
+        # now we need to stack them on top of each other to have all sentences in a single dataframe
         token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
+        token_df = token_df.loc[:, ~token_df.columns.duplicated()]
 
         utils.io.log(f&#39;outputting syntax dataframes to {syntax_out}&#39;)
         if output_format == &#39;tsv&#39;:

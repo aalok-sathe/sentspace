@@ -175,7 +175,8 @@ def read_sentences(filename: str, stop_words_file: str = None):
         raise ValueError(&#39;unknown type of file supplied (must be txt/pkl/csv/tsv. if pickle, must be a dataframe object)&#39;)
 
     try:
-        UIDs = df[&#39;index&#39;].tolist()
+        UIDs = df[&#39;corpora_identifier&#39;]
+        #df[&#39;index&#39;].tolist()
     except KeyError:
         UIDs = df.index.tolist()
     except AttributeError:
@@ -212,6 +213,8 @@ def log(message, type=&#39;INFO&#39;):
 
     if type == &#39;INFO&#39;:
         c = T.OKCYAN
+    elif type == &#39;EMPH&#39;:
+        c = T.OKGREEN
     elif type == &#39;WARN&#39;:
         c = T.BOLD + T.WARNING
     elif type == &#39;ERR&#39;:
@@ -341,6 +344,8 @@ def log(message, type=&#39;INFO&#39;):
 
     if type == &#39;INFO&#39;:
         c = T.OKCYAN
+    elif type == &#39;EMPH&#39;:
+        c = T.OKGREEN
     elif type == &#39;WARN&#39;:
         c = T.BOLD + T.WARNING
     elif type == &#39;ERR&#39;:
@@ -433,7 +438,8 @@ for stopwords</p>
         raise ValueError(&#39;unknown type of file supplied (must be txt/pkl/csv/tsv. if pickle, must be a dataframe object)&#39;)
 
     try:
-        UIDs = df[&#39;index&#39;].tolist()
+        UIDs = df[&#39;corpora_identifier&#39;]
+        #df[&#39;index&#39;].tolist()
     except KeyError:
         UIDs = df.index.tolist()
     except AttributeError:

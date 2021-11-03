@@ -36,6 +36,9 @@ import sentspace.utils.io as io
 import re
 
 
+class SentenceBatch(list):
+    pass
+
 class Sentence:
     &#39;&#39;&#39;
     a class to keep track of an individual sentence, its tokenized form,
@@ -111,16 +114,16 @@ class Sentence:
         &#34;&#34;&#34;        
         return len(self.tokenized())
 
-    def __getitem__(self, index: int) -&gt; str:
+    def __getitem__(self, key: slice) -&gt; str:
         &#34;&#34;&#34;Support indexing into the tokens of the sentence
 
         Args:
-            index (int): index&#39;th token to retrieve
+            slice: slice of the tokenized sentence to retrieve
 
         Returns:
             str: token at the indexed position in the tokenized form
-        &#34;&#34;&#34;        
-        return self.tokenized()[index]
+        &#34;&#34;&#34;
+        return self.tokenized()[key]
 
     def __iter__(self):
         &#39;&#39;&#39;we are iterable, so we return an iterator over tokens&#39;&#39;&#39;
@@ -302,16 +305,16 @@ UID-less usage</dd>
         &#34;&#34;&#34;        
         return len(self.tokenized())
 
-    def __getitem__(self, index: int) -&gt; str:
+    def __getitem__(self, key: slice) -&gt; str:
         &#34;&#34;&#34;Support indexing into the tokens of the sentence
 
         Args:
-            index (int): index&#39;th token to retrieve
+            slice: slice of the tokenized sentence to retrieve
 
         Returns:
             str: token at the indexed position in the tokenized form
-        &#34;&#34;&#34;        
-        return self.tokenized()[index]
+        &#34;&#34;&#34;
+        return self.tokenized()[key]
 
     def __iter__(self):
         &#39;&#39;&#39;we are iterable, so we return an iterator over tokens&#39;&#39;&#39;
@@ -554,6 +557,26 @@ the first time; each subsequent call to tokenized() returns the value of a store
 </dd>
 </dl>
 </dd>
+<dt id="sentspace.Sentence.SentenceBatch"><code class="flex name class">
+<span>class <span class="ident">SentenceBatch</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Built-in mutable sequence.</p>
+<p>If no argument is given, the constructor creates a new empty list.
+The argument must be an iterable if specified.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class SentenceBatch(list):
+    pass</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>builtins.list</li>
+</ul>
+</dd>
 </dl>
 </section>
 </article>
@@ -581,6 +604,9 @@ the first time; each subsequent call to tokenized() returns the value of a store
 <li><code><a title="sentspace.Sentence.Sentence.tokenized" href="#sentspace.Sentence.Sentence.tokenized">tokenized</a></code></li>
 <li><code><a title="sentspace.Sentence.Sentence.uid" href="#sentspace.Sentence.Sentence.uid">uid</a></code></li>
 </ul>
+</li>
+<li>
+<h4><code><a title="sentspace.Sentence.SentenceBatch" href="#sentspace.Sentence.SentenceBatch">SentenceBatch</a></code></h4>
 </li>
 </ul>
 </li>
