@@ -163,4 +163,8 @@ out/
 sentspace/syntax/utils/berkeleyparser/
 sentspace/syntax/utils/wsj02to21.gcg15.prtrm.4sm.fullberk.model
 *.code-workspace
+
 html
+sentspace/analysis
+
+TRANSFORMERS_CACHE
