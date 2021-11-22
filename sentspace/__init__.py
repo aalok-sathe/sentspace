@@ -147,19 +147,12 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         # into a single dataframe
         # we use functools.reduce to apply the pd.concat function to all the dataframes and join dataframes
         # that contain different features for the same tokens
-        # NOTE: do NOT use .T.drop_duplicates!!!!
-        # we use df.T.drop_duplicates().T to remove duplicate columns ('token', 'sentence', 'index' etc) that appear in
-        # all/multiple dataframes as part of the standard output schema
         token_dfs = [reduce(lambda x, y: pd.concat([x, y], axis=1, sort=False),
-                            (v for k, v in feature_dict.items() if k in token_syntax_features)) #.T.drop_duplicates().T
+                            (v for k, v in feature_dict.items() if k in token_syntax_features))
                      for feature_dict in syntax_features]
 
-        # TODO: DEBUG
-        # import IPython
-        # IPython.embed()
-
-        # by this point we have merged dataframes with tokens along a column (rather than a sentence)
-        # now we need to stack them on top of each other to have all sentences in a single dataframe
+        # by this point we have merged dataframes with tokens along a column (rather than just a sentence)
+        # now we need to stack them on top of each other to have all tokens across all sentences in a single dataframe
         token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
         token_df = token_df.loc[:, ~token_df.columns.duplicated()]
 
