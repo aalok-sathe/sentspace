@@ -34,6 +34,7 @@ def main(args):
                                                         process_semantic=args.semantic,
                                                         output_dir=args.output_dir,
                                                         output_format=args.output_format,
+                                                        parallelize=args.parallelize,
                                                         #
                                                         emb_data_dir=args.emb_data_dir)
     #estimate_sentence_embeddings(args.input_file)
@@ -75,6 +76,9 @@ if __name__ == "__main__":
     # parser.add_argument('--cache_dir', default='.cache', type=str,
     #                  	help='path to directory where results may be cached')
 
+    parser.add_argument('-p', '--parallelize', default=True, type=bool, help='use multiple threads to compute features? '
+                                                                             'disable in case issues arise.')
+
     parser.add_argument('-o', '--output_dir', default='./out', type=str,
                          help='path to output directory where results may be stored')
 
@@ -89,6 +93,7 @@ if __name__ == "__main__":
     
     parser.add_argument('--emb_data_dir', default='/om/data/public/glove/', type=str,
                          help='path to output directory where results may be stored')
+    # parser.add_argument('--cache_dir', default=)
 
     args = parser.parse_args()	
     utils.io.log(f'SENTSPACE. Received arguments: {args}')
