@@ -44,9 +44,10 @@ from itertools import chain
 from tqdm import tqdm
 import pickle 
 
+
 def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                    benchmark_file: str = None, output_dir: str = None,
-                                   output_format: str = None,
+                                   output_format: str = None, batch_size: int = 2_000,
                                    process_lexical: bool = False, process_syntax: bool = False,
                                    process_embedding: bool = False, process_semantic: bool = False,
                                    parallelize: bool = True,
@@ -96,27 +97,34 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         utils.io.log('*** running lexical submodule pipeline')
         _ = lexical.utils.load_databases(features='all')
 
-        if parallelize:
-            lexical_features = utils.parallelize(lexical.get_features, sentences,
-                                                 wrap_tqdm=True, desc='Lexical pipeline')
-        else:
-            lexical_features = [lexical.get_features(sentence)
-                                for _, sentence in enumerate(tqdm(sentences, desc='Lexical pipeline'))]
+        for i, batch in enumerate(tqdm(utils.io.get_batches(sentences, batch_size=batch_size))):
+        
+            if parallelize:
+                lexical_features = utils.parallelize(lexical.get_features, batch,
+                                                     wrap_tqdm=True, desc='Lexical pipeline')
+            else:
+                lexical_features = [lexical.get_features(sentence)
+                                    for _, sentence in enumerate(tqdm(batch, desc='Lexical pipeline'))]
 
-        lexical_out = output_dir / 'lexical'
-        lexical_out.mkdir(parents=True, exist_ok=True)
+            lexical_out = output_dir / 'lexical'
+            lexical_out.mkdir(parents=True, exist_ok=True)
+            utils.io.log(f'outputting lexical token dataframe to {lexical_out}')
 
-        # lexical is a special case since it returns dicts per token (rather than per sentence)
-        # so we want to flatten it so that pandas creates a sensible dataframe from it.
-        token_df = pd.DataFrame(chain.from_iterable(lexical_features))
+            # lexical is a special case since it returns dicts per token (rather than per sentence)
+            # so we want to flatten it so that pandas creates a sensible dataframe from it.
+            token_df = pd.DataFrame(chain.from_iterable(lexical_features))
 
-        utils.io.log(f'outputting lexical token dataframe to {lexical_out}')
-        if output_format == 'tsv':
-            token_df.to_csv(lexical_out / 'token-features.tsv', sep='\t', index=False)
-        if output_format == 'pkl':
-            token_df.to_pickle(lexical_out / 'token-features.pkl.gz', protocol=5)
+            if output_format == 'tsv':
+                token_df.to_csv(lexical_out / f'token-features_part{i:0>4}.tsv', sep='\t', index=False)
+                token_df.groupby('sentence').mean().to_csv(lexical_out / f'sentence-features_part{i:0>4}.tsv', sep='\t', index=False)
+            elif output_format == 'pkl':
+                token_df.to_pickle(lexical_out / f'token-features_part{i:0>4}.pkl.gz', protocol=5)
+                token_df.groupby('sentence').mean().to_pickle(lexical_out / f'sentence-features_part{i:0>4}.pkl.gz', protocol=5)
+            else:
+                raise ValueError(f'output format {output_format} not known')
 
         utils.io.log(f'--- finished lexical pipeline')
+
 
     if process_syntax:
         utils.io.log('*** running syntax submodule pipeline')
