@@ -28,16 +28,10 @@ from pathlib import Path
 import sentspace.utils as utils
 import sentspace.syntax as syntax
 import sentspace.lexical as lexical
-# import sentspace.semantic as semantic
 import sentspace.embedding as embedding
 
 from sentspace.Sentence import Sentence
-# ...
 
-# TODO: remove processing overhead in API call; ideally the below imports 
-# should not exist in this file. TODO: create functions in sentspace.utils
-# or otherwise submodule-specific utils to compile such data into a pandas
-# dataframe
 import pandas as pd
 from functools import reduce 
 from itertools import chain
