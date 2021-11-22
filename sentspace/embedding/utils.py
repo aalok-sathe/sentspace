@@ -12,10 +12,9 @@ import pandas as pd
 import sentspace.utils
 from sentspace.utils import io, text
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
-from sentspace.utils.utils import Word, merge_lists, wordnet
 from tqdm import tqdm
 
-# import torch
+import torch
 from transformers import AutoModel, AutoConfig, AutoTokenizer
 
 
@@ -233,6 +232,7 @@ def pool_sentence_embeds(sentence, token_embeddings, filters=[lambda i, x: True]
     #     df = df[np.array(is_content_lst) == 1]
 
     all_pooled = {} #defaultdict(lambda: defaultdict(dict))
+
     for which in token_embeddings:
         for layer in token_embeddings[which]:
 
@@ -287,6 +287,8 @@ def pool_sentence_embeds(sentence, token_embeddings, filters=[lambda i, x: True]
                         pooled[layer][method_name][which] = filtered_embeds[-1, :].reshape(-1)#.tolist()
                     if method_name == 'first':
                         pooled[layer][method_name][which] = filtered_embeds[0, :].reshape(-1)#.tolist()
+
+                # handle the case where a custom aggregation function is applied to the embeddings
                 elif type(method) is tuple:
                     method_name, fn = method
                     pooled[layer][method_name][which] = fn(filtered_embeds).reshape(-1)#.tolist()
@@ -297,6 +299,11 @@ def pool_sentence_embeds(sentence, token_embeddings, filters=[lambda i, x: True]
                 # 'pooled_'+which+'_min': filtered_embeds.min(axis=0).reshape(-1).tolist(),
 
             all_pooled.update(pooled)
+
+        df = pd.DataFrame(all_pooled)
+
+        import IPython
+        IPython.embed()
 
     return all_pooled
 
