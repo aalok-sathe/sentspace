@@ -180,9 +180,9 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         #                        for i, sentence in enumerate(tqdm(sentences, desc='Embedding pipeline'))]
         embedding_features = utils.parallelize(embedding.get_features, 
                                                sentences,
-                                            #    [s._raw for s in sentences], [s.uid() for s in sentences],
                                                vocab=vocab, data_dir=emb_data_dir,
                                                wrap_tqdm=True, desc='Embedding pipeline')
+                                               
         no_content_words = len(sentences)-sum(any(s.content_words()) for s in sentences)
         utils.io.log(f'sentences with no content words: {no_content_words}/{len(sentences)}; {no_content_words/len(sentences):.2f}')
 
