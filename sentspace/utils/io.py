@@ -33,7 +33,7 @@ def create_output_paths(input_file:str, output_dir:str, calling_module=None, sto
     # with open(input_file, 'r') as f:
     output_dir /= (out_file_name + '_md5:' + sentspace.utils.md5(input_file))
     output_dir /= calling_module or ''
-    output_dir /= date.today().strftime('run_%Y-%m-%d')
+    # output_dir /= date.today().strftime('run_%Y-%m-%d')
     output_dir.mkdir(parents=True, exist_ok=True)
 
     return output_dir
@@ -161,6 +161,19 @@ def read_sentences(filename: str, stop_words_file: str = None):
     # return UIDs, token_lists, sentences
     return sentences
 
+
+def get_batches(iterable, batch_size:int):
+    """
+    splits iterable into batches of size batch_size
+    """
+    batch = []
+    for i, item in enumerate(iterable):
+        batch.append(item)
+        if (i + 1) % batch_size == 0:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
 
 
 def load_surprisal(file='pickle/surprisal-3_dict.pkl'):
