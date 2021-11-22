@@ -8,7 +8,9 @@ from pathlib import Path
 from urllib import request
 import http
 
-from sentspace.utils import caching, io, text, wordnet
+from nltk.corpus import wordnet
+
+from sentspace.utils import caching, io, text
 
 
 def path_decorator(func):

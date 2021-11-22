@@ -82,9 +82,9 @@ class Sentence:
         """Compute length of the sentence in terms of # of tokens
 
         Returns:
-            int: length of the tokenized sentence
+            int: # of tokens in this sentence (according to the default tokenization method `text.tokenize`)
         """        
-        return len(self.tokenized())
+        return len(self.tokens)
 
     def __getitem__(self, key: slice) -> str:
         """Support indexing into the tokens of the sentence
@@ -95,15 +95,20 @@ class Sentence:
         Returns:
             str: token at the indexed position in the tokenized form
         """
-        return self.tokenized()[key]
+        return self.tokens[key]
 
     def __iter__(self):
         '''we are iterable, so we return an iterator over tokens'''
-        return iter(self.tokenized())
+        return iter(self.tokens)
 
+    @property
     def uid(self) -> str:
         return self._uid
 
+    @property
+    def tokens(self) -> typing.Tuple[str]:
+        return self.tokenized()
+    # ^
     def tokenized(self, tokenize_method=text.tokenize) -> typing.Tuple[str]:
         """Tokenize and store tokenized form as a tuple. The tokenize_method is executed only
             the first time; each subsequent call to tokenized() returns the value of a stored variable
@@ -115,19 +120,24 @@ class Sentence:
             tuple: tokenized form
         """        
         if self._tokens is None:
-            self._tokens = tuple(tokenize_method(self._raw))
+            self._tokens = tuple(tokenize_method(self._raw.lower()))
         return self._tokens
 
-    def lowercased_tokens(self) -> typing.Tuple[str]:
-        """Return lowercased tokens of this sentence
+    # @property
+    # def lowercased_tokens(self) -> typing.Tuple[str]:
+    #     """Return lowercased tokens of this sentence
 
-        Returns:
-            typing.Tuple[str]: tuple of lowercased tokens from this sentence
-        """        
-        if self._lower is None:
-            self._lower = [*map(lambda x: x.lower, self.tokenized())]
-        return self._lower
+    #     Returns:
+    #         typing.Tuple[str]: tuple of lowercased tokens from this sentence
+    #     """        
+    #     if self._lower is None:
+    #         self._lower = [*map(lambda x: x.lower, self.tokenized())]
+    #     return self._lower
 
+    @property
+    def pos_tags(self) -> typing.Tuple[str]:
+        return self.pos_tagged()
+    # ^
     def pos_tagged(self) -> typing.Tuple[str]:
         """POS-tag the sentence and return the result. Note, this method is also executed
             only once ever; each subsequent time a stored value is returned.
@@ -136,9 +146,13 @@ class Sentence:
             tuple: POS tags
         """        
         if self._pos is None:
-            self._pos = text.get_pos_tags(self.tokenized())
+            self._pos = text.get_pos_tags(self.tokens)
         return self._pos
 
+    @property
+    def lemmas(self) -> typing.Tuple[str]:
+        return self.lemmatized()
+    # ^
     def lemmatized(self) -> typing.Tuple[str]:
         """Lemmatize and return the lemmas
 
@@ -146,15 +160,17 @@ class Sentence:
             tuple: Lemmas
         """        
         if self._lemmas is None:
-            self._lemmas = text.get_lemmatized_tokens(self.tokenized(), text.get_pos_tags(self.tokenized()))
+            self._lemmas = text.get_lemmatized_tokens(self.tokens, self.pos_tags)
         return self._lemmas
 
+    @property
     def clean_tokens(self) -> typing.Tuple[str]:
         if self._cleaned is None:
-            nonletters = text.get_nonletters(self.tokenized(), exceptions=[])
-            self._cleaned = text.strip_words(self.tokenized(), method='punctuation', nonletters=nonletters)
+            nonletters = text.get_nonletters(self.tokens, exceptions=[])
+            self._cleaned = text.strip_words(self.tokens, method='punctuation', nonletters=nonletters)
         return self._cleaned
 
+    @property
     def content_words(self) -> typing.List[int]:
         """Check whether each word is a 'content word'. Returns a list containing 0 or 1 as boolean
             mask indicating whether the word at that position is a content word or not
@@ -163,5 +179,5 @@ class Sentence:
             List[int]: boolean mask indicating content words
         """        
         if self._content is None:
-            self._content = text.get_is_content(self.pos_tagged(), content_pos=text.pos_for_content)
+            self._content = text.get_is_content(self.pos_tags, content_pos=text.pos_for_content)
         return self._content
