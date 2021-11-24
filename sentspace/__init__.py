@@ -182,21 +182,60 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                                sentences,
                                                vocab=vocab, data_dir=emb_data_dir,
                                                wrap_tqdm=True, desc='Embedding pipeline')
-                                               
+
+        # a misc. stat being computed that needs to be handled better 
         no_content_words = len(sentences)-sum(any(s.content_words()) for s in sentences)
+
         utils.io.log(f'sentences with no content words: {no_content_words}/{len(sentences)}; {no_content_words/len(sentences):.2f}')
 
         embedding_out = output_dir / 'embedding'
         embedding_out.mkdir(parents=True, exist_ok=True)
 
-        sentence_df = pd.DataFrame([{k: v for k, v in feature_dict.items() if k != 'token_embeds'}
-                                    for feature_dict in embedding_features])
+        utils.io.log('temporarily outputting Pickled dictionary of pooled embeddings', type='WARN')
+        
+        aggregated = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+        for feature_dict in tqdm(embedding_features, desc='embedding output'):
+            features = feature_dict['features']
+            metadata = {k:feature_dict[k] for k in feature_dict if k != 'features'}
+            
+            metadata_updated_for_instance = defaultdict(lambda: True)
+            for layer in features:
+                for method in features[layer]:
+                    for which in features[layer][method]:
 
-        utils.io.log(f'outputting embedding dataframe(s) to {embedding_out}')
-        if output_format == 'tsv':
-            sentence_df.to_csv(embedding_out / 'sentence-features.tsv', sep='\t', index=False)
-        elif output_format == 'pkl':
-            sentence_df.to_pickle(embedding_out / 'sentence-features.pkl.gz', protocol=5)
+                        # only update metadata once per model and method; not per layer
+                        if f'{which}_{method}' not in metadata_updated_for_instance:
+                            for k in metadata: aggregated[which][method][k] += [metadata[k]]
+                            metadata_updated_for_instance[f'{which}_{method}']
+
+                        aggregated[which][method][f'layer{layer}'] += [features[layer][method][which]]
+
+                      
+
+        for which in aggregated:
+            for method in aggregated[which]:
+                out = embedding_out / which / method
+                out.mkdir(parents=True, exist_ok=True)
+
+                # X = aggregated[which][method]
+                # print(X.keys(), len(X), type(X))
+                # for k in X:
+                #     print(k, len(X[k]))
+
+                df = pd.DataFrame(aggregated[which][method])
+                df.to_pickle(out / f'{which}_{method}.pkl')
+                # with (out / f'{which}_{method}.pkl').open('wb') as f:
+                #     pickle.dump(aggregated[which][method], f)
+                # for layer in feature_dict[method]
+
+        # sentence_df = pd.DataFrame([{k: v for k, v in feature_dict.items() if k != 'token_embeds'}
+        #                             for feature_dict in embedding_features])
+
+        # utils.io.log(f'outputting embedding dataframe(s) to {embedding_out}')
+        # if output_format == 'tsv':
+        #     sentence_df.to_csv(embedding_out / 'sentence-features.tsv', sep='\t', index=False)
+        # elif output_format == 'pkl':
+        #     sentence_df.to_pickle(embedding_out / 'sentence-features.pkl.gz', protocol=5)
 
         # token_dfs = [feature_dict['token_embeds'] for feature_dict in embedding_features]
         # token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
