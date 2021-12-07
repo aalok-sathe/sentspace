@@ -165,88 +165,112 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
     # utils.pPMI(sent_rows, pmi_paths)
     # pdb.set_trace()
 
-    if process_embedding:
-        utils.io.log('*** running embedding submodule pipeline')
-        # Get GloVE
 
-        stripped_words = utils.text.strip_words(chain(*[s.tokenized() for s in sentences]), method='punctuation')
-        vocab = embedding.utils.get_vocab(stripped_words)
-        _ = embedding.utils.load_embeddings(emb_file='glove.840B.300d.txt',
-                                            vocab=(*sorted(vocab),),
-                                            data_dir=emb_data_dir)
+        ################################################################################
+        #### EMBEDDING FEATURES ########################################################
+        ################################################################################            
+        if process_embedding:
+            utils.io.log('*** running embedding submodule pipeline')
 
-        # embedding_features = [sentspace.embedding.get_features(sentence, vocab=vocab, data_dir=emb_data_dir,
-        #                                                        identifier=UIDs[i])
-        #                        for i, sentence in enumerate(tqdm(sentences, desc='Embedding pipeline'))]
+            models = ['glove.840B.300d', 'distilgpt2',
+                    #   'bert-base-uncased',
+                     ]
+
+            if any('glove' in model for model in models):
+                # get a vocabulary across all sentences given as input
+                # as the first step, remove any punctuation from the tokens
+                stripped_tokens = utils.text.strip_words(chain(*[s.tokens for s in sentences]), method='punctuation')
+                # assemble a set of unique tokens
+                vocab = set(stripped_tokens)
+                # make a spurious function call so that loading glove is cached for subsequent calls
+                _ = embedding.utils.load_embeddings(emb_file='glove.840B.300d.txt',
+                                                    vocab=(*sorted(vocab),),
+                                                    data_dir=emb_data_dir)
+
+
+            if parallelize:
+                embedding_features = utils.parallelize(embedding.get_features, 
         embedding_features = utils.parallelize(embedding.get_features, 
-                                               sentences,
-                                               vocab=vocab, data_dir=emb_data_dir,
-                                               wrap_tqdm=True, desc='Embedding pipeline')
+                embedding_features = utils.parallelize(embedding.get_features, 
+                                                       sentences, models=models, 
+                                                       vocab=vocab, data_dir=emb_data_dir,
+                                                       wrap_tqdm=True, desc='Embedding pipeline')
+            else:
+                embedding_features = [embedding.get_features(sentence, models=models, vocab=vocab, data_dir=emb_data_dir)
+                                      for i, sentence in enumerate(tqdm(sentences, desc='Embedding pipeline'))]
 
+            # a misc. stat being computed that needs to be handled better 
         # a misc. stat being computed that needs to be handled better 
-        no_content_words = len(sentences)-sum(any(s.content_words()) for s in sentences)
+            # a misc. stat being computed that needs to be handled better 
+            # "no" means no. the stat below is counting how many sentences have NO content words (not to be confused with num. content words)
+            no_content_words = len(sentences)-sum(any(s.content_words) for s in sentences)
 
-        utils.io.log(f'sentences with no content words: {no_content_words}/{len(sentences)}; {no_content_words/len(sentences):.2f}')
+            utils.io.log(f'sentences without any content words: {no_content_words}/{len(sentences)}; {no_content_words/len(sentences):.2f}')
 
-        embedding_out = output_dir / 'embedding'
-        embedding_out.mkdir(parents=True, exist_ok=True)
+            embedding_out = output_dir / 'embedding'
+            embedding_out.mkdir(parents=True, exist_ok=True)
 
-        utils.io.log('temporarily outputting Pickled dictionary of pooled embeddings', type='WARN')
-        
-        aggregated = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
-        for feature_dict in tqdm(embedding_features, desc='embedding output'):
-            features = feature_dict['features']
-            metadata = {k:feature_dict[k] for k in feature_dict if k != 'features'}
+            utils.io.log('temporarily outputting Pickled dictionary of pooled embeddings', type='WARN')
             
-            metadata_updated_for_instance = defaultdict(lambda: True)
-            for layer in features:
-                for method in features[layer]:
-                    for which in features[layer][method]:
+            
+            # now we want to output stuff from embedding_features (which is returned by the embedding pipeline)
+            # into nicely formatted dataframes.
+            # the structure of what is returned by the embedding pipeline is like so:
+            #   gpt2-xl:
+            #       last: [...] flat multiindexed Pandas series with (layer, dim) as the two indices
+            #       mean: 
+            #   glove:
+            #       mean: [...] flat multiindexed Pandas series with trivially a single layer and 300d, so (1, 300) as the two indices
+            # etc.
 
-                        # only update metadata once per model and method; not per layer
-                        if f'{which}_{method}' not in metadata_updated_for_instance:
-                            for k in metadata: aggregated[which][method][k] += [metadata[k]]
-                            metadata_updated_for_instance[f'{which}_{method}']
+            # a set of all the models in use
+            all_models_methods = {model_name: feature_dict['features'][model_name].keys() 
+                                  for feature_dict in embedding_features 
+                                    for model_name in feature_dict['features']}
 
-                        aggregated[which][method][f'layer{layer}'] += [features[layer][method][which]]
+            # we want to output BY MODEL
+            for model_name in all_models_methods:
+                # and BY METHOD
+                for method in all_models_methods[model_name]:
+                    # each `feature_dict` corresponds to ONE sentence
 
-                      
+                    collected = []
+                    for feature_dict in embedding_features:
 
-        for which in aggregated:
-            for method in aggregated[which]:
-                out = embedding_out / which / method
-                out.mkdir(parents=True, exist_ok=True)
+                        # all the keys that contain information such as the sentence, UID, filters used etc,
+                        # except for the actual representations obtained from various models.
+                        # we need to know this so we can package all this information together with the outputs by model and method
+                        metadata_keys = {*feature_dict.keys()} - {'features'} # setminus operator
+                        # make a copy of the feature_dict for this sentence excluding the representations themselves
+                        meta_df = {key: feature_dict[key] for key in metadata_keys}                        
+                        meta_df = pd.DataFrame(meta_df, index=[feature_dict['index']])
+                        meta_df.columns = pd.MultiIndex.from_product([['metadata'], meta_df.columns, ['']])
 
-                # X = aggregated[which][method]
-                # print(X.keys(), len(X), type(X))
-                # for k in X:
-                #     print(k, len(X[k]))
+                        # model_name -> method -> reprs
+                        pooled_reprs = feature_dict['features']
+                        flattened_repr = pooled_reprs[model_name][method]
+                        flattened_repr.columns = pd.MultiIndex.from_tuples([('representation', *t) for t in flattened_repr.columns])
 
-                df = pd.DataFrame(aggregated[which][method])
-                df.to_pickle(out / f'{which}_{method}.pkl')
-                # with (out / f'{which}_{method}.pkl').open('wb') as f:
-                #     pickle.dump(aggregated[which][method], f)
-                # for layer in feature_dict[method]
+                        collected += [pd.concat([meta_df, flattened_repr], axis=1)]
 
-        # sentence_df = pd.DataFrame([{k: v for k, v in feature_dict.items() if k != 'token_embeds'}
-        #                             for feature_dict in embedding_features])
+                    # create further subdirectories by model and aggregation method
+                    (embedding_out / model_name / method).mkdir(parents=True, exist_ok=True)
 
-        # utils.io.log(f'outputting embedding dataframe(s) to {embedding_out}')
-        # if output_format == 'tsv':
-        #     sentence_df.to_csv(embedding_out / 'sentence-features.tsv', sep='\t', index=False)
-        # elif output_format == 'pkl':
-        #     sentence_df.to_pickle(embedding_out / 'sentence-features.pkl.gz', protocol=5)
+                    sentence_df = pd.concat(collected, axis=0)
 
-        # token_dfs = [feature_dict['token_embeds'] for feature_dict in embedding_features]
-        # token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
+                    utils.io.log(f'outputting embedding dataframes to {embedding_out}')
+                    if output_format == 'tsv':
+                        sentence_df.to_csv(embedding_out / model_name / method / f'{sentence_features_filestem}.tsv', sep='\t', index=False)
+                        # token_df.to_csv(embedding_out / f'{token_features_filestem}.tsv', sep='\t', index=False)
+                    elif output_format == 'pkl':
+                        sentence_df.to_pickle(embedding_out / model_name / method / f'{sentence_features_filestem}.pkl.gz', protocol=5)
+                        # token_df.to_pickle(embedding_out / f'{token_features_filestem}.pkl.gz', protocol=5)
 
-        # utils.io.log(f'outputting embedding token dataframe to {embedding_out}')
-        # token_df.to_csv(embedding_out / 'token-features.tsv', sep='\t', index=False)
 
-        utils.io.log(f'--- finished embedding pipeline')
+            utils.io.log(f'--- finished embedding pipeline')
 
-    # Plot input data to benchmark data
-    #utils.plot_usr_input_against_benchmark_dist_plots(df_benchmark, sent_embed)
+        # Plot input data to benchmark data
+        #utils.plot_usr_input_against_benchmark_dist_plots(df_benchmark, sent_embed)
 
     if process_semantic:
         pass
