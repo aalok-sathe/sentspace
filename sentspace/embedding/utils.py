@@ -68,15 +68,15 @@ def load_embeddings(emb_file: str = 'glove.840B.300d.txt',
     with (data_dir / emb_file).open('r') as f:
         for line in tqdm(f, total=total_lines, desc=f'searching for embeddings in {emb_file}'):
             token, *emb = line.split(' ')
-            if token in vocab:
+            if token in vocab or len(vocab) == 0:
                 # print(f'found {token}!')
                 w2v[token] = np.asarray(emb, dtype=float)
-                OOV.remove(token)
+                OOV.difference_update({token}) # calling .remove() on an empty set would give an error
     
     io.log(f"---done--- loading embeddings from {emb_file}. OOV count: {len(OOV)}/{len(vocab)}")
     OOVlist = [*OOV]
     random.shuffle(OOVlist)
-    io.log(f"           a selection of up to 100 random OOV tokens: {OOVlist[:100]}")
+    io.log(f"           a selection of up to 32 random OOV tokens: {OOVlist[:32]}")
 
     return w2v
 
@@ -167,10 +167,10 @@ def get_huggingface_embeds(sentence: sentspace.Sentence.Sentence,
         batch_encoding = tokenizer(str(sentence), return_tensors="pt", truncation='longest_first').to(device)
         input_ids = batch_encoding['input_ids']
         
-        overflow_tokens = max(0, len(input_ids) - model.config.n_positions)
-        if overflow_tokens > 0: io.log(f"Stimulus too long! Truncated the first {overflow_tokens} tokens", type='WARN')
+        # overflow_tokens = max(0, len(input_ids) - model.config.n_positions)
+        # if overflow_tokens > 0: io.log(f"Stimulus too long! Truncated the first {overflow_tokens} tokens", type='WARN')
         
-        input_ids = input_ids[overflow_tokens:]
+        # input_ids = input_ids[overflow_tokens:]
         # print(tokenizer.convert_ids_to_tokens(input_ids))
 
         output = model(input_ids, output_hidden_states=True, return_dict=True)
@@ -178,7 +178,7 @@ def get_huggingface_embeds(sentence: sentspace.Sentence.Sentence,
 
         #  for i in range(n_layer+1):
         for layer in range(len(hidden_states)):
-            if layers is not None and layer in layers:
+            if layers is None or layer in layers:
                 token = slice(None, None) # placeholder to allow a possibility of picking a particular token rather than the full sequence
                 representations[layer] = hidden_states[layer].detach().cpu().squeeze().numpy()[token, :]
 
@@ -217,9 +217,7 @@ def pool_sentence_embeds(sentence, token_embeddings, filters={'nofilter': lambda
         save: whether to save results
         save_path: path to save, support .csv & .mat files
     """
-    # if content_only:
-    #     df = df[np.array(is_content_lst) == 1]
-
+    
     # model -> method -> repr
     all_pooled = defaultdict(dict)
 
@@ -299,9 +297,6 @@ def pool_sentence_embeds(sentence, token_embeddings, filters={'nofilter': lambda
         for method_name, layer_wise_reprs in model_pooled.items():
             all_pooled[model_name][method_name] = flatten_activations(layer_wise_reprs)
             all_pooled[model_name][method_name].index = [sentence.uid]
-
-        # import IPython
-        # IPython.embed()
 
     return all_pooled
 
