@@ -14,13 +14,23 @@ from tqdm import tqdm
 
 
 def get_features(sentence: Union[sentspace.Sentence.Sentence, sentspace.Sentence.SentenceBatch],
-                 models=[],
+                 models_and_methods = [({'glove.840B.300d'}, {'mean', 'median'}),
+                                       ({'gpt2-xl', 'distilgpt2', 'gpt2'}, {'last'}),
+                                       ({'bert-base-uncased', 'aloxatel/mbert', 'roberta-large'}, {'first'}),
+                                      ],
                  vocab=None, data_dir=None):
     """get embedding-based features (e.g. avg, min, max, etc.) for sentence.
 
     Args:
         sentence (str): sentence to get features for
-        vocab ([set], optional): vocabulary of all sentences that will be processed in this session.
+        models_and_methods (`typing.Collection[typing.Tuple[typing.Collection[str], 
+                                                            typing.Collection[typing.Union[str, typing.Callable[np.ndarray]]]]]`):
+                this collection maps each embeddings/representation source to the aggregation 
+                methods that should be applied to it. None matches all the embeddings/representation sources 
+                available. Methods can either be strings specifying standard aggregation methods (first, last, mean, median),
+                or a function accepting (n, d) array-like objects and returning (d,) 
+                array-like objects where d >= 1.                                 
+        vocab (set, optional): vocabulary over all sentences that will be processed in this session.
                                  it is recommended for a calling scope to make this available in order
                                  to save processing time of going through all of Glove each time.
                                  In the future, optimizations may be considered, such as, indexing the
@@ -32,37 +42,30 @@ def get_features(sentence: Union[sentspace.Sentence.Sentence, sentspace.Sentence
 
     token_embeddings = {}
 
-    if any('glove' in model for model in models):
+    if any('glove' in model_name for model_names, _ in models_and_methods for model_name in model_names):
         if vocab is None:
             io.log(f'no vocabulary provided in advance. this may take a while. grab some popcorn ^.^', type='WARN')
         
-        for model_name in models:
-            if 'glove' in model_name:
-                w2v = utils.load_embeddings(emb_file=f'{model_name}.txt',
-                                                   vocab=(*sorted(vocab or sentence.tokens),),
-                                                   data_dir=data_dir)
-                token_embeddings.update(utils.get_word_embeds(sentence, w2v=w2v, model_name=model_name,
-                                                              # TODO: infer dims based on supplied w2v
-                                                              dims=300))
-    for model_name in models:
-        if 'glove' in model_name or 'word2vec' in model_name: continue
-        token_embeddings.update(utils.get_huggingface_embeds(sentence, model_name=model_name,
-                                                             layers=None)
-                               )
+        for model_names, _ in models_and_methods:
+            for model_name in model_names:
+                if 'glove' in model_name or 'word2vec' in model_name:
+                    w2v = utils.load_embeddings(emb_file=f'{model_name}.txt',
+                                                vocab=(*sorted(vocab or sentence.tokens),),
+                                                data_dir=data_dir)
+                    token_embeddings.update(utils.get_word_embeds(sentence, w2v=w2v, model_name=model_name,
+                                                                # TODO: infer dims based on supplied w2v !!
+                                                                dims=300))
+    for model_names, _ in models_and_methods:
+        for model_name in model_names:
+            if 'glove' in model_name or 'word2vec' in model_name: continue
+            token_embeddings.update(utils.get_huggingface_embeds(sentence, model_name=model_name,
+                                                                layers=None)
+                                )
 
     content_word_filter = lambda i, token: sentence.content_words[i]
     filters = {'content_words': content_word_filter}
     
     pooled_embeddings = defaultdict(dict)
-    
-    # this dictionary maps each embeddings/representation source to the aggregation methods that should be applied to it
-    # None matches all the embeddings/representation sources, meaning 'mean' and 'median' will be used for all the
-    # emb/repr methods available. methods can either be strings specifying standard aggregation methods (first, last, mean, median),
-    # or a function accepting (n, d) array-like objects and returning (d, ) array-like objects where d >= 1.
-    models_and_methods = [(None, {'mean', 'median'}),
-                          ({'gpt2-xl', 'distilgpt2', 'gpt2'}, {'last'}),
-                          ({'bert-base-uncased', 'aloxatel/mbert', 'roberta-large'}, {'first'}),
-                        ]
     
     for model_names, methods in models_and_methods:
         d = utils.pool_sentence_embeds(sentence, token_embeddings, keys=model_names,
