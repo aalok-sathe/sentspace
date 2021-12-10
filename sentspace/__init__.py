@@ -172,35 +172,37 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         if process_embedding:
             utils.io.log('*** running embedding submodule pipeline')
 
-            models = ['glove.840B.300d', 'distilgpt2',
-                    #   'bert-base-uncased',
+            models_and_methods = [
+                        # ({'glove.840B.300d'}, {'mean', 'median'}), 
+                        # 'distilgpt2',
+                        ({'gpt2-xl'}, {'last'}),
+                        ({'bert-base-uncased'}, {'first'}),
                      ]
-
-            if any('glove' in model for model in models):
+            
+            vocab = None
+            # does any of the
+            if any('glove' in model or 'word2vec' in model for models, _ in models_and_methods for model in models):
                 # get a vocabulary across all sentences given as input
                 # as the first step, remove any punctuation from the tokens
                 stripped_tokens = utils.text.strip_words(chain(*[s.tokens for s in sentences]), method='punctuation')
                 # assemble a set of unique tokens
                 vocab = set(stripped_tokens)
                 # make a spurious function call so that loading glove is cached for subsequent calls
+                # TODO allow specifying which glove/w2v version 
                 _ = embedding.utils.load_embeddings(emb_file='glove.840B.300d.txt',
                                                     vocab=(*sorted(vocab),),
                                                     data_dir=emb_data_dir)
 
-
-            if parallelize:
-                embedding_features = utils.parallelize(embedding.get_features, 
-        embedding_features = utils.parallelize(embedding.get_features, 
+            if False and parallelize:
                 embedding_features = utils.parallelize(embedding.get_features, 
                                                        sentences, models=models, 
                                                        vocab=vocab, data_dir=emb_data_dir,
                                                        wrap_tqdm=True, desc='Embedding pipeline')
             else:
-                embedding_features = [embedding.get_features(sentence, models=models, vocab=vocab, data_dir=emb_data_dir)
+                embedding_features = [embedding.get_features(sentence, models_and_methods=models_and_methods, 
+                                                             vocab=vocab, data_dir=emb_data_dir)
                                       for i, sentence in enumerate(tqdm(sentences, desc='Embedding pipeline'))]
 
-            # a misc. stat being computed that needs to be handled better 
-        # a misc. stat being computed that needs to be handled better 
             # a misc. stat being computed that needs to be handled better 
             # "no" means no. the stat below is counting how many sentences have NO content words (not to be confused with num. content words)
             no_content_words = len(sentences)-sum(any(s.content_words) for s in sentences)
@@ -209,8 +211,6 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
             embedding_out = output_dir / 'embedding'
             embedding_out.mkdir(parents=True, exist_ok=True)
-
-            utils.io.log('temporarily outputting Pickled dictionary of pooled embeddings', type='WARN')
             
             
             # now we want to output stuff from embedding_features (which is returned by the embedding pipeline)
@@ -228,6 +228,8 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                   for feature_dict in embedding_features 
                                     for model_name in feature_dict['features']}
 
+            print(all_models_methods)
+
             # we want to output BY MODEL
             for model_name in all_models_methods:
                 # and BY METHOD
@@ -242,14 +244,14 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                         # we need to know this so we can package all this information together with the outputs by model and method
                         metadata_keys = {*feature_dict.keys()} - {'features'} # setminus operator
                         # make a copy of the feature_dict for this sentence excluding the representations themselves
-                        meta_df = {key: feature_dict[key] for key in metadata_keys}                        
+                        meta_df = {key: feature_dict[key] for key in metadata_keys}
+                        meta_df.update({'model_name': model_name, 'aggregation': method})
                         meta_df = pd.DataFrame(meta_df, index=[feature_dict['index']])
                         meta_df.columns = pd.MultiIndex.from_product([['metadata'], meta_df.columns, ['']])
 
                         # model_name -> method -> reprs
                         pooled_reprs = feature_dict['features']
                         flattened_repr = pooled_reprs[model_name][method]
-                        flattened_repr.columns = pd.MultiIndex.from_tuples([('representation', *t) for t in flattened_repr.columns])
 
                         collected += [pd.concat([meta_df, flattened_repr], axis=1)]
 
@@ -258,7 +260,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
                     sentence_df = pd.concat(collected, axis=0)
 
-                    utils.io.log(f'outputting embedding dataframes to {embedding_out}')
+                    utils.io.log(f'outputting embedding dataframes for {model_name}-{method} to {embedding_out}')
                     if output_format == 'tsv':
                         sentence_df.to_csv(embedding_out / model_name / method / f'{sentence_features_filestem}.tsv', sep='\t', index=False)
                         # token_df.to_csv(embedding_out / f'{token_features_filestem}.tsv', sep='\t', index=False)
