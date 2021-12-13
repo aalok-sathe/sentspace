@@ -123,19 +123,26 @@ pip install -r ./requirements.txt
 polyglot download morph2.en
 </code></pre>
 <h2 id="submodules">Submodules</h2>
-<p>In general, each submodule implements a major class of features. You can run each module on its own by specifying it like so:</p>
-<pre><code class="language-bash">python -m sentspace.syntax -h
+<p>In general, each submodule implements a major class of features. You can run each module on its own by specifying its flag with the module call:</p>
+<pre><code class="language-bash">python -m sentspace -lex 1 &lt;input_file_path&gt;
 </code></pre>
-<p>which will print out the help page for that submodule.
-Below, we provide more information and the capabilities/usage of each submodule in some greater depth.</p>
 <h4 id="sentspacelexical"><code><a title="sentspace.lexical" href="lexical/index.html">sentspace.lexical</a></code></h4>
-<p>Description pending</p>
+<p>Obtain lexical (word-level) features that are not dependendent on the sentence context.
+These features are returned on a word-by-word level and also averaged at the sentence level to provide each sentence a corresponding value.
+- typical age of acquisition
+- n-gram surprisal <code>n={1,2,3,4}</code>
+- etc. (comprehensive list will be updated)</p>
 <h4 id="sentspacesyntax"><code><a title="sentspace.syntax" href="syntax/index.html">sentspace.syntax</a></code></h4>
 <p>Description pending</p>
 <h4 id="sentspaceembedding"><code><a title="sentspace.embedding" href="embedding/index.html">sentspace.embedding</a></code></h4>
-<p><em>Can only be used as an import or through the main pipeline at the moment.</em></p>
+<p>Obtain high dimensional representations of sentences using word-embedding and contextualized encoder models.
+- glove
+- Huggingface model hub (<code>gpt2-xl</code>, <code>bert-base-uncased</code>)</p>
 <h4 id="semantic"><code>semantic</code></h4>
-<p><em>Not Implemented yet</em></p>
+<p>Multi-word features computed using partial or full sentence context.
+- PMI (pointwise mutual information)
+- Language model-based perplexity/surprisal
+<em>Not Implemented yet</em></p>
 <h2 id="contributing">Contributing</h2>
 <p>Any contributions you make are <strong>greatly appreciated</strong>, and no contribution is <em>too small</em> to contribute.</p>
 <ol>
@@ -151,6 +158,7 @@ Below, we provide more information and the capabilities/usage of each submodule 
 <li><code>gretatu % mit ^ edu</code></li>
 <li><code>asathe % mit ^ edu</code></li>
 </ul>
+<p>(C) 2020-2021 EvLab, MIT BCS</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
