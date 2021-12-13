@@ -114,25 +114,30 @@ polyglot download morph2.en
 
 ## Submodules
 
-In general, each submodule implements a major class of features. You can run each module on its own by specifying it like so:
+In general, each submodule implements a major class of features. You can run each module on its own by specifying its flag with the module call:
 ```bash
-python -m sentspace.syntax -h
+python -m sentspace -lex 1 <input_file_path>
 ```
-which will print out the help page for that submodule.
-Below, we provide more information and the capabilities/usage of each submodule in some greater depth.
-
-
 
 #### `lexical`
-Description pending
+Obtain lexical (word-level) features that are not dependendent on the sentence context. 
+These features are returned on a word-by-word level and also averaged at the sentence level to provide each sentence a corresponding value.
+- typical age of acquisition
+- n-gram surprisal `n={1,2,3,4}`
+- etc. (comprehensive list will be updated)
 
 #### `syntax`
 Description pending
 
 #### `embedding`
-*Can only be used as an import or through the main pipeline at the moment.*
+Obtain high dimensional representations of sentences using word-embedding and contextualized encoder models.
+- glove
+- Huggingface model hub (`gpt2-xl`, `bert-base-uncased`)
 
 #### `semantic`
+Multi-word features computed using partial or full sentence context.
+- PMI (pointwise mutual information)
+- Language model-based perplexity/surprisal
 *Not Implemented yet*
 
 
@@ -152,3 +157,5 @@ Any contributions you make are **greatly appreciated**, and no contribution is *
 ## License & Contact
 - `gretatu % mit ^ edu`
 - `asathe % mit ^ edu`
+
+(C) 2020-2021 EvLab, MIT BCS
