@@ -32,35 +32,10 @@ import pickle
 import numpy as np
 import sentspace.utils
 from sentspace.utils import io, text
-from sentspace.utils.caching import cache_to_disk, cache_to_mem
-from sentspace.utils.utils import Word, merge_lists, wordnet
+from sentspace.utils.caching import cache_to_mem #, cache_to_disk
+from sentspace.utils.misc import merge_lists
 
-
-
-def get_all_features(wordlist, databases):
-    &#34;&#34;&#34;
-    Given list of words, return dict mapping feature to list of feature values
-    &#34;&#34;&#34;
-    result = {}
-    for feature in get_feature_list() + get_feature_list_using_third_party_libraries():
-        result[feature] = get_feature(wordlist, feature, databases)
-    return result
-
-
-def get_all_features_merged(flat_token_list, flat_lemmatized_token_list, databases):
-    &#34;&#34;&#34;
-    Given list of words &amp; list of lemmatized words,
-    return dict mapping feature to list of feature values after merging
-    (if a word in its original form exists in the database, use its associated value;
-    if not, use value associated with the lemmatized version)
-    &#34;&#34;&#34;
-    all_vals = get_all_features(flat_token_list, databases)
-    all_vals_lem = get_all_features(flat_lemmatized_token_list, databases)
-    merged = {}
-    for feature in all_vals:
-        merged[feature] = merge_lists(all_vals[feature], all_vals_lem[feature], feature=feature)
-    return merged
-
+import IPython
 
 
 # --------- Lexical features
@@ -72,35 +47,55 @@ def get_feature_list():
             &#39;log_contextual_diversity&#39;, &#39;log_lexical_frequency&#39;, &#39;n_orthographic_neighbors&#39;, &#39;num_morpheme&#39;,
             &#39;prevalence&#39;, &#39;surprisal-3&#39;, &#39;total_degree_centrality&#39;]
 
-
 def get_feature_list_using_third_party_libraries():
     return [&#39;polysemy&#39;, &#39;num_morpheme_poly&#39;]
-
 
 def get_feature_list_requiring_calculation():
     return [&#39;PMI&#39;]
 
 
-def get_poly_morpheme(sent_num, word_list):
+# def get_all_features_merged(sentence: &#39;sentspace.Sentence.Sentence&#39;, databases):
+#     &#34;&#34;&#34;
+#     Given list of words &amp; list of lemmatized words,
+#     return dict mapping feature to list of feature values after merging
+#     (if a word in its original form exists in the database, use its associated value;
+#     if not, use value associated with the lemmatized version)
+#     &#34;&#34;&#34;
+#     all_vals = get_all_features(sentence.tokenized(), databases)
+#     all_vals_lem = get_all_features(sentence.lemmatized(), databases)
+    
+#     merged = {}
+#     for feature in all_vals:
+#         merged[feature] = merge_lists(all_vals[feature], all_vals_lem[feature], feature=feature)
+
+#     # print(sentence, merged[&#39;lexical_decision_RT&#39;]); exit()
+#     return merged
+
+
+def get_all_features(sentence: &#39;sentspace.Sentence.Sentence&#39;, databases):
+    &#34;&#34;&#34;
+    Given list of words, return dict mapping feature to list of feature values
+    &#34;&#34;&#34;
+    
+    result = {}
+    for feature in get_feature_list() + get_feature_list_using_third_party_libraries():
+        result[feature] = get_feature(sentence, feature, databases) 
+    return result
+
+
+def get_feature(sentence: &#39;sentspace.Sentence.Sentence&#39;, feature, databases={}):
     &#39;&#39;&#39;
-        Given sent_number and word_list, calculate the morphemes of each word in each sentence
+    get specific `feature` for the tokens in `sentence`; fall back to using `lemmas` if necessary
     &#39;&#39;&#39;
-    raise NotImplementedError
 
-
-
-
-def get_feature(flat_token_list, feature, databases):
-
-    # @cache_to_mem  # (ignore=[&#39;databases&#39;])
-    def get_feature_(word, feature):
-        &#34;&#34;&#34;given a word and a feature to exatract, returns the value of that
-            feature for the word using available databases
+    def get_feature_(token, lemma, feature):
+        &#34;&#34;&#34;given a `word` and a feature to extract, returns the value of that
+            feature for the `word` using available databases
 
         Args:
             word (str): the token (word) to extract a feature for
             feature (str): name identifier of the feature acc to predefined convention
-            databases (dict, optional): dictionary of feature --&gt; (word --&gt; feature_value) dictionaries. 
+            databases (dict, in-scope): dictionary of feature --&gt; (word --&gt; feature_value) dictionaries. 
                                         Defaults to {}.
 
         Returns:
@@ -110,28 +105,40 @@ def get_feature(flat_token_list, feature, databases):
         # database can be a dictionary or an object that implements
         # get(key, default)
         if feature in get_feature_list():
-            return databases.get(feature, {}).get(word, np.nan)
+            feature_dict = databases[feature]            
+            try:
+                return feature_dict[token]
+            except KeyError as e:
+                try:
+                    return feature_dict[lemma]
+                except KeyError as e_:
+                    return np.nan
 
-        # Other databases we use from libraries we load such as NLTK and Polyglot
+        # Other databases we use from libraries we load such as NLTK-Wordnet and Polyglot
         elif feature in get_feature_list_using_third_party_libraries():
             if feature == &#39;polysemy&#39;:
-                if wordnet.synsets(word):
-                    return len(wordnet.synsets(word))
+                # from nltk.stem import WordNetLemmatizer
+                from nltk.corpus import wordnet
+                if (synsets := wordnet.synsets(token)):
+                    return len(synsets)
+                elif (synsets := wordnet.synsets(lemma)):
+                    return len(synsets)
                 return 1
             elif feature == &#39;num_morpheme_poly&#39;:
-                morphed = Word(word, language=&#39;en&#39;).morphemes
-                if morphed:
+                from polyglot.text import Word
+                if (morphed := Word(token, language=&#39;en&#39;).morphemes):
+                    return len(morphed)
+                elif (morphed := Word(lemma, language=&#39;en&#39;).morphemes):
                     return len(morphed)
                 return np.nan
         else:
             raise ValueError(f&#39;unable to compute unknown feature `{feature}`&#39;)
 
 
-    d = {}
     features_list = []
 
-    for word in flat_token_list:
-        features_list += [get_feature_(word, feature)]
+    for token, lemma in zip(sentence.tokens, sentence.lemmas):
+        features_list += [get_feature_(token, lemma, feature)]
 
     return features_list
 
@@ -160,7 +167,9 @@ def return_percentile_df(bench_df, usr_df):
 
 
 @cache_to_mem
-def load_databases(features=&#39;all&#39;, path=&#39;.feature_database/&#39;, ignore_case=True):
+def load_databases(features=&#39;all&#39;, path=&#39;.feature_database/&#39;, 
+                   ignore_case=True,
+                  ):
     &#34;&#34;&#34;
     Load dicts mapping word to feature value
     If one feature, provide in list format
@@ -174,9 +183,9 @@ def load_databases(features=&#39;all&#39;, path=&#39;.feature_database/&#39;, ig
             sentspace.utils.s3.load_feature(key=feature+&#39;.pkl&#39;)
         with open(path+feature+&#39;.pkl&#39;, &#39;rb&#39;) as f:
             d = pickle.load(f)
-            if ignore_case:  # add lowercase version to feature database
-                for key, val in d.copy().items():
-                    d[str(key).lower()] = val
+            # if ignore_case:  # add lowercase version to feature database
+            #     for key, val in d.copy().items():
+            #         d[str(key).lower()] = val
             databases[feature] = d
 
     sanity_check_databases(databases)
@@ -214,7 +223,7 @@ def sanity_check_databases(databases):
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="sentspace.lexical.utils.get_all_features"><code class="name flex">
-<span>def <span class="ident">get_all_features</span></span>(<span>wordlist, databases)</span>
+<span>def <span class="ident">get_all_features</span></span>(<span>sentence: <a title="sentspace.Sentence.Sentence" href="../Sentence.html#sentspace.Sentence.Sentence">Sentence</a>, databases)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Given list of words, return dict mapping feature to list of feature values</p></div>
@@ -222,63 +231,39 @@ def sanity_check_databases(databases):
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_all_features(wordlist, databases):
+<pre><code class="python">def get_all_features(sentence: &#39;sentspace.Sentence.Sentence&#39;, databases):
     &#34;&#34;&#34;
     Given list of words, return dict mapping feature to list of feature values
     &#34;&#34;&#34;
+    
     result = {}
     for feature in get_feature_list() + get_feature_list_using_third_party_libraries():
-        result[feature] = get_feature(wordlist, feature, databases)
+        result[feature] = get_feature(sentence, feature, databases) 
     return result</code></pre>
 </details>
 </dd>
-<dt id="sentspace.lexical.utils.get_all_features_merged"><code class="name flex">
-<span>def <span class="ident">get_all_features_merged</span></span>(<span>flat_token_list, flat_lemmatized_token_list, databases)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Given list of words &amp; list of lemmatized words,
-return dict mapping feature to list of feature values after merging
-(if a word in its original form exists in the database, use its associated value;
-if not, use value associated with the lemmatized version)</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def get_all_features_merged(flat_token_list, flat_lemmatized_token_list, databases):
-    &#34;&#34;&#34;
-    Given list of words &amp; list of lemmatized words,
-    return dict mapping feature to list of feature values after merging
-    (if a word in its original form exists in the database, use its associated value;
-    if not, use value associated with the lemmatized version)
-    &#34;&#34;&#34;
-    all_vals = get_all_features(flat_token_list, databases)
-    all_vals_lem = get_all_features(flat_lemmatized_token_list, databases)
-    merged = {}
-    for feature in all_vals:
-        merged[feature] = merge_lists(all_vals[feature], all_vals_lem[feature], feature=feature)
-    return merged</code></pre>
-</details>
-</dd>
 <dt id="sentspace.lexical.utils.get_feature"><code class="name flex">
-<span>def <span class="ident">get_feature</span></span>(<span>flat_token_list, feature, databases)</span>
+<span>def <span class="ident">get_feature</span></span>(<span>sentence: <a title="sentspace.Sentence.Sentence" href="../Sentence.html#sentspace.Sentence.Sentence">Sentence</a>, feature, databases={})</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>get specific <code>feature</code> for the tokens in <code>sentence</code>; fall back to using <code>lemmas</code> if necessary</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_feature(flat_token_list, feature, databases):
+<pre><code class="python">def get_feature(sentence: &#39;sentspace.Sentence.Sentence&#39;, feature, databases={}):
+    &#39;&#39;&#39;
+    get specific `feature` for the tokens in `sentence`; fall back to using `lemmas` if necessary
+    &#39;&#39;&#39;
 
-    # @cache_to_mem  # (ignore=[&#39;databases&#39;])
-    def get_feature_(word, feature):
-        &#34;&#34;&#34;given a word and a feature to exatract, returns the value of that
-            feature for the word using available databases
+    def get_feature_(token, lemma, feature):
+        &#34;&#34;&#34;given a `word` and a feature to extract, returns the value of that
+            feature for the `word` using available databases
 
         Args:
             word (str): the token (word) to extract a feature for
             feature (str): name identifier of the feature acc to predefined convention
-            databases (dict, optional): dictionary of feature --&gt; (word --&gt; feature_value) dictionaries. 
+            databases (dict, in-scope): dictionary of feature --&gt; (word --&gt; feature_value) dictionaries. 
                                         Defaults to {}.
 
         Returns:
@@ -288,28 +273,40 @@ if not, use value associated with the lemmatized version)</p></div>
         # database can be a dictionary or an object that implements
         # get(key, default)
         if feature in get_feature_list():
-            return databases.get(feature, {}).get(word, np.nan)
+            feature_dict = databases[feature]            
+            try:
+                return feature_dict[token]
+            except KeyError as e:
+                try:
+                    return feature_dict[lemma]
+                except KeyError as e_:
+                    return np.nan
 
-        # Other databases we use from libraries we load such as NLTK and Polyglot
+        # Other databases we use from libraries we load such as NLTK-Wordnet and Polyglot
         elif feature in get_feature_list_using_third_party_libraries():
             if feature == &#39;polysemy&#39;:
-                if wordnet.synsets(word):
-                    return len(wordnet.synsets(word))
+                # from nltk.stem import WordNetLemmatizer
+                from nltk.corpus import wordnet
+                if (synsets := wordnet.synsets(token)):
+                    return len(synsets)
+                elif (synsets := wordnet.synsets(lemma)):
+                    return len(synsets)
                 return 1
             elif feature == &#39;num_morpheme_poly&#39;:
-                morphed = Word(word, language=&#39;en&#39;).morphemes
-                if morphed:
+                from polyglot.text import Word
+                if (morphed := Word(token, language=&#39;en&#39;).morphemes):
+                    return len(morphed)
+                elif (morphed := Word(lemma, language=&#39;en&#39;).morphemes):
                     return len(morphed)
                 return np.nan
         else:
             raise ValueError(f&#39;unable to compute unknown feature `{feature}`&#39;)
 
 
-    d = {}
     features_list = []
 
-    for word in flat_token_list:
-        features_list += [get_feature_(word, feature)]
+    for token, lemma in zip(sentence.tokens, sentence.lemmas):
+        features_list += [get_feature_(token, lemma, feature)]
 
     return features_list</code></pre>
 </details>
@@ -353,22 +350,6 @@ if not, use value associated with the lemmatized version)</p></div>
 </summary>
 <pre><code class="python">def get_feature_list_using_third_party_libraries():
     return [&#39;polysemy&#39;, &#39;num_morpheme_poly&#39;]</code></pre>
-</details>
-</dd>
-<dt id="sentspace.lexical.utils.get_poly_morpheme"><code class="name flex">
-<span>def <span class="ident">get_poly_morpheme</span></span>(<span>sent_num, word_list)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Given sent_number and word_list, calculate the morphemes of each word in each sentence</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def get_poly_morpheme(sent_num, word_list):
-    &#39;&#39;&#39;
-        Given sent_number and word_list, calculate the morphemes of each word in each sentence
-    &#39;&#39;&#39;
-    raise NotImplementedError</code></pre>
 </details>
 </dd>
 <dt id="sentspace.lexical.utils.return_percentile_df"><code class="name flex">
@@ -452,12 +433,10 @@ to ensure validity of the loaded data</p></div>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
 <li><code><a title="sentspace.lexical.utils.get_all_features" href="#sentspace.lexical.utils.get_all_features">get_all_features</a></code></li>
-<li><code><a title="sentspace.lexical.utils.get_all_features_merged" href="#sentspace.lexical.utils.get_all_features_merged">get_all_features_merged</a></code></li>
 <li><code><a title="sentspace.lexical.utils.get_feature" href="#sentspace.lexical.utils.get_feature">get_feature</a></code></li>
 <li><code><a title="sentspace.lexical.utils.get_feature_list" href="#sentspace.lexical.utils.get_feature_list">get_feature_list</a></code></li>
 <li><code><a title="sentspace.lexical.utils.get_feature_list_requiring_calculation" href="#sentspace.lexical.utils.get_feature_list_requiring_calculation">get_feature_list_requiring_calculation</a></code></li>
 <li><code><a title="sentspace.lexical.utils.get_feature_list_using_third_party_libraries" href="#sentspace.lexical.utils.get_feature_list_using_third_party_libraries">get_feature_list_using_third_party_libraries</a></code></li>
-<li><code><a title="sentspace.lexical.utils.get_poly_morpheme" href="#sentspace.lexical.utils.get_poly_morpheme">get_poly_morpheme</a></code></li>
 <li><code><a title="sentspace.lexical.utils.return_percentile_df" href="#sentspace.lexical.utils.return_percentile_df">return_percentile_df</a></code></li>
 <li><code><a title="sentspace.lexical.utils.sanity_check_databases" href="#sentspace.lexical.utils.sanity_check_databases">sanity_check_databases</a></code></li>
 </ul>

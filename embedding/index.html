@@ -29,7 +29,7 @@
 <pre><code class="python">import os
 from collections import defaultdict
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
 import pandas as pd
 import sentspace.lexical
@@ -41,12 +41,24 @@ from sentspace.utils.caching import cache_to_disk, cache_to_mem
 from tqdm import tqdm
 
 
-def get_features(sentence: sentspace.Sentence.Sentence, vocab=None, data_dir=None):
+def get_features(sentence: Union[sentspace.Sentence.Sentence, sentspace.Sentence.SentenceBatch],
+                 models_and_methods = [({&#39;glove.840B.300d&#39;}, {&#39;mean&#39;, &#39;median&#39;}),
+                                       ({&#39;gpt2-xl&#39;, &#39;distilgpt2&#39;, &#39;gpt2&#39;}, {&#39;last&#39;}),
+                                       ({&#39;bert-base-uncased&#39;, &#39;aloxatel/mbert&#39;, &#39;roberta-large&#39;}, {&#39;first&#39;}),
+                                      ],
+                 vocab=None, data_dir=None):
     &#34;&#34;&#34;get embedding-based features (e.g. avg, min, max, etc.) for sentence.
 
     Args:
         sentence (str): sentence to get features for
-        vocab ([set], optional): vocabulary of all sentences that will be processed in this session.
+        models_and_methods (`typing.Collection[typing.Tuple[typing.Collection[str], 
+                                                            typing.Collection[typing.Union[str, typing.Callable[np.ndarray]]]]]`):
+                this collection maps each embeddings/representation source to the aggregation 
+                methods that should be applied to it. None matches all the embeddings/representation sources 
+                available. Methods can either be strings specifying standard aggregation methods (first, last, mean, median),
+                or a function accepting (n, d) array-like objects and returning (d,) 
+                array-like objects where d &gt;= 1.                                 
+        vocab (set, optional): vocabulary over all sentences that will be processed in this session.
                                  it is recommended for a calling scope to make this available in order
                                  to save processing time of going through all of Glove each time.
                                  In the future, optimizations may be considered, such as, indexing the
@@ -56,44 +68,46 @@ def get_features(sentence: sentspace.Sentence.Sentence, vocab=None, data_dir=Non
         [type]: [description]
     &#34;&#34;&#34;
 
-    # tokenized = text.tokenize(sentence)
-    # tagged_sentence = text.get_pos_tags(tokenized)
-    # is_content_word = sentspace.utils.text.get_is_content(tagged_sentence, content_pos=text.pos_for_content)
-    # clean words: strip nonletters/punctuation and lowercase
-    # nonletters = text.get_nonletters(tokenized, exceptions=[])  # find all non-letter characters in file
-    # cleaned_sentence = text.strip_words(tokenized, method=&#39;nonletters&#39;,
-    #                                     nonletters=text.get_nonletters(tokenized, exceptions=[]))
-    # lowercased = [*map(lambda x: x.lower(), sentence.tokenized())]
+    token_embeddings = {}
 
-    if vocab is None:
-        io.log(f&#39;no vocabulary provided in advance. this may take a while. grab some popcorn ^.^&#39;, type=&#39;WARN&#39;)
-    w2v = defaultdict(lambda: defaultdict(None))
-    
-    # if lock is not None:
-    #     lock.acquire()
-    w2v[&#39;glove&#39;] = utils.load_embeddings(emb_file=&#39;glove.840B.300d.txt&#39;,
-                                         vocab=(*sorted(vocab or sentence.tokenized()),),
-                                         data_dir=data_dir)
-    # if lock is not None:
-    #     lock.release()
+    if any(&#39;glove&#39; in model_name for model_names, _ in models_and_methods for model_name in model_names):
+        if vocab is None:
+            io.log(f&#39;no vocabulary provided in advance. this may take a while. grab some popcorn ^.^&#39;, type=&#39;WARN&#39;)
+        
+        for model_names, _ in models_and_methods:
+            for model_name in model_names:
+                if &#39;glove&#39; in model_name or &#39;word2vec&#39; in model_name:
+                    w2v = utils.load_embeddings(emb_file=f&#39;{model_name}.txt&#39;,
+                                                vocab=(*sorted(vocab or sentence.tokens),),
+                                                data_dir=data_dir)
+                    token_embeddings.update(utils.get_word_embeds(sentence, w2v=w2v, model_name=model_name,
+                                                                # TODO: infer dims based on supplied w2v !!
+                                                                dims=300))
+    for model_names, _ in models_and_methods:
+        for model_name in model_names:
+            if &#39;glove&#39; in model_name or &#39;word2vec&#39; in model_name: continue
+            token_embeddings.update(utils.get_huggingface_embeds(sentence, model_name=model_name,
+                                                                layers=None)
+                                )
 
-    token_embeddings = {
-        &#39;glove&#39;: utils.get_word_embeds(sentence, w2v=w2v,
-                                       which=&#39;glove&#39;, dims=300),
-    }
-
-    content_word_filter = lambda i, token: sentence.content_words()[i]
+    content_word_filter = lambda i, token: sentence.content_words[i]
     filters = {&#39;content_words&#39;: content_word_filter}
-    pooled_embeddings = utils.pool_sentence_embeds(sentence, token_embeddings, filters=filters)
-
-    lemmatized_sentence = text.get_lemmatized_tokens(sentence.tokenized(), sentence.pos_tagged())
     
+    pooled_embeddings = defaultdict(dict)
+    
+    for model_names, methods in models_and_methods:
+        d = utils.pool_sentence_embeds(sentence, token_embeddings, keys=model_names,
+                                       filters=filters, methods=methods)
+        # d: model_name -&gt; method_name -&gt; pooled_repr
+        for model_name in d:
+            pooled_embeddings[model_name].update(d[model_name])
+
     return {
-        &#39;index&#39;: sentence.uid(),
+        &#39;index&#39;: sentence.uid,
         &#39;sentence&#39;: str(sentence),
         &#39;filters&#39;: &#39;,&#39;.join(filters.keys()),
-
-        **pooled_embeddings,
+        
+        &#39;features&#39;: pooled_embeddings,
     }
 
 
@@ -121,7 +135,7 @@ def get_features(sentence: sentspace.Sentence.Sentence, vocab=None, data_dir=Non
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="sentspace.embedding.get_features"><code class="name flex">
-<span>def <span class="ident">get_features</span></span>(<span>sentence: <a title="sentspace.Sentence.Sentence" href="../Sentence.html#sentspace.Sentence.Sentence">Sentence</a>, vocab=None, data_dir=None)</span>
+<span>def <span class="ident">get_features</span></span>(<span>sentence: Union[<a title="sentspace.Sentence.Sentence" href="../Sentence.html#sentspace.Sentence.Sentence">Sentence</a>, <a title="sentspace.Sentence.SentenceBatch" href="../Sentence.html#sentspace.Sentence.SentenceBatch">SentenceBatch</a>], models_and_methods=[({'glove.840B.300d'}, {'mean', 'median'}), ({'distilgpt2', 'gpt2-xl', 'gpt2'}, {'last'}), ({'aloxatel/mbert', 'roberta-large', 'bert-base-uncased'}, {'first'})], vocab=None, data_dir=None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>get embedding-based features (e.g. avg, min, max, etc.) for sentence.</p>
@@ -129,8 +143,15 @@ def get_features(sentence: sentspace.Sentence.Sentence, vocab=None, data_dir=Non
 <dl>
 <dt><strong><code>sentence</code></strong> :&ensp;<code>str</code></dt>
 <dd>sentence to get features for</dd>
-<dt><strong><code>vocab</code></strong> :&ensp;<code>[set]</code>, optional</dt>
-<dd>vocabulary of all sentences that will be processed in this session.
+<dt>models_and_methods (`typing.Collection[typing.Tuple[typing.Collection[str],</dt>
+<dt>typing.Collection[typing.Union[str, typing.Callable[np.ndarray]]]]]`):</dt>
+<dt>this collection maps each embeddings/representation source to the aggregation</dt>
+<dt>methods that should be applied to it. None matches all the embeddings/representation sources</dt>
+<dt>available. Methods can either be strings specifying standard aggregation methods (first, last, mean, median),</dt>
+<dt>or a function accepting (n, d) array-like objects and returning (d,)</dt>
+<dt>array-like objects where d &gt;= 1.</dt>
+<dt><strong><code>vocab</code></strong> :&ensp;<code>set</code>, optional</dt>
+<dd>vocabulary over all sentences that will be processed in this session.
 it is recommended for a calling scope to make this available in order
 to save processing time of going through all of Glove each time.
 In the future, optimizations may be considered, such as, indexing the
@@ -145,12 +166,24 @@ byte offset of a particular token in the Glove file for speedy reading.</dd>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_features(sentence: sentspace.Sentence.Sentence, vocab=None, data_dir=None):
+<pre><code class="python">def get_features(sentence: Union[sentspace.Sentence.Sentence, sentspace.Sentence.SentenceBatch],
+                 models_and_methods = [({&#39;glove.840B.300d&#39;}, {&#39;mean&#39;, &#39;median&#39;}),
+                                       ({&#39;gpt2-xl&#39;, &#39;distilgpt2&#39;, &#39;gpt2&#39;}, {&#39;last&#39;}),
+                                       ({&#39;bert-base-uncased&#39;, &#39;aloxatel/mbert&#39;, &#39;roberta-large&#39;}, {&#39;first&#39;}),
+                                      ],
+                 vocab=None, data_dir=None):
     &#34;&#34;&#34;get embedding-based features (e.g. avg, min, max, etc.) for sentence.
 
     Args:
         sentence (str): sentence to get features for
-        vocab ([set], optional): vocabulary of all sentences that will be processed in this session.
+        models_and_methods (`typing.Collection[typing.Tuple[typing.Collection[str], 
+                                                            typing.Collection[typing.Union[str, typing.Callable[np.ndarray]]]]]`):
+                this collection maps each embeddings/representation source to the aggregation 
+                methods that should be applied to it. None matches all the embeddings/representation sources 
+                available. Methods can either be strings specifying standard aggregation methods (first, last, mean, median),
+                or a function accepting (n, d) array-like objects and returning (d,) 
+                array-like objects where d &gt;= 1.                                 
+        vocab (set, optional): vocabulary over all sentences that will be processed in this session.
                                  it is recommended for a calling scope to make this available in order
                                  to save processing time of going through all of Glove each time.
                                  In the future, optimizations may be considered, such as, indexing the
@@ -160,44 +193,46 @@ byte offset of a particular token in the Glove file for speedy reading.</dd>
         [type]: [description]
     &#34;&#34;&#34;
 
-    # tokenized = text.tokenize(sentence)
-    # tagged_sentence = text.get_pos_tags(tokenized)
-    # is_content_word = sentspace.utils.text.get_is_content(tagged_sentence, content_pos=text.pos_for_content)
-    # clean words: strip nonletters/punctuation and lowercase
-    # nonletters = text.get_nonletters(tokenized, exceptions=[])  # find all non-letter characters in file
-    # cleaned_sentence = text.strip_words(tokenized, method=&#39;nonletters&#39;,
-    #                                     nonletters=text.get_nonletters(tokenized, exceptions=[]))
-    # lowercased = [*map(lambda x: x.lower(), sentence.tokenized())]
+    token_embeddings = {}
 
-    if vocab is None:
-        io.log(f&#39;no vocabulary provided in advance. this may take a while. grab some popcorn ^.^&#39;, type=&#39;WARN&#39;)
-    w2v = defaultdict(lambda: defaultdict(None))
-    
-    # if lock is not None:
-    #     lock.acquire()
-    w2v[&#39;glove&#39;] = utils.load_embeddings(emb_file=&#39;glove.840B.300d.txt&#39;,
-                                         vocab=(*sorted(vocab or sentence.tokenized()),),
-                                         data_dir=data_dir)
-    # if lock is not None:
-    #     lock.release()
+    if any(&#39;glove&#39; in model_name for model_names, _ in models_and_methods for model_name in model_names):
+        if vocab is None:
+            io.log(f&#39;no vocabulary provided in advance. this may take a while. grab some popcorn ^.^&#39;, type=&#39;WARN&#39;)
+        
+        for model_names, _ in models_and_methods:
+            for model_name in model_names:
+                if &#39;glove&#39; in model_name or &#39;word2vec&#39; in model_name:
+                    w2v = utils.load_embeddings(emb_file=f&#39;{model_name}.txt&#39;,
+                                                vocab=(*sorted(vocab or sentence.tokens),),
+                                                data_dir=data_dir)
+                    token_embeddings.update(utils.get_word_embeds(sentence, w2v=w2v, model_name=model_name,
+                                                                # TODO: infer dims based on supplied w2v !!
+                                                                dims=300))
+    for model_names, _ in models_and_methods:
+        for model_name in model_names:
+            if &#39;glove&#39; in model_name or &#39;word2vec&#39; in model_name: continue
+            token_embeddings.update(utils.get_huggingface_embeds(sentence, model_name=model_name,
+                                                                layers=None)
+                                )
 
-    token_embeddings = {
-        &#39;glove&#39;: utils.get_word_embeds(sentence, w2v=w2v,
-                                       which=&#39;glove&#39;, dims=300),
-    }
-
-    content_word_filter = lambda i, token: sentence.content_words()[i]
+    content_word_filter = lambda i, token: sentence.content_words[i]
     filters = {&#39;content_words&#39;: content_word_filter}
-    pooled_embeddings = utils.pool_sentence_embeds(sentence, token_embeddings, filters=filters)
-
-    lemmatized_sentence = text.get_lemmatized_tokens(sentence.tokenized(), sentence.pos_tagged())
     
+    pooled_embeddings = defaultdict(dict)
+    
+    for model_names, methods in models_and_methods:
+        d = utils.pool_sentence_embeds(sentence, token_embeddings, keys=model_names,
+                                       filters=filters, methods=methods)
+        # d: model_name -&gt; method_name -&gt; pooled_repr
+        for model_name in d:
+            pooled_embeddings[model_name].update(d[model_name])
+
     return {
-        &#39;index&#39;: sentence.uid(),
+        &#39;index&#39;: sentence.uid,
         &#39;sentence&#39;: str(sentence),
         &#39;filters&#39;: &#39;,&#39;.join(filters.keys()),
-
-        **pooled_embeddings,
+        
+        &#39;features&#39;: pooled_embeddings,
     }
 
 

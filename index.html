@@ -185,25 +185,19 @@ from pathlib import Path
 import sentspace.utils as utils
 import sentspace.syntax as syntax
 import sentspace.lexical as lexical
-# import sentspace.semantic as semantic
 import sentspace.embedding as embedding
 
 from sentspace.Sentence import Sentence
-# ...
 
-# TODO: remove processing overhead in API call; ideally the below imports 
-# should not exist in this file. TODO: create functions in sentspace.utils
-# or otherwise submodule-specific utils to compile such data into a pandas
-# dataframe
 import pandas as pd
 from functools import reduce 
 from itertools import chain
 from tqdm import tqdm
-import pickle 
+
 
 def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                    benchmark_file: str = None, output_dir: str = None,
-                                   output_format: str = None,
+                                   output_format: str = None, batch_size: int = 2_000,
                                    process_lexical: bool = False, process_syntax: bool = False,
                                    process_embedding: bool = False, process_semantic: bool = False,
                                    parallelize: bool = True,
@@ -245,135 +239,211 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
     sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
     utils.io.log(&#39;---done--- reading input sentences&#39;)
 
-    # Get morpheme from polyglot library instead of library
-    # TODO: where was this supposed to be used?
-    # poly_morphemes = utils.get_poly_morpheme(flat_sentence_num, flat_token_list)
 
-    if process_lexical:
-        utils.io.log(&#39;*** running lexical submodule pipeline&#39;)
-        _ = lexical.utils.load_databases(features=&#39;all&#39;)
+    for part, sentence_batch in enumerate(tqdm(utils.io.get_batches(sentences, batch_size=batch_size), 
+                                               desc=&#39;processing batches&#39;)):
+        sentence_features_filestem = f&#39;sentence-features_part{part:0&gt;4}&#39;
+        token_features_filestem = f&#39;token-features_part{part:0&gt;4}&#39;
 
-        if parallelize:
-            lexical_features = utils.parallelize(lexical.get_features, sentences,
-                                                 wrap_tqdm=True, desc=&#39;Lexical pipeline&#39;)
-        else:
-            lexical_features = [lexical.get_features(sentence)
-                                for _, sentence in enumerate(tqdm(sentences, desc=&#39;Lexical pipeline&#39;))]
 
-        lexical_out = output_dir / &#39;lexical&#39;
-        lexical_out.mkdir(parents=True, exist_ok=True)
+        ################################################################################
+        #### LEXICAL FEATURES ##########################################################
+        ################################################################################
+        if process_lexical:
+            utils.io.log(&#39;*** running lexical submodule pipeline&#39;)
+            _ = lexical.utils.load_databases(features=&#39;all&#39;)
 
-        # lexical is a special case since it returns dicts per token (rather than per sentence)
-        # so we want to flatten it so that pandas creates a sensible dataframe from it.
-        token_df = pd.DataFrame(chain.from_iterable(lexical_features))
+            if parallelize:
+                lexical_features = utils.parallelize(lexical.get_features, sentence_batch,
+                                                    wrap_tqdm=True, desc=&#39;Lexical pipeline&#39;)
+            else:
+                lexical_features = [lexical.get_features(sentence)
+                                    for _, sentence in enumerate(tqdm(sentence_batch, desc=&#39;Lexical pipeline&#39;))]
 
-        utils.io.log(f&#39;outputting lexical token dataframe to {lexical_out}&#39;)
-        if output_format == &#39;tsv&#39;:
-            token_df.to_csv(lexical_out / &#39;token-features.tsv&#39;, sep=&#39;\t&#39;, index=False)
-        if output_format == &#39;pkl&#39;:
-            token_df.to_pickle(lexical_out / &#39;token-features.pkl.gz&#39;, protocol=5)
+            lexical_out = output_dir / &#39;lexical&#39;
+            lexical_out.mkdir(parents=True, exist_ok=True)
+            utils.io.log(f&#39;outputting lexical token dataframe to {lexical_out}&#39;)
 
-        utils.io.log(f&#39;--- finished lexical pipeline&#39;)
+            # lexical is a special case since it returns dicts per token (rather than per sentence)
+            # so we want to flatten it so that pandas creates a sensible dataframe from it.
+            token_df = pd.DataFrame(chain.from_iterable(lexical_features))
 
-    if process_syntax:
-        utils.io.log(&#39;*** running syntax submodule pipeline&#39;)
+            if output_format == &#39;tsv&#39;:
+                token_df.to_csv(lexical_out / f&#39;{token_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
+                token_df.groupby(&#39;sentence&#39;).mean().to_csv(lexical_out / f&#39;{sentence_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
+            elif output_format == &#39;pkl&#39;:
+                token_df.to_pickle(lexical_out / f&#39;{token_features_filestem}.pkl.gz&#39;, protocol=5)
+                token_df.groupby(&#39;sentence&#39;).mean().to_pickle(lexical_out / f&#39;{sentence_features_filestem}.pkl.gz&#39;, protocol=5)
+            else:
+                raise ValueError(f&#39;output format {output_format} not known&#39;)
 
-        # as an exception, we do *not* parallelize syntax since the backend server is somehow unable to handle
-        # multiple requests :(
-        syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid())
-                                                                     # !!! TODO:DEBUG
-                           for i, sentence in enumerate(tqdm(sentences, desc=&#39;Syntax pipeline&#39;))]
+            utils.io.log(f&#39;--- finished lexical pipeline&#39;)
 
-        syntax_out = output_dir / &#39;syntax&#39;
-        syntax_out.mkdir(parents=True, exist_ok=True)
 
-        # put all features in the sentence df except the token-level ones
-        token_syntax_features = {&#39;dlt&#39;, &#39;leftcorner&#39;}
-        sentence_df = pd.DataFrame([{k: v for k, v in feature_dict.items() if k not in token_syntax_features}
-                                    for feature_dict in syntax_features], index=[s.uid() for s in sentences])
+        ################################################################################
+        #### SYNTAX FEATURES ###########################################################
+        ################################################################################
+        if process_syntax:
+            utils.io.log(&#39;*** running syntax submodule pipeline&#39;)
 
-        # output gives us dataframes corresponding to each token-level feature. we need to combine these
-        # into a single dataframe
-        # we use functools.reduce to apply the pd.concat function to all the dataframes and join dataframes
-        # that contain different features for the same tokens
-        # NOTE: do NOT use .T.drop_duplicates!!!!
-        # we use df.T.drop_duplicates().T to remove duplicate columns (&#39;token&#39;, &#39;sentence&#39;, &#39;index&#39; etc) that appear in
-        # all/multiple dataframes as part of the standard output schema
-        token_dfs = [reduce(lambda x, y: pd.concat([x, y], axis=1, sort=False),
-                            (v for k, v in feature_dict.items() if k in token_syntax_features)) #.T.drop_duplicates().T
-                     for feature_dict in syntax_features]
+            # as an exception, we do *not* parallelize syntax since the backend server is somehow unable to handle
+            # multiple requests :(
+            syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid())
+                                                                        # !!! TODO:DEBUG
+                            for i, sentence in enumerate(tqdm(sentences, desc=&#39;Syntax pipeline&#39;))]
 
-        # TODO: DEBUG
-        # import IPython
-        # IPython.embed()
+            syntax_out = output_dir / &#39;syntax&#39;
+            syntax_out.mkdir(parents=True, exist_ok=True)
 
-        # by this point we have merged dataframes with tokens along a column (rather than a sentence)
-        # now we need to stack them on top of each other to have all sentences in a single dataframe
-        token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
-        token_df = token_df.loc[:, ~token_df.columns.duplicated()]
+            # put all features in the sentence df except the token-level ones
+            token_syntax_features = {&#39;dlt&#39;, &#39;leftcorner&#39;}
+            sentence_df = pd.DataFrame([{k: v for k, v in feature_dict.items() if k not in token_syntax_features}
+                                        for feature_dict in syntax_features], index=[s.uid() for s in sentences])
 
-        utils.io.log(f&#39;outputting syntax dataframes to {syntax_out}&#39;)
-        if output_format == &#39;tsv&#39;:
-            sentence_df.to_csv(syntax_out / &#39;sentence-features.tsv&#39;, sep=&#39;\t&#39;, index=False)
-            token_df.to_csv(syntax_out / &#39;token-features.tsv&#39;, sep=&#39;\t&#39;, index=False)
-        elif output_format == &#39;pkl&#39;:
-            sentence_df.to_pickle(syntax_out / &#39;sentence-features.pkl.gz&#39;, protocol=5)
-            token_df.to_pickle(syntax_out / &#39;token-features.pkl.gz&#39;, protocol=5)
+            # output gives us dataframes corresponding to each token-level feature. we need to combine these
+            # into a single dataframe
+            # we use functools.reduce to apply the pd.concat function to all the dataframes and join dataframes
+            # that contain different features for the same tokens
+            token_dfs = [reduce(lambda x, y: pd.concat([x, y], axis=1, sort=False),
+                                (v for k, v in feature_dict.items() if k in token_syntax_features))
+                        for feature_dict in syntax_features]
 
-        utils.io.log(f&#39;--- finished syntax pipeline&#39;)
+            # by this point we have merged dataframes with tokens along a column (rather than just a sentence)
+            # now we need to stack them on top of each other to have all tokens across all sentences in a single dataframe
+            token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
+            token_df = token_df.loc[:, ~token_df.columns.duplicated()]
 
-    # Calculate PMI
-    # utils.GrabNGrams(sent_rows,pmi_paths)
-    # utils.pPMI(sent_rows, pmi_paths)
-    # pdb.set_trace()
+            utils.io.log(f&#39;outputting syntax dataframes to {syntax_out}&#39;)
+            if output_format == &#39;tsv&#39;:
+                sentence_df.to_csv(syntax_out / f&#39;{sentence_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
+                token_df.to_csv(syntax_out / f&#39;{token_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
+            elif output_format == &#39;pkl&#39;:
+                sentence_df.to_pickle(syntax_out / f&#39;{sentence_features_filestem}.pkl.gz&#39;, protocol=5)
+                token_df.to_pickle(syntax_out / f&#39;{token_features_filestem}.pkl.gz&#39;, protocol=5)
 
-    if process_embedding:
-        utils.io.log(&#39;*** running embedding submodule pipeline&#39;)
-        # Get GloVE
+            utils.io.log(f&#39;--- finished syntax pipeline&#39;)
 
-        stripped_words = utils.text.strip_words(chain(*[s.tokenized() for s in sentences]), method=&#39;punctuation&#39;)
-        vocab = embedding.utils.get_vocab(stripped_words)
-        _ = embedding.utils.load_embeddings(emb_file=&#39;glove.840B.300d.txt&#39;,
-                                            vocab=(*sorted(vocab),),
-                                            data_dir=emb_data_dir)
+        # Calculate PMI
+        # utils.GrabNGrams(sent_rows,pmi_paths)
+        # utils.pPMI(sent_rows, pmi_paths)
+        # pdb.set_trace()
 
-        # embedding_features = [sentspace.embedding.get_features(sentence, vocab=vocab, data_dir=emb_data_dir,
-        #                                                        identifier=UIDs[i])
-        #                        for i, sentence in enumerate(tqdm(sentences, desc=&#39;Embedding pipeline&#39;))]
-        embedding_features = utils.parallelize(embedding.get_features, 
-                                               sentences,
-                                            #    [s._raw for s in sentences], [s.uid() for s in sentences],
-                                               vocab=vocab, data_dir=emb_data_dir,
-                                               wrap_tqdm=True, desc=&#39;Embedding pipeline&#39;)
-        no_content_words = len(sentences)-sum(any(s.content_words()) for s in sentences)
-        utils.io.log(f&#39;sentences with no content words: {no_content_words}/{len(sentences)}; {no_content_words/len(sentences):.2f}&#39;)
 
-        embedding_out = output_dir / &#39;embedding&#39;
-        embedding_out.mkdir(parents=True, exist_ok=True)
+        ################################################################################
+        #### EMBEDDING FEATURES ########################################################
+        ################################################################################            
+        if process_embedding:
+            utils.io.log(&#39;*** running embedding submodule pipeline&#39;)
 
-        sentence_df = pd.DataFrame([{k: v for k, v in feature_dict.items() if k != &#39;token_embeds&#39;}
-                                    for feature_dict in embedding_features])
+            models_and_methods = [
+                        # ({&#39;glove.840B.300d&#39;}, {&#39;mean&#39;, &#39;median&#39;}), 
+                        # &#39;distilgpt2&#39;,
+                        ({&#39;gpt2-xl&#39;}, {&#39;last&#39;}),
+                        ({&#39;bert-base-uncased&#39;}, {&#39;first&#39;}),
+                     ]
+            
+            vocab = None
+            # does any of the
+            if any(&#39;glove&#39; in model or &#39;word2vec&#39; in model for models, _ in models_and_methods for model in models):
+                # get a vocabulary across all sentences given as input
+                # as the first step, remove any punctuation from the tokens
+                stripped_tokens = utils.text.strip_words(chain(*[s.tokens for s in sentences]), method=&#39;punctuation&#39;)
+                # assemble a set of unique tokens
+                vocab = set(stripped_tokens)
+                # make a spurious function call so that loading glove is cached for subsequent calls
+                # TODO allow specifying which glove/w2v version 
+                _ = embedding.utils.load_embeddings(emb_file=&#39;glove.840B.300d.txt&#39;,
+                                                    vocab=(*sorted(vocab),),
+                                                    data_dir=emb_data_dir)
 
-        utils.io.log(f&#39;outputting embedding dataframe(s) to {embedding_out}&#39;)
-        if output_format == &#39;tsv&#39;:
-            sentence_df.to_csv(embedding_out / &#39;sentence-features.tsv&#39;, sep=&#39;\t&#39;, index=False)
-        elif output_format == &#39;pkl&#39;:
-            sentence_df.to_pickle(embedding_out / &#39;sentence-features.pkl.gz&#39;, protocol=5)
+            if False and parallelize:
+                embedding_features = utils.parallelize(embedding.get_features, 
+                                                       sentences, models=models, 
+                                                       vocab=vocab, data_dir=emb_data_dir,
+                                                       wrap_tqdm=True, desc=&#39;Embedding pipeline&#39;)
+            else:
+                embedding_features = [embedding.get_features(sentence, models_and_methods=models_and_methods, 
+                                                             vocab=vocab, data_dir=emb_data_dir)
+                                      for i, sentence in enumerate(tqdm(sentences, desc=&#39;Embedding pipeline&#39;))]
 
-        # token_dfs = [feature_dict[&#39;token_embeds&#39;] for feature_dict in embedding_features]
-        # token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
+            # a misc. stat being computed that needs to be handled better 
+            # &#34;no&#34; means no. the stat below is counting how many sentences have NO content words (not to be confused with num. content words)
+            no_content_words = len(sentences)-sum(any(s.content_words) for s in sentences)
 
-        # utils.io.log(f&#39;outputting embedding token dataframe to {embedding_out}&#39;)
-        # token_df.to_csv(embedding_out / &#39;token-features.tsv&#39;, sep=&#39;\t&#39;, index=False)
+            utils.io.log(f&#39;sentences without any content words: {no_content_words}/{len(sentences)}; {no_content_words/len(sentences):.2f}&#39;)
 
-        utils.io.log(f&#39;--- finished embedding pipeline&#39;)
+            embedding_out = output_dir / &#39;embedding&#39;
+            embedding_out.mkdir(parents=True, exist_ok=True)
+            
+            
+            # now we want to output stuff from embedding_features (which is returned by the embedding pipeline)
+            # into nicely formatted dataframes.
+            # the structure of what is returned by the embedding pipeline is like so:
+            #   gpt2-xl:
+            #       last: [...] flat multiindexed Pandas series with (layer, dim) as the two indices
+            #       mean: 
+            #   glove:
+            #       mean: [...] flat multiindexed Pandas series with trivially a single layer and 300d, so (1, 300) as the two indices
+            # etc.
 
-    # Plot input data to benchmark data
-    #utils.plot_usr_input_against_benchmark_dist_plots(df_benchmark, sent_embed)
+            # a set of all the models in use
+            all_models_methods = {model_name: feature_dict[&#39;features&#39;][model_name].keys() 
+                                  for feature_dict in embedding_features 
+                                    for model_name in feature_dict[&#39;features&#39;]}
 
-    if process_semantic:
-        pass
+            print(all_models_methods)
 
+            # we want to output BY MODEL
+            for model_name in all_models_methods:
+                # and BY METHOD
+                for method in all_models_methods[model_name]:
+                    # each `feature_dict` corresponds to ONE sentence
+
+                    collected = []
+                    for feature_dict in embedding_features:
+
+                        # all the keys that contain information such as the sentence, UID, filters used etc,
+                        # except for the actual representations obtained from various models.
+                        # we need to know this so we can package all this information together with the outputs by model and method
+                        metadata_keys = {*feature_dict.keys()} - {&#39;features&#39;} # setminus operator
+                        # make a copy of the feature_dict for this sentence excluding the representations themselves
+                        meta_df = {key: feature_dict[key] for key in metadata_keys}
+                        meta_df.update({&#39;model_name&#39;: model_name, &#39;aggregation&#39;: method})
+                        meta_df = pd.DataFrame(meta_df, index=[feature_dict[&#39;index&#39;]])
+                        meta_df.columns = pd.MultiIndex.from_product([[&#39;metadata&#39;], meta_df.columns, [&#39;&#39;]])
+
+                        # model_name -&gt; method -&gt; reprs
+                        pooled_reprs = feature_dict[&#39;features&#39;]
+                        flattened_repr = pooled_reprs[model_name][method]
+
+                        collected += [pd.concat([meta_df, flattened_repr], axis=1)]
+
+                    # create further subdirectories by model and aggregation method
+                    (embedding_out / model_name / method).mkdir(parents=True, exist_ok=True)
+
+                    sentence_df = pd.concat(collected, axis=0)
+
+                    utils.io.log(f&#39;outputting embedding dataframes for {model_name}-{method} to {embedding_out}&#39;)
+                    if output_format == &#39;tsv&#39;:
+                        sentence_df.to_csv(embedding_out / model_name / method / f&#39;{sentence_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
+                        # token_df.to_csv(embedding_out / f&#39;{token_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
+                    elif output_format == &#39;pkl&#39;:
+                        sentence_df.to_pickle(embedding_out / model_name / method / f&#39;{sentence_features_filestem}.pkl.gz&#39;, protocol=5)
+                        # token_df.to_pickle(embedding_out / f&#39;{token_features_filestem}.pkl.gz&#39;, protocol=5)
+
+
+            utils.io.log(f&#39;--- finished embedding pipeline&#39;)
+
+        # Plot input data to benchmark data
+        #utils.plot_usr_input_against_benchmark_dist_plots(df_benchmark, sent_embed)
+
+        if process_semantic:
+            pass
+
+
+    ################################################################################
+    #### \end{run_sentence_features_pipeline} ######################################
+    ################################################################################
     return output_dir</code></pre>
 </details>
 </section>
@@ -408,7 +478,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="sentspace.run_sentence_features_pipeline"><code class="name flex">
-<span>def <span class="ident">run_sentence_features_pipeline</span></span>(<span>input_file: str, stop_words_file: str = None, benchmark_file: str = None, output_dir: str = None, output_format: str = None, process_lexical: bool = False, process_syntax: bool = False, process_embedding: bool = False, process_semantic: bool = False, parallelize: bool = True, emb_data_dir: str = None) ‑> pathlib.Path</span>
+<span>def <span class="ident">run_sentence_features_pipeline</span></span>(<span>input_file: str, stop_words_file: str = None, benchmark_file: str = None, output_dir: str = None, output_format: str = None, batch_size: int = 2000, process_lexical: bool = False, process_syntax: bool = False, process_embedding: bool = False, process_semantic: bool = False, parallelize: bool = True, emb_data_dir: str = None) ‑> pathlib.Path</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Runs the full sentence features pipeline on the given input according to
@@ -436,7 +506,7 @@ compare the current input against; e.g. UD [optional]</dd>
 </summary>
 <pre><code class="python">def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                    benchmark_file: str = None, output_dir: str = None,
-                                   output_format: str = None,
+                                   output_format: str = None, batch_size: int = 2_000,
                                    process_lexical: bool = False, process_syntax: bool = False,
                                    process_embedding: bool = False, process_semantic: bool = False,
                                    parallelize: bool = True,
@@ -478,135 +548,211 @@ compare the current input against; e.g. UD [optional]</dd>
     sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
     utils.io.log(&#39;---done--- reading input sentences&#39;)
 
-    # Get morpheme from polyglot library instead of library
-    # TODO: where was this supposed to be used?
-    # poly_morphemes = utils.get_poly_morpheme(flat_sentence_num, flat_token_list)
 
-    if process_lexical:
-        utils.io.log(&#39;*** running lexical submodule pipeline&#39;)
-        _ = lexical.utils.load_databases(features=&#39;all&#39;)
+    for part, sentence_batch in enumerate(tqdm(utils.io.get_batches(sentences, batch_size=batch_size), 
+                                               desc=&#39;processing batches&#39;)):
+        sentence_features_filestem = f&#39;sentence-features_part{part:0&gt;4}&#39;
+        token_features_filestem = f&#39;token-features_part{part:0&gt;4}&#39;
 
-        if parallelize:
-            lexical_features = utils.parallelize(lexical.get_features, sentences,
-                                                 wrap_tqdm=True, desc=&#39;Lexical pipeline&#39;)
-        else:
-            lexical_features = [lexical.get_features(sentence)
-                                for _, sentence in enumerate(tqdm(sentences, desc=&#39;Lexical pipeline&#39;))]
 
-        lexical_out = output_dir / &#39;lexical&#39;
-        lexical_out.mkdir(parents=True, exist_ok=True)
+        ################################################################################
+        #### LEXICAL FEATURES ##########################################################
+        ################################################################################
+        if process_lexical:
+            utils.io.log(&#39;*** running lexical submodule pipeline&#39;)
+            _ = lexical.utils.load_databases(features=&#39;all&#39;)
 
-        # lexical is a special case since it returns dicts per token (rather than per sentence)
-        # so we want to flatten it so that pandas creates a sensible dataframe from it.
-        token_df = pd.DataFrame(chain.from_iterable(lexical_features))
+            if parallelize:
+                lexical_features = utils.parallelize(lexical.get_features, sentence_batch,
+                                                    wrap_tqdm=True, desc=&#39;Lexical pipeline&#39;)
+            else:
+                lexical_features = [lexical.get_features(sentence)
+                                    for _, sentence in enumerate(tqdm(sentence_batch, desc=&#39;Lexical pipeline&#39;))]
 
-        utils.io.log(f&#39;outputting lexical token dataframe to {lexical_out}&#39;)
-        if output_format == &#39;tsv&#39;:
-            token_df.to_csv(lexical_out / &#39;token-features.tsv&#39;, sep=&#39;\t&#39;, index=False)
-        if output_format == &#39;pkl&#39;:
-            token_df.to_pickle(lexical_out / &#39;token-features.pkl.gz&#39;, protocol=5)
+            lexical_out = output_dir / &#39;lexical&#39;
+            lexical_out.mkdir(parents=True, exist_ok=True)
+            utils.io.log(f&#39;outputting lexical token dataframe to {lexical_out}&#39;)
 
-        utils.io.log(f&#39;--- finished lexical pipeline&#39;)
+            # lexical is a special case since it returns dicts per token (rather than per sentence)
+            # so we want to flatten it so that pandas creates a sensible dataframe from it.
+            token_df = pd.DataFrame(chain.from_iterable(lexical_features))
 
-    if process_syntax:
-        utils.io.log(&#39;*** running syntax submodule pipeline&#39;)
+            if output_format == &#39;tsv&#39;:
+                token_df.to_csv(lexical_out / f&#39;{token_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
+                token_df.groupby(&#39;sentence&#39;).mean().to_csv(lexical_out / f&#39;{sentence_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
+            elif output_format == &#39;pkl&#39;:
+                token_df.to_pickle(lexical_out / f&#39;{token_features_filestem}.pkl.gz&#39;, protocol=5)
+                token_df.groupby(&#39;sentence&#39;).mean().to_pickle(lexical_out / f&#39;{sentence_features_filestem}.pkl.gz&#39;, protocol=5)
+            else:
+                raise ValueError(f&#39;output format {output_format} not known&#39;)
 
-        # as an exception, we do *not* parallelize syntax since the backend server is somehow unable to handle
-        # multiple requests :(
-        syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid())
-                                                                     # !!! TODO:DEBUG
-                           for i, sentence in enumerate(tqdm(sentences, desc=&#39;Syntax pipeline&#39;))]
+            utils.io.log(f&#39;--- finished lexical pipeline&#39;)
 
-        syntax_out = output_dir / &#39;syntax&#39;
-        syntax_out.mkdir(parents=True, exist_ok=True)
 
-        # put all features in the sentence df except the token-level ones
-        token_syntax_features = {&#39;dlt&#39;, &#39;leftcorner&#39;}
-        sentence_df = pd.DataFrame([{k: v for k, v in feature_dict.items() if k not in token_syntax_features}
-                                    for feature_dict in syntax_features], index=[s.uid() for s in sentences])
+        ################################################################################
+        #### SYNTAX FEATURES ###########################################################
+        ################################################################################
+        if process_syntax:
+            utils.io.log(&#39;*** running syntax submodule pipeline&#39;)
 
-        # output gives us dataframes corresponding to each token-level feature. we need to combine these
-        # into a single dataframe
-        # we use functools.reduce to apply the pd.concat function to all the dataframes and join dataframes
-        # that contain different features for the same tokens
-        # NOTE: do NOT use .T.drop_duplicates!!!!
-        # we use df.T.drop_duplicates().T to remove duplicate columns (&#39;token&#39;, &#39;sentence&#39;, &#39;index&#39; etc) that appear in
-        # all/multiple dataframes as part of the standard output schema
-        token_dfs = [reduce(lambda x, y: pd.concat([x, y], axis=1, sort=False),
-                            (v for k, v in feature_dict.items() if k in token_syntax_features)) #.T.drop_duplicates().T
-                     for feature_dict in syntax_features]
+            # as an exception, we do *not* parallelize syntax since the backend server is somehow unable to handle
+            # multiple requests :(
+            syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid())
+                                                                        # !!! TODO:DEBUG
+                            for i, sentence in enumerate(tqdm(sentences, desc=&#39;Syntax pipeline&#39;))]
 
-        # TODO: DEBUG
-        # import IPython
-        # IPython.embed()
+            syntax_out = output_dir / &#39;syntax&#39;
+            syntax_out.mkdir(parents=True, exist_ok=True)
 
-        # by this point we have merged dataframes with tokens along a column (rather than a sentence)
-        # now we need to stack them on top of each other to have all sentences in a single dataframe
-        token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
-        token_df = token_df.loc[:, ~token_df.columns.duplicated()]
+            # put all features in the sentence df except the token-level ones
+            token_syntax_features = {&#39;dlt&#39;, &#39;leftcorner&#39;}
+            sentence_df = pd.DataFrame([{k: v for k, v in feature_dict.items() if k not in token_syntax_features}
+                                        for feature_dict in syntax_features], index=[s.uid() for s in sentences])
 
-        utils.io.log(f&#39;outputting syntax dataframes to {syntax_out}&#39;)
-        if output_format == &#39;tsv&#39;:
-            sentence_df.to_csv(syntax_out / &#39;sentence-features.tsv&#39;, sep=&#39;\t&#39;, index=False)
-            token_df.to_csv(syntax_out / &#39;token-features.tsv&#39;, sep=&#39;\t&#39;, index=False)
-        elif output_format == &#39;pkl&#39;:
-            sentence_df.to_pickle(syntax_out / &#39;sentence-features.pkl.gz&#39;, protocol=5)
-            token_df.to_pickle(syntax_out / &#39;token-features.pkl.gz&#39;, protocol=5)
+            # output gives us dataframes corresponding to each token-level feature. we need to combine these
+            # into a single dataframe
+            # we use functools.reduce to apply the pd.concat function to all the dataframes and join dataframes
+            # that contain different features for the same tokens
+            token_dfs = [reduce(lambda x, y: pd.concat([x, y], axis=1, sort=False),
+                                (v for k, v in feature_dict.items() if k in token_syntax_features))
+                        for feature_dict in syntax_features]
 
-        utils.io.log(f&#39;--- finished syntax pipeline&#39;)
+            # by this point we have merged dataframes with tokens along a column (rather than just a sentence)
+            # now we need to stack them on top of each other to have all tokens across all sentences in a single dataframe
+            token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
+            token_df = token_df.loc[:, ~token_df.columns.duplicated()]
 
-    # Calculate PMI
-    # utils.GrabNGrams(sent_rows,pmi_paths)
-    # utils.pPMI(sent_rows, pmi_paths)
-    # pdb.set_trace()
+            utils.io.log(f&#39;outputting syntax dataframes to {syntax_out}&#39;)
+            if output_format == &#39;tsv&#39;:
+                sentence_df.to_csv(syntax_out / f&#39;{sentence_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
+                token_df.to_csv(syntax_out / f&#39;{token_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
+            elif output_format == &#39;pkl&#39;:
+                sentence_df.to_pickle(syntax_out / f&#39;{sentence_features_filestem}.pkl.gz&#39;, protocol=5)
+                token_df.to_pickle(syntax_out / f&#39;{token_features_filestem}.pkl.gz&#39;, protocol=5)
 
-    if process_embedding:
-        utils.io.log(&#39;*** running embedding submodule pipeline&#39;)
-        # Get GloVE
+            utils.io.log(f&#39;--- finished syntax pipeline&#39;)
 
-        stripped_words = utils.text.strip_words(chain(*[s.tokenized() for s in sentences]), method=&#39;punctuation&#39;)
-        vocab = embedding.utils.get_vocab(stripped_words)
-        _ = embedding.utils.load_embeddings(emb_file=&#39;glove.840B.300d.txt&#39;,
-                                            vocab=(*sorted(vocab),),
-                                            data_dir=emb_data_dir)
+        # Calculate PMI
+        # utils.GrabNGrams(sent_rows,pmi_paths)
+        # utils.pPMI(sent_rows, pmi_paths)
+        # pdb.set_trace()
 
-        # embedding_features = [sentspace.embedding.get_features(sentence, vocab=vocab, data_dir=emb_data_dir,
-        #                                                        identifier=UIDs[i])
-        #                        for i, sentence in enumerate(tqdm(sentences, desc=&#39;Embedding pipeline&#39;))]
-        embedding_features = utils.parallelize(embedding.get_features, 
-                                               sentences,
-                                            #    [s._raw for s in sentences], [s.uid() for s in sentences],
-                                               vocab=vocab, data_dir=emb_data_dir,
-                                               wrap_tqdm=True, desc=&#39;Embedding pipeline&#39;)
-        no_content_words = len(sentences)-sum(any(s.content_words()) for s in sentences)
-        utils.io.log(f&#39;sentences with no content words: {no_content_words}/{len(sentences)}; {no_content_words/len(sentences):.2f}&#39;)
 
-        embedding_out = output_dir / &#39;embedding&#39;
-        embedding_out.mkdir(parents=True, exist_ok=True)
+        ################################################################################
+        #### EMBEDDING FEATURES ########################################################
+        ################################################################################            
+        if process_embedding:
+            utils.io.log(&#39;*** running embedding submodule pipeline&#39;)
 
-        sentence_df = pd.DataFrame([{k: v for k, v in feature_dict.items() if k != &#39;token_embeds&#39;}
-                                    for feature_dict in embedding_features])
+            models_and_methods = [
+                        # ({&#39;glove.840B.300d&#39;}, {&#39;mean&#39;, &#39;median&#39;}), 
+                        # &#39;distilgpt2&#39;,
+                        ({&#39;gpt2-xl&#39;}, {&#39;last&#39;}),
+                        ({&#39;bert-base-uncased&#39;}, {&#39;first&#39;}),
+                     ]
+            
+            vocab = None
+            # does any of the
+            if any(&#39;glove&#39; in model or &#39;word2vec&#39; in model for models, _ in models_and_methods for model in models):
+                # get a vocabulary across all sentences given as input
+                # as the first step, remove any punctuation from the tokens
+                stripped_tokens = utils.text.strip_words(chain(*[s.tokens for s in sentences]), method=&#39;punctuation&#39;)
+                # assemble a set of unique tokens
+                vocab = set(stripped_tokens)
+                # make a spurious function call so that loading glove is cached for subsequent calls
+                # TODO allow specifying which glove/w2v version 
+                _ = embedding.utils.load_embeddings(emb_file=&#39;glove.840B.300d.txt&#39;,
+                                                    vocab=(*sorted(vocab),),
+                                                    data_dir=emb_data_dir)
 
-        utils.io.log(f&#39;outputting embedding dataframe(s) to {embedding_out}&#39;)
-        if output_format == &#39;tsv&#39;:
-            sentence_df.to_csv(embedding_out / &#39;sentence-features.tsv&#39;, sep=&#39;\t&#39;, index=False)
-        elif output_format == &#39;pkl&#39;:
-            sentence_df.to_pickle(embedding_out / &#39;sentence-features.pkl.gz&#39;, protocol=5)
+            if False and parallelize:
+                embedding_features = utils.parallelize(embedding.get_features, 
+                                                       sentences, models=models, 
+                                                       vocab=vocab, data_dir=emb_data_dir,
+                                                       wrap_tqdm=True, desc=&#39;Embedding pipeline&#39;)
+            else:
+                embedding_features = [embedding.get_features(sentence, models_and_methods=models_and_methods, 
+                                                             vocab=vocab, data_dir=emb_data_dir)
+                                      for i, sentence in enumerate(tqdm(sentences, desc=&#39;Embedding pipeline&#39;))]
 
-        # token_dfs = [feature_dict[&#39;token_embeds&#39;] for feature_dict in embedding_features]
-        # token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
+            # a misc. stat being computed that needs to be handled better 
+            # &#34;no&#34; means no. the stat below is counting how many sentences have NO content words (not to be confused with num. content words)
+            no_content_words = len(sentences)-sum(any(s.content_words) for s in sentences)
 
-        # utils.io.log(f&#39;outputting embedding token dataframe to {embedding_out}&#39;)
-        # token_df.to_csv(embedding_out / &#39;token-features.tsv&#39;, sep=&#39;\t&#39;, index=False)
+            utils.io.log(f&#39;sentences without any content words: {no_content_words}/{len(sentences)}; {no_content_words/len(sentences):.2f}&#39;)
 
-        utils.io.log(f&#39;--- finished embedding pipeline&#39;)
+            embedding_out = output_dir / &#39;embedding&#39;
+            embedding_out.mkdir(parents=True, exist_ok=True)
+            
+            
+            # now we want to output stuff from embedding_features (which is returned by the embedding pipeline)
+            # into nicely formatted dataframes.
+            # the structure of what is returned by the embedding pipeline is like so:
+            #   gpt2-xl:
+            #       last: [...] flat multiindexed Pandas series with (layer, dim) as the two indices
+            #       mean: 
+            #   glove:
+            #       mean: [...] flat multiindexed Pandas series with trivially a single layer and 300d, so (1, 300) as the two indices
+            # etc.
 
-    # Plot input data to benchmark data
-    #utils.plot_usr_input_against_benchmark_dist_plots(df_benchmark, sent_embed)
+            # a set of all the models in use
+            all_models_methods = {model_name: feature_dict[&#39;features&#39;][model_name].keys() 
+                                  for feature_dict in embedding_features 
+                                    for model_name in feature_dict[&#39;features&#39;]}
 
-    if process_semantic:
-        pass
+            print(all_models_methods)
 
+            # we want to output BY MODEL
+            for model_name in all_models_methods:
+                # and BY METHOD
+                for method in all_models_methods[model_name]:
+                    # each `feature_dict` corresponds to ONE sentence
+
+                    collected = []
+                    for feature_dict in embedding_features:
+
+                        # all the keys that contain information such as the sentence, UID, filters used etc,
+                        # except for the actual representations obtained from various models.
+                        # we need to know this so we can package all this information together with the outputs by model and method
+                        metadata_keys = {*feature_dict.keys()} - {&#39;features&#39;} # setminus operator
+                        # make a copy of the feature_dict for this sentence excluding the representations themselves
+                        meta_df = {key: feature_dict[key] for key in metadata_keys}
+                        meta_df.update({&#39;model_name&#39;: model_name, &#39;aggregation&#39;: method})
+                        meta_df = pd.DataFrame(meta_df, index=[feature_dict[&#39;index&#39;]])
+                        meta_df.columns = pd.MultiIndex.from_product([[&#39;metadata&#39;], meta_df.columns, [&#39;&#39;]])
+
+                        # model_name -&gt; method -&gt; reprs
+                        pooled_reprs = feature_dict[&#39;features&#39;]
+                        flattened_repr = pooled_reprs[model_name][method]
+
+                        collected += [pd.concat([meta_df, flattened_repr], axis=1)]
+
+                    # create further subdirectories by model and aggregation method
+                    (embedding_out / model_name / method).mkdir(parents=True, exist_ok=True)
+
+                    sentence_df = pd.concat(collected, axis=0)
+
+                    utils.io.log(f&#39;outputting embedding dataframes for {model_name}-{method} to {embedding_out}&#39;)
+                    if output_format == &#39;tsv&#39;:
+                        sentence_df.to_csv(embedding_out / model_name / method / f&#39;{sentence_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
+                        # token_df.to_csv(embedding_out / f&#39;{token_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
+                    elif output_format == &#39;pkl&#39;:
+                        sentence_df.to_pickle(embedding_out / model_name / method / f&#39;{sentence_features_filestem}.pkl.gz&#39;, protocol=5)
+                        # token_df.to_pickle(embedding_out / f&#39;{token_features_filestem}.pkl.gz&#39;, protocol=5)
+
+
+            utils.io.log(f&#39;--- finished embedding pipeline&#39;)
+
+        # Plot input data to benchmark data
+        #utils.plot_usr_input_against_benchmark_dist_plots(df_benchmark, sent_embed)
+
+        if process_semantic:
+            pass
+
+
+    ################################################################################
+    #### \end{run_sentence_features_pipeline} ######################################
+    ################################################################################
     return output_dir</code></pre>
 </details>
 </dd>

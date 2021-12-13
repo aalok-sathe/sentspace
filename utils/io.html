@@ -60,7 +60,7 @@ def create_output_paths(input_file:str, output_dir:str, calling_module=None, sto
     # with open(input_file, &#39;r&#39;) as f:
     output_dir /= (out_file_name + &#39;_md5:&#39; + sentspace.utils.md5(input_file))
     output_dir /= calling_module or &#39;&#39;
-    output_dir /= date.today().strftime(&#39;run_%Y-%m-%d&#39;)
+    # output_dir /= date.today().strftime(&#39;run_%Y-%m-%d&#39;)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     return output_dir
@@ -189,6 +189,19 @@ def read_sentences(filename: str, stop_words_file: str = None):
     return sentences
 
 
+def get_batches(iterable, batch_size:int):
+    &#34;&#34;&#34;
+    splits iterable into batches of size batch_size
+    &#34;&#34;&#34;
+    batch = []
+    for i, item in enumerate(iterable):
+        batch.append(item)
+        if (i + 1) % batch_size == 0:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
+
 
 def load_surprisal(file=&#39;pickle/surprisal-3_dict.pkl&#39;):
     &#34;&#34;&#34;
@@ -264,7 +277,7 @@ def log(message, type=&#39;INFO&#39;):
     # with open(input_file, &#39;r&#39;) as f:
     output_dir /= (out_file_name + &#39;_md5:&#39; + sentspace.utils.md5(input_file))
     output_dir /= calling_module or &#39;&#39;
-    output_dir /= date.today().strftime(&#39;run_%Y-%m-%d&#39;)
+    # output_dir /= date.today().strftime(&#39;run_%Y-%m-%d&#39;)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     return output_dir
@@ -301,6 +314,29 @@ def log(message, type=&#39;INFO&#39;):
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def dump_features(): pass</code></pre>
+</details>
+</dd>
+<dt id="sentspace.utils.io.get_batches"><code class="name flex">
+<span>def <span class="ident">get_batches</span></span>(<span>iterable, batch_size: int)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>splits iterable into batches of size batch_size</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_batches(iterable, batch_size:int):
+    &#34;&#34;&#34;
+    splits iterable into batches of size batch_size
+    &#34;&#34;&#34;
+    batch = []
+    for i, item in enumerate(iterable):
+        batch.append(item)
+        if (i + 1) % batch_size == 0:
+            yield batch
+            batch = []
+    if batch:
+        yield batch</code></pre>
 </details>
 </dd>
 <dt id="sentspace.utils.io.load_surprisal"><code class="name flex">
@@ -469,9 +505,10 @@ for stopwords</p>
 </ul>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
-<ul class="">
+<ul class="two-column">
 <li><code><a title="sentspace.utils.io.create_output_paths" href="#sentspace.utils.io.create_output_paths">create_output_paths</a></code></li>
 <li><code><a title="sentspace.utils.io.dump_features" href="#sentspace.utils.io.dump_features">dump_features</a></code></li>
+<li><code><a title="sentspace.utils.io.get_batches" href="#sentspace.utils.io.get_batches">get_batches</a></code></li>
 <li><code><a title="sentspace.utils.io.load_surprisal" href="#sentspace.utils.io.load_surprisal">load_surprisal</a></code></li>
 <li><code><a title="sentspace.utils.io.log" href="#sentspace.utils.io.log">log</a></code></li>
 <li><code><a title="sentspace.utils.io.read_sentences" href="#sentspace.utils.io.read_sentences">read_sentences</a></code></li>

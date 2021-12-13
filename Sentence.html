@@ -110,9 +110,9 @@ class Sentence:
         &#34;&#34;&#34;Compute length of the sentence in terms of # of tokens
 
         Returns:
-            int: length of the tokenized sentence
+            int: # of tokens in this sentence (according to the default tokenization method `text.tokenize`)
         &#34;&#34;&#34;        
-        return len(self.tokenized())
+        return len(self.tokens)
 
     def __getitem__(self, key: slice) -&gt; str:
         &#34;&#34;&#34;Support indexing into the tokens of the sentence
@@ -123,15 +123,20 @@ class Sentence:
         Returns:
             str: token at the indexed position in the tokenized form
         &#34;&#34;&#34;
-        return self.tokenized()[key]
+        return self.tokens[key]
 
     def __iter__(self):
         &#39;&#39;&#39;we are iterable, so we return an iterator over tokens&#39;&#39;&#39;
-        return iter(self.tokenized())
+        return iter(self.tokens)
 
+    @property
     def uid(self) -&gt; str:
         return self._uid
 
+    @property
+    def tokens(self) -&gt; typing.Tuple[str]:
+        return self.tokenized()
+    # ^
     def tokenized(self, tokenize_method=text.tokenize) -&gt; typing.Tuple[str]:
         &#34;&#34;&#34;Tokenize and store tokenized form as a tuple. The tokenize_method is executed only
             the first time; each subsequent call to tokenized() returns the value of a stored variable
@@ -143,19 +148,24 @@ class Sentence:
             tuple: tokenized form
         &#34;&#34;&#34;        
         if self._tokens is None:
-            self._tokens = tuple(tokenize_method(self._raw))
+            self._tokens = tuple(tokenize_method(self._raw.lower()))
         return self._tokens
 
-    def lowercased_tokens(self) -&gt; typing.Tuple[str]:
-        &#34;&#34;&#34;Return lowercased tokens of this sentence
+    # @property
+    # def lowercased_tokens(self) -&gt; typing.Tuple[str]:
+    #     &#34;&#34;&#34;Return lowercased tokens of this sentence
 
-        Returns:
-            typing.Tuple[str]: tuple of lowercased tokens from this sentence
-        &#34;&#34;&#34;        
-        if self._lower is None:
-            self._lower = [*map(lambda x: x.lower, self.tokenized())]
-        return self._lower
+    #     Returns:
+    #         typing.Tuple[str]: tuple of lowercased tokens from this sentence
+    #     &#34;&#34;&#34;        
+    #     if self._lower is None:
+    #         self._lower = [*map(lambda x: x.lower, self.tokenized())]
+    #     return self._lower
 
+    @property
+    def pos_tags(self) -&gt; typing.Tuple[str]:
+        return self.pos_tagged()
+    # ^
     def pos_tagged(self) -&gt; typing.Tuple[str]:
         &#34;&#34;&#34;POS-tag the sentence and return the result. Note, this method is also executed
             only once ever; each subsequent time a stored value is returned.
@@ -164,9 +174,13 @@ class Sentence:
             tuple: POS tags
         &#34;&#34;&#34;        
         if self._pos is None:
-            self._pos = text.get_pos_tags(self.tokenized())
+            self._pos = text.get_pos_tags(self.tokens)
         return self._pos
 
+    @property
+    def lemmas(self) -&gt; typing.Tuple[str]:
+        return self.lemmatized()
+    # ^
     def lemmatized(self) -&gt; typing.Tuple[str]:
         &#34;&#34;&#34;Lemmatize and return the lemmas
 
@@ -174,15 +188,17 @@ class Sentence:
             tuple: Lemmas
         &#34;&#34;&#34;        
         if self._lemmas is None:
-            self._lemmas = text.get_lemmatized_tokens(self.tokenized(), text.get_pos_tags(self.tokenized()))
+            self._lemmas = text.get_lemmatized_tokens(self.tokens, self.pos_tags)
         return self._lemmas
 
+    @property
     def clean_tokens(self) -&gt; typing.Tuple[str]:
         if self._cleaned is None:
-            nonletters = text.get_nonletters(self.tokenized(), exceptions=[])
-            self._cleaned = text.strip_words(self.tokenized(), method=&#39;punctuation&#39;, nonletters=nonletters)
+            nonletters = text.get_nonletters(self.tokens, exceptions=[])
+            self._cleaned = text.strip_words(self.tokens, method=&#39;punctuation&#39;, nonletters=nonletters)
         return self._cleaned
 
+    @property
     def content_words(self) -&gt; typing.List[int]:
         &#34;&#34;&#34;Check whether each word is a &#39;content word&#39;. Returns a list containing 0 or 1 as boolean
             mask indicating whether the word at that position is a content word or not
@@ -191,7 +207,7 @@ class Sentence:
             List[int]: boolean mask indicating content words
         &#34;&#34;&#34;        
         if self._content is None:
-            self._content = text.get_is_content(self.pos_tagged(), content_pos=text.pos_for_content)
+            self._content = text.get_is_content(self.pos_tags, content_pos=text.pos_for_content)
         return self._content</code></pre>
 </details>
 </section>
@@ -301,9 +317,9 @@ UID-less usage</dd>
         &#34;&#34;&#34;Compute length of the sentence in terms of # of tokens
 
         Returns:
-            int: length of the tokenized sentence
+            int: # of tokens in this sentence (according to the default tokenization method `text.tokenize`)
         &#34;&#34;&#34;        
-        return len(self.tokenized())
+        return len(self.tokens)
 
     def __getitem__(self, key: slice) -&gt; str:
         &#34;&#34;&#34;Support indexing into the tokens of the sentence
@@ -314,15 +330,20 @@ UID-less usage</dd>
         Returns:
             str: token at the indexed position in the tokenized form
         &#34;&#34;&#34;
-        return self.tokenized()[key]
+        return self.tokens[key]
 
     def __iter__(self):
         &#39;&#39;&#39;we are iterable, so we return an iterator over tokens&#39;&#39;&#39;
-        return iter(self.tokenized())
+        return iter(self.tokens)
 
+    @property
     def uid(self) -&gt; str:
         return self._uid
 
+    @property
+    def tokens(self) -&gt; typing.Tuple[str]:
+        return self.tokenized()
+    # ^
     def tokenized(self, tokenize_method=text.tokenize) -&gt; typing.Tuple[str]:
         &#34;&#34;&#34;Tokenize and store tokenized form as a tuple. The tokenize_method is executed only
             the first time; each subsequent call to tokenized() returns the value of a stored variable
@@ -334,19 +355,24 @@ UID-less usage</dd>
             tuple: tokenized form
         &#34;&#34;&#34;        
         if self._tokens is None:
-            self._tokens = tuple(tokenize_method(self._raw))
+            self._tokens = tuple(tokenize_method(self._raw.lower()))
         return self._tokens
 
-    def lowercased_tokens(self) -&gt; typing.Tuple[str]:
-        &#34;&#34;&#34;Return lowercased tokens of this sentence
+    # @property
+    # def lowercased_tokens(self) -&gt; typing.Tuple[str]:
+    #     &#34;&#34;&#34;Return lowercased tokens of this sentence
 
-        Returns:
-            typing.Tuple[str]: tuple of lowercased tokens from this sentence
-        &#34;&#34;&#34;        
-        if self._lower is None:
-            self._lower = [*map(lambda x: x.lower, self.tokenized())]
-        return self._lower
+    #     Returns:
+    #         typing.Tuple[str]: tuple of lowercased tokens from this sentence
+    #     &#34;&#34;&#34;        
+    #     if self._lower is None:
+    #         self._lower = [*map(lambda x: x.lower, self.tokenized())]
+    #     return self._lower
 
+    @property
+    def pos_tags(self) -&gt; typing.Tuple[str]:
+        return self.pos_tagged()
+    # ^
     def pos_tagged(self) -&gt; typing.Tuple[str]:
         &#34;&#34;&#34;POS-tag the sentence and return the result. Note, this method is also executed
             only once ever; each subsequent time a stored value is returned.
@@ -355,9 +381,13 @@ UID-less usage</dd>
             tuple: POS tags
         &#34;&#34;&#34;        
         if self._pos is None:
-            self._pos = text.get_pos_tags(self.tokenized())
+            self._pos = text.get_pos_tags(self.tokens)
         return self._pos
 
+    @property
+    def lemmas(self) -&gt; typing.Tuple[str]:
+        return self.lemmatized()
+    # ^
     def lemmatized(self) -&gt; typing.Tuple[str]:
         &#34;&#34;&#34;Lemmatize and return the lemmas
 
@@ -365,15 +395,17 @@ UID-less usage</dd>
             tuple: Lemmas
         &#34;&#34;&#34;        
         if self._lemmas is None:
-            self._lemmas = text.get_lemmatized_tokens(self.tokenized(), text.get_pos_tags(self.tokenized()))
+            self._lemmas = text.get_lemmatized_tokens(self.tokens, self.pos_tags)
         return self._lemmas
 
+    @property
     def clean_tokens(self) -&gt; typing.Tuple[str]:
         if self._cleaned is None:
-            nonletters = text.get_nonletters(self.tokenized(), exceptions=[])
-            self._cleaned = text.strip_words(self.tokenized(), method=&#39;punctuation&#39;, nonletters=nonletters)
+            nonletters = text.get_nonletters(self.tokens, exceptions=[])
+            self._cleaned = text.strip_words(self.tokens, method=&#39;punctuation&#39;, nonletters=nonletters)
         return self._cleaned
 
+    @property
     def content_words(self) -&gt; typing.List[int]:
         &#34;&#34;&#34;Check whether each word is a &#39;content word&#39;. Returns a list containing 0 or 1 as boolean
             mask indicating whether the word at that position is a content word or not
@@ -382,30 +414,27 @@ UID-less usage</dd>
             List[int]: boolean mask indicating content words
         &#34;&#34;&#34;        
         if self._content is None:
-            self._content = text.get_is_content(self.pos_tagged(), content_pos=text.pos_for_content)
+            self._content = text.get_is_content(self.pos_tags, content_pos=text.pos_for_content)
         return self._content</code></pre>
 </details>
-<h3>Methods</h3>
+<h3>Instance variables</h3>
 <dl>
-<dt id="sentspace.Sentence.Sentence.clean_tokens"><code class="name flex">
-<span>def <span class="ident">clean_tokens</span></span>(<span>self) ‑> Tuple[str]</span>
-</code></dt>
+<dt id="sentspace.Sentence.Sentence.clean_tokens"><code class="name">var <span class="ident">clean_tokens</span> : Tuple[str]</code></dt>
 <dd>
 <div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def clean_tokens(self) -&gt; typing.Tuple[str]:
+<pre><code class="python">@property
+def clean_tokens(self) -&gt; typing.Tuple[str]:
     if self._cleaned is None:
-        nonletters = text.get_nonletters(self.tokenized(), exceptions=[])
-        self._cleaned = text.strip_words(self.tokenized(), method=&#39;punctuation&#39;, nonletters=nonletters)
+        nonletters = text.get_nonletters(self.tokens, exceptions=[])
+        self._cleaned = text.strip_words(self.tokens, method=&#39;punctuation&#39;, nonletters=nonletters)
     return self._cleaned</code></pre>
 </details>
 </dd>
-<dt id="sentspace.Sentence.Sentence.content_words"><code class="name flex">
-<span>def <span class="ident">content_words</span></span>(<span>self) ‑> List[int]</span>
-</code></dt>
+<dt id="sentspace.Sentence.Sentence.content_words"><code class="name">var <span class="ident">content_words</span> : List[int]</code></dt>
 <dd>
 <div class="desc"><p>Check whether each word is a 'content word'. Returns a list containing 0 or 1 as boolean
 mask indicating whether the word at that position is a content word or not</p>
@@ -418,7 +447,8 @@ mask indicating whether the word at that position is a content word or not</p>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def content_words(self) -&gt; typing.List[int]:
+<pre><code class="python">@property
+def content_words(self) -&gt; typing.List[int]:
     &#34;&#34;&#34;Check whether each word is a &#39;content word&#39;. Returns a list containing 0 or 1 as boolean
         mask indicating whether the word at that position is a content word or not
 
@@ -426,10 +456,61 @@ mask indicating whether the word at that position is a content word or not</p>
         List[int]: boolean mask indicating content words
     &#34;&#34;&#34;        
     if self._content is None:
-        self._content = text.get_is_content(self.pos_tagged(), content_pos=text.pos_for_content)
+        self._content = text.get_is_content(self.pos_tags, content_pos=text.pos_for_content)
     return self._content</code></pre>
 </details>
 </dd>
+<dt id="sentspace.Sentence.Sentence.lemmas"><code class="name">var <span class="ident">lemmas</span> : Tuple[str]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def lemmas(self) -&gt; typing.Tuple[str]:
+    return self.lemmatized()</code></pre>
+</details>
+</dd>
+<dt id="sentspace.Sentence.Sentence.pos_tags"><code class="name">var <span class="ident">pos_tags</span> : Tuple[str]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def pos_tags(self) -&gt; typing.Tuple[str]:
+    return self.pos_tagged()</code></pre>
+</details>
+</dd>
+<dt id="sentspace.Sentence.Sentence.tokens"><code class="name">var <span class="ident">tokens</span> : Tuple[str]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def tokens(self) -&gt; typing.Tuple[str]:
+    return self.tokenized()</code></pre>
+</details>
+</dd>
+<dt id="sentspace.Sentence.Sentence.uid"><code class="name">var <span class="ident">uid</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def uid(self) -&gt; str:
+    return self._uid</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
 <dt id="sentspace.Sentence.Sentence.lemmatized"><code class="name flex">
 <span>def <span class="ident">lemmatized</span></span>(<span>self) ‑> Tuple[str]</span>
 </code></dt>
@@ -451,33 +532,8 @@ mask indicating whether the word at that position is a content word or not</p>
         tuple: Lemmas
     &#34;&#34;&#34;        
     if self._lemmas is None:
-        self._lemmas = text.get_lemmatized_tokens(self.tokenized(), text.get_pos_tags(self.tokenized()))
+        self._lemmas = text.get_lemmatized_tokens(self.tokens, self.pos_tags)
     return self._lemmas</code></pre>
-</details>
-</dd>
-<dt id="sentspace.Sentence.Sentence.lowercased_tokens"><code class="name flex">
-<span>def <span class="ident">lowercased_tokens</span></span>(<span>self) ‑> Tuple[str]</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Return lowercased tokens of this sentence</p>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><code>typing.Tuple[str]</code></dt>
-<dd>tuple of lowercased tokens from this sentence</dd>
-</dl></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def lowercased_tokens(self) -&gt; typing.Tuple[str]:
-    &#34;&#34;&#34;Return lowercased tokens of this sentence
-
-    Returns:
-        typing.Tuple[str]: tuple of lowercased tokens from this sentence
-    &#34;&#34;&#34;        
-    if self._lower is None:
-        self._lower = [*map(lambda x: x.lower, self.tokenized())]
-    return self._lower</code></pre>
 </details>
 </dd>
 <dt id="sentspace.Sentence.Sentence.pos_tagged"><code class="name flex">
@@ -503,7 +559,7 @@ only once ever; each subsequent time a stored value is returned.</p>
         tuple: POS tags
     &#34;&#34;&#34;        
     if self._pos is None:
-        self._pos = text.get_pos_tags(self.tokenized())
+        self._pos = text.get_pos_tags(self.tokens)
     return self._pos</code></pre>
 </details>
 </dd>
@@ -538,21 +594,8 @@ the first time; each subsequent call to tokenized() returns the value of a store
         tuple: tokenized form
     &#34;&#34;&#34;        
     if self._tokens is None:
-        self._tokens = tuple(tokenize_method(self._raw))
+        self._tokens = tuple(tokenize_method(self._raw.lower()))
     return self._tokens</code></pre>
-</details>
-</dd>
-<dt id="sentspace.Sentence.Sentence.uid"><code class="name flex">
-<span>def <span class="ident">uid</span></span>(<span>self) ‑> str</span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def uid(self) -&gt; str:
-    return self._uid</code></pre>
 </details>
 </dd>
 </dl>
@@ -598,10 +641,12 @@ The argument must be an iterable if specified.</p></div>
 <ul class="two-column">
 <li><code><a title="sentspace.Sentence.Sentence.clean_tokens" href="#sentspace.Sentence.Sentence.clean_tokens">clean_tokens</a></code></li>
 <li><code><a title="sentspace.Sentence.Sentence.content_words" href="#sentspace.Sentence.Sentence.content_words">content_words</a></code></li>
+<li><code><a title="sentspace.Sentence.Sentence.lemmas" href="#sentspace.Sentence.Sentence.lemmas">lemmas</a></code></li>
 <li><code><a title="sentspace.Sentence.Sentence.lemmatized" href="#sentspace.Sentence.Sentence.lemmatized">lemmatized</a></code></li>
-<li><code><a title="sentspace.Sentence.Sentence.lowercased_tokens" href="#sentspace.Sentence.Sentence.lowercased_tokens">lowercased_tokens</a></code></li>
 <li><code><a title="sentspace.Sentence.Sentence.pos_tagged" href="#sentspace.Sentence.Sentence.pos_tagged">pos_tagged</a></code></li>
+<li><code><a title="sentspace.Sentence.Sentence.pos_tags" href="#sentspace.Sentence.Sentence.pos_tags">pos_tags</a></code></li>
 <li><code><a title="sentspace.Sentence.Sentence.tokenized" href="#sentspace.Sentence.Sentence.tokenized">tokenized</a></code></li>
+<li><code><a title="sentspace.Sentence.Sentence.tokens" href="#sentspace.Sentence.Sentence.tokens">tokens</a></code></li>
 <li><code><a title="sentspace.Sentence.Sentence.uid" href="#sentspace.Sentence.Sentence.uid">uid</a></code></li>
 </ul>
 </li>

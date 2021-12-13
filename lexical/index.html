@@ -36,94 +36,31 @@ from sentspace.utils import io, text
 from sentspace.utils.caching import cache_to_disk, cache_to_mem
 
 
-def get_features(sentence: sentspace.Sentence.Sentence,  identifier=None, lock=None) -&gt; dict:
+def get_features(sentence: sentspace.Sentence.Sentence, lock=None) -&gt; dict:
 
     # io.log(f&#39;computing lexical featuures for `{sentence}`&#39;)
 
-    # if lock is not None:
-    #     lock.acquire()
+    # if lock: lock.acquire()
     databases = utils.load_databases(features=&#39;all&#39;)
-    # if lock is not None:
-    #     lock.release()
+    # if lock: lock.release()
 
-    # tokenized = tuple(sentence.split())
-    # tokenized = text.tokenize(sentence)
-
-    # lemmatized_sentence = text.get_lemmatized_tokens(tokenized, text.get_pos_tags(tokenized))
-    # clean words: strip nonletters/punctuation and lowercase
-    # find all non-letter characters in file
-
-    # nonletters = text.get_nonletters(sentence.tokenized(), exceptions=[])
-    # cleaned_sentence = text.strip_words(sentence.tokenized(), method=&#39;punctuation&#39;, nonletters=nonletters)
-    # tagged_sentence = text.get_pos_tags(tokenized)
-    # pronoun_ratio = utils.get_pronoun_ratio(tagged_sentence)
-    # is_content_word = text.get_is_content(tagged_sentence, content_pos=text.pos_for_content)  # content or function word
-    # content_ratio = utils.get_content_ratio(is_content_word)
-
-    database_features = utils.get_all_features_merged(sentence.tokenized(), sentence.lemmatized(), databases)  # lexical features
+    features_from_database = utils.get_all_features(sentence, databases)  # lexical features
     
-    return [{
-                &#39;index&#39;: identifier,
-                &#39;sentence&#39;: str(sentence),
-                &#39;token&#39;: token,
-                &#39;lemma&#39;: lemma,
-                # &#39;cleaned_token&#39;: cleaned_token,
-                &#39;tag&#39;: tag,
-                &#39;content_word&#39;: content_word,
-                **dict(zip(database_features.keys(), db_vals))
-            } for (token, 
-                   lemma, 
-                #    cleaned_token, 
-                   tag, 
-                   content_word,
-                   db_vals) in zip(sentence.tokenized(),
-                                   sentence.lemmatized(),
-                                #    sentence.cleaned(), 
-                                   sentence.pos_tagged(),
-                                   sentence.content_words(),
-                                   database_features.values())
-    ]
-    
-    {
-        # &#39;index&#39;: None,
-        &#39;sentence&#39;: sentence,
-        &#39;token&#39;: tokenized,
-        &#39;lemma&#39;: lemmatized_sentence,
-        &#39;cleaned_token&#39;: cleaned_sentence,
+    # TODO[?] return dict of lists, to be consistent with API?
+    # return list of token-level features, as a dict per token
+    returnable = []
+    for i, token in enumerate(sentence.tokens):
+        db_features_slice = {feature: features_from_database[feature][i] for feature in features_from_database}
+        returnable += [{&#39;index&#39;: sentence.uid,
+                        &#39;sentence&#39;: str(sentence),
+                        &#39;token&#39;: token,
+                        &#39;lemma&#39;: sentence.lemmas[i],
+                        &#39;tag&#39;: sentence.pos_tags[i],
+                        &#39;content_word&#39;: sentence.content_words[i],
+                        **db_features_slice
+                       }]
 
-        &#39;tags&#39;: tagged_sentence,
-        &#39;content_words&#39;: is_content_word,
-        # &#39;pronoun_ratio&#39;: pronoun_ratio,
-        # &#39;content_ratio&#39;: content_ratio,
-
-        **database_features
-    }
-
-    # Results
-    # result = sentspace.utils.compile_results(flat_token_list, flat_cleaned_token_list, flat_lemmatized_token_list,
-    #                                          flat_pos_tags, flat_is_content_word, setlst,
-    #                                          flat_sentence_num, flat_token_lens, merged_vals)
-
-    result = sentspace.utils.compile_results(sentence, cleaned_sentence, lemmatized_sentence,
-                                             tagged_sentence, content_words, setlst,
-                                             flat_sentence_num, flat_token_lens, merged_vals)
-
-    result = utils.transform_features(result, *[&#39;default&#39;, None, None])
-
-    # features_used = [&#39;Age of acquisition&#39;, &#39;Arousal&#39;, &#39;Concreteness&#39;,
-    #                 &#39;Contextual diversity (log)&#39;, &#39;Degree centrality (log)&#39;,
-    #                 &#39;Frequency of orthographic neighbors (log)&#39;, &#39;Lexical decision RT&#39;,
-    #                 &#39;Lexical frequency (log)&#39;, &#39;Lexical surprisal&#39;, &#39;Number of morphemes&#39;, &#39;Number of morphemes poly&#39;,
-    #                 &#39;Orthography-Semantics Consistency&#39;, &#39;Prevalence&#39;, &#39;Valence&#39;, &#39;Word length&#39;, &#39;Polysemy&#39;]
-
-    # print(&#39;Computing sentence embeddings&#39;)
-    # sent_embed = utils.get_sent_vectors(result, features_used, embed_method,
-    #                                     content_only=content_only,
-    #                                     pronoun_ratios=pronoun_ratios,
-    #                                     )
-    # lex_per_word_with_uniform_column = utils.conform_word_lex_df_columns(
-    #     result)
-    # lex_per_word_with_uniform_column.to_csv(word_lex_output_path, index=False)
+    return returnable
 
     # print(&#39;Writing lex sentence embedding to csv at &#39; + embed_lex_output_path)
     # sent_embed.to_csv(embed_lex_output_path, index=False)
@@ -160,7 +97,7 @@ def get_features(sentence: sentspace.Sentence.Sentence,  identifier=None, lock=N
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="sentspace.lexical.get_features"><code class="name flex">
-<span>def <span class="ident">get_features</span></span>(<span>sentence: <a title="sentspace.Sentence.Sentence" href="../Sentence.html#sentspace.Sentence.Sentence">Sentence</a>, identifier=None, lock=None) ‑> dict</span>
+<span>def <span class="ident">get_features</span></span>(<span>sentence: <a title="sentspace.Sentence.Sentence" href="../Sentence.html#sentspace.Sentence.Sentence">Sentence</a>, lock=None) ‑> dict</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -168,94 +105,31 @@ def get_features(sentence: sentspace.Sentence.Sentence,  identifier=None, lock=N
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_features(sentence: sentspace.Sentence.Sentence,  identifier=None, lock=None) -&gt; dict:
+<pre><code class="python">def get_features(sentence: sentspace.Sentence.Sentence, lock=None) -&gt; dict:
 
     # io.log(f&#39;computing lexical featuures for `{sentence}`&#39;)
 
-    # if lock is not None:
-    #     lock.acquire()
+    # if lock: lock.acquire()
     databases = utils.load_databases(features=&#39;all&#39;)
-    # if lock is not None:
-    #     lock.release()
+    # if lock: lock.release()
 
-    # tokenized = tuple(sentence.split())
-    # tokenized = text.tokenize(sentence)
-
-    # lemmatized_sentence = text.get_lemmatized_tokens(tokenized, text.get_pos_tags(tokenized))
-    # clean words: strip nonletters/punctuation and lowercase
-    # find all non-letter characters in file
-
-    # nonletters = text.get_nonletters(sentence.tokenized(), exceptions=[])
-    # cleaned_sentence = text.strip_words(sentence.tokenized(), method=&#39;punctuation&#39;, nonletters=nonletters)
-    # tagged_sentence = text.get_pos_tags(tokenized)
-    # pronoun_ratio = utils.get_pronoun_ratio(tagged_sentence)
-    # is_content_word = text.get_is_content(tagged_sentence, content_pos=text.pos_for_content)  # content or function word
-    # content_ratio = utils.get_content_ratio(is_content_word)
-
-    database_features = utils.get_all_features_merged(sentence.tokenized(), sentence.lemmatized(), databases)  # lexical features
+    features_from_database = utils.get_all_features(sentence, databases)  # lexical features
     
-    return [{
-                &#39;index&#39;: identifier,
-                &#39;sentence&#39;: str(sentence),
-                &#39;token&#39;: token,
-                &#39;lemma&#39;: lemma,
-                # &#39;cleaned_token&#39;: cleaned_token,
-                &#39;tag&#39;: tag,
-                &#39;content_word&#39;: content_word,
-                **dict(zip(database_features.keys(), db_vals))
-            } for (token, 
-                   lemma, 
-                #    cleaned_token, 
-                   tag, 
-                   content_word,
-                   db_vals) in zip(sentence.tokenized(),
-                                   sentence.lemmatized(),
-                                #    sentence.cleaned(), 
-                                   sentence.pos_tagged(),
-                                   sentence.content_words(),
-                                   database_features.values())
-    ]
-    
-    {
-        # &#39;index&#39;: None,
-        &#39;sentence&#39;: sentence,
-        &#39;token&#39;: tokenized,
-        &#39;lemma&#39;: lemmatized_sentence,
-        &#39;cleaned_token&#39;: cleaned_sentence,
+    # TODO[?] return dict of lists, to be consistent with API?
+    # return list of token-level features, as a dict per token
+    returnable = []
+    for i, token in enumerate(sentence.tokens):
+        db_features_slice = {feature: features_from_database[feature][i] for feature in features_from_database}
+        returnable += [{&#39;index&#39;: sentence.uid,
+                        &#39;sentence&#39;: str(sentence),
+                        &#39;token&#39;: token,
+                        &#39;lemma&#39;: sentence.lemmas[i],
+                        &#39;tag&#39;: sentence.pos_tags[i],
+                        &#39;content_word&#39;: sentence.content_words[i],
+                        **db_features_slice
+                       }]
 
-        &#39;tags&#39;: tagged_sentence,
-        &#39;content_words&#39;: is_content_word,
-        # &#39;pronoun_ratio&#39;: pronoun_ratio,
-        # &#39;content_ratio&#39;: content_ratio,
-
-        **database_features
-    }
-
-    # Results
-    # result = sentspace.utils.compile_results(flat_token_list, flat_cleaned_token_list, flat_lemmatized_token_list,
-    #                                          flat_pos_tags, flat_is_content_word, setlst,
-    #                                          flat_sentence_num, flat_token_lens, merged_vals)
-
-    result = sentspace.utils.compile_results(sentence, cleaned_sentence, lemmatized_sentence,
-                                             tagged_sentence, content_words, setlst,
-                                             flat_sentence_num, flat_token_lens, merged_vals)
-
-    result = utils.transform_features(result, *[&#39;default&#39;, None, None])
-
-    # features_used = [&#39;Age of acquisition&#39;, &#39;Arousal&#39;, &#39;Concreteness&#39;,
-    #                 &#39;Contextual diversity (log)&#39;, &#39;Degree centrality (log)&#39;,
-    #                 &#39;Frequency of orthographic neighbors (log)&#39;, &#39;Lexical decision RT&#39;,
-    #                 &#39;Lexical frequency (log)&#39;, &#39;Lexical surprisal&#39;, &#39;Number of morphemes&#39;, &#39;Number of morphemes poly&#39;,
-    #                 &#39;Orthography-Semantics Consistency&#39;, &#39;Prevalence&#39;, &#39;Valence&#39;, &#39;Word length&#39;, &#39;Polysemy&#39;]
-
-    # print(&#39;Computing sentence embeddings&#39;)
-    # sent_embed = utils.get_sent_vectors(result, features_used, embed_method,
-    #                                     content_only=content_only,
-    #                                     pronoun_ratios=pronoun_ratios,
-    #                                     )
-    # lex_per_word_with_uniform_column = utils.conform_word_lex_df_columns(
-    #     result)
-    # lex_per_word_with_uniform_column.to_csv(word_lex_output_path, index=False)
+    return returnable
 
     # print(&#39;Writing lex sentence embedding to csv at &#39; + embed_lex_output_path)
     # sent_embed.to_csv(embed_lex_output_path, index=False)
