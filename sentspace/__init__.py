@@ -36,7 +36,6 @@ import pandas as pd
 from functools import reduce 
 from itertools import chain
 from tqdm import tqdm
-import pickle 
 
 
 def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
@@ -83,22 +82,26 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
     sentences = utils.io.read_sentences(input_file, stop_words_file=stop_words_file)
     utils.io.log('---done--- reading input sentences')
 
-    # Get morpheme from polyglot library instead of library
-    # TODO: where was this supposed to be used?
-    # poly_morphemes = utils.get_poly_morpheme(flat_sentence_num, flat_token_list)
 
-    if process_lexical:
-        utils.io.log('*** running lexical submodule pipeline')
-        _ = lexical.utils.load_databases(features='all')
+    for part, sentence_batch in enumerate(tqdm(utils.io.get_batches(sentences, batch_size=batch_size), 
+                                               desc='processing batches')):
+        sentence_features_filestem = f'sentence-features_part{part:0>4}'
+        token_features_filestem = f'token-features_part{part:0>4}'
 
-        for i, batch in enumerate(tqdm(utils.io.get_batches(sentences, batch_size=batch_size))):
-        
+
+        ################################################################################
+        #### LEXICAL FEATURES ##########################################################
+        ################################################################################
+        if process_lexical:
+            utils.io.log('*** running lexical submodule pipeline')
+            _ = lexical.utils.load_databases(features='all')
+
             if parallelize:
-                lexical_features = utils.parallelize(lexical.get_features, batch,
-                                                     wrap_tqdm=True, desc='Lexical pipeline')
+                lexical_features = utils.parallelize(lexical.get_features, sentence_batch,
+                                                    wrap_tqdm=True, desc='Lexical pipeline')
             else:
                 lexical_features = [lexical.get_features(sentence)
-                                    for _, sentence in enumerate(tqdm(batch, desc='Lexical pipeline'))]
+                                    for _, sentence in enumerate(tqdm(sentence_batch, desc='Lexical pipeline'))]
 
             lexical_out = output_dir / 'lexical'
             lexical_out.mkdir(parents=True, exist_ok=True)
@@ -109,61 +112,64 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
             token_df = pd.DataFrame(chain.from_iterable(lexical_features))
 
             if output_format == 'tsv':
-                token_df.to_csv(lexical_out / f'token-features_part{i:0>4}.tsv', sep='\t', index=False)
-                token_df.groupby('sentence').mean().to_csv(lexical_out / f'sentence-features_part{i:0>4}.tsv', sep='\t', index=False)
+                token_df.to_csv(lexical_out / f'{token_features_filestem}.tsv', sep='\t', index=False)
+                token_df.groupby('sentence').mean().to_csv(lexical_out / f'{sentence_features_filestem}.tsv', sep='\t', index=False)
             elif output_format == 'pkl':
-                token_df.to_pickle(lexical_out / f'token-features_part{i:0>4}.pkl.gz', protocol=5)
-                token_df.groupby('sentence').mean().to_pickle(lexical_out / f'sentence-features_part{i:0>4}.pkl.gz', protocol=5)
+                token_df.to_pickle(lexical_out / f'{token_features_filestem}.pkl.gz', protocol=5)
+                token_df.groupby('sentence').mean().to_pickle(lexical_out / f'{sentence_features_filestem}.pkl.gz', protocol=5)
             else:
                 raise ValueError(f'output format {output_format} not known')
 
-        utils.io.log(f'--- finished lexical pipeline')
+            utils.io.log(f'--- finished lexical pipeline')
 
 
-    if process_syntax:
-        utils.io.log('*** running syntax submodule pipeline')
+        ################################################################################
+        #### SYNTAX FEATURES ###########################################################
+        ################################################################################
+        if process_syntax:
+            utils.io.log('*** running syntax submodule pipeline')
 
-        # as an exception, we do *not* parallelize syntax since the backend server is somehow unable to handle
-        # multiple requests :(
-        syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid())
-                                                                     # !!! TODO:DEBUG
-                           for i, sentence in enumerate(tqdm(sentences, desc='Syntax pipeline'))]
+            # as an exception, we do *not* parallelize syntax since the backend server is somehow unable to handle
+            # multiple requests :(
+            syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid())
+                                                                        # !!! TODO:DEBUG
+                            for i, sentence in enumerate(tqdm(sentences, desc='Syntax pipeline'))]
 
-        syntax_out = output_dir / 'syntax'
-        syntax_out.mkdir(parents=True, exist_ok=True)
+            syntax_out = output_dir / 'syntax'
+            syntax_out.mkdir(parents=True, exist_ok=True)
 
-        # put all features in the sentence df except the token-level ones
-        token_syntax_features = {'dlt', 'leftcorner'}
-        sentence_df = pd.DataFrame([{k: v for k, v in feature_dict.items() if k not in token_syntax_features}
-                                    for feature_dict in syntax_features], index=[s.uid() for s in sentences])
+            # put all features in the sentence df except the token-level ones
+            token_syntax_features = {'dlt', 'leftcorner'}
+            sentence_df = pd.DataFrame([{k: v for k, v in feature_dict.items() if k not in token_syntax_features}
+                                        for feature_dict in syntax_features], index=[s.uid() for s in sentences])
 
-        # output gives us dataframes corresponding to each token-level feature. we need to combine these
-        # into a single dataframe
-        # we use functools.reduce to apply the pd.concat function to all the dataframes and join dataframes
-        # that contain different features for the same tokens
-        token_dfs = [reduce(lambda x, y: pd.concat([x, y], axis=1, sort=False),
-                            (v for k, v in feature_dict.items() if k in token_syntax_features))
-                     for feature_dict in syntax_features]
+            # output gives us dataframes corresponding to each token-level feature. we need to combine these
+            # into a single dataframe
+            # we use functools.reduce to apply the pd.concat function to all the dataframes and join dataframes
+            # that contain different features for the same tokens
+            token_dfs = [reduce(lambda x, y: pd.concat([x, y], axis=1, sort=False),
+                                (v for k, v in feature_dict.items() if k in token_syntax_features))
+                        for feature_dict in syntax_features]
 
-        # by this point we have merged dataframes with tokens along a column (rather than just a sentence)
-        # now we need to stack them on top of each other to have all tokens across all sentences in a single dataframe
-        token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
-        token_df = token_df.loc[:, ~token_df.columns.duplicated()]
+            # by this point we have merged dataframes with tokens along a column (rather than just a sentence)
+            # now we need to stack them on top of each other to have all tokens across all sentences in a single dataframe
+            token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
+            token_df = token_df.loc[:, ~token_df.columns.duplicated()]
 
-        utils.io.log(f'outputting syntax dataframes to {syntax_out}')
-        if output_format == 'tsv':
-            sentence_df.to_csv(syntax_out / 'sentence-features.tsv', sep='\t', index=False)
-            token_df.to_csv(syntax_out / 'token-features.tsv', sep='\t', index=False)
-        elif output_format == 'pkl':
-            sentence_df.to_pickle(syntax_out / 'sentence-features.pkl.gz', protocol=5)
-            token_df.to_pickle(syntax_out / 'token-features.pkl.gz', protocol=5)
+            utils.io.log(f'outputting syntax dataframes to {syntax_out}')
+            if output_format == 'tsv':
+                sentence_df.to_csv(syntax_out / f'{sentence_features_filestem}.tsv', sep='\t', index=False)
+                token_df.to_csv(syntax_out / f'{token_features_filestem}.tsv', sep='\t', index=False)
+            elif output_format == 'pkl':
+                sentence_df.to_pickle(syntax_out / f'{sentence_features_filestem}.pkl.gz', protocol=5)
+                token_df.to_pickle(syntax_out / f'{token_features_filestem}.pkl.gz', protocol=5)
 
-        utils.io.log(f'--- finished syntax pipeline')
+            utils.io.log(f'--- finished syntax pipeline')
 
-    # Calculate PMI
-    # utils.GrabNGrams(sent_rows,pmi_paths)
-    # utils.pPMI(sent_rows, pmi_paths)
-    # pdb.set_trace()
+        # Calculate PMI
+        # utils.GrabNGrams(sent_rows,pmi_paths)
+        # utils.pPMI(sent_rows, pmi_paths)
+        # pdb.set_trace()
 
 
         ################################################################################
@@ -274,7 +280,11 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         # Plot input data to benchmark data
         #utils.plot_usr_input_against_benchmark_dist_plots(df_benchmark, sent_embed)
 
-    if process_semantic:
-        pass
+        if process_semantic:
+            pass
 
+
+    ################################################################################
+    #### \end{run_sentence_features_pipeline} ######################################
+    ################################################################################
     return output_dir
