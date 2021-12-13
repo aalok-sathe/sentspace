@@ -140,7 +140,7 @@ def sha1(ob):
     return hash_object.hexdigest()
 
 
-def parallelize(function, *iterables, wrap_tqdm=True, desc=None, **kwargs):
+def parallelize(function, *iterables, wrap_tqdm=True, desc=&#39;&#39;, **kwargs):
     &#34;&#34;&#34;parallelizes a function by calling it on the supplied iterables and (static) kwargs.
        optionally wraps in tqdm for progress visualization 
 
@@ -956,7 +956,7 @@ Return: If list 1 contains NA vals, the NA val is replaced by the value in list 
 </details>
 </dd>
 <dt id="sentspace.utils.misc.parallelize"><code class="name flex">
-<span>def <span class="ident">parallelize</span></span>(<span>function, *iterables, wrap_tqdm=True, desc=None, **kwargs)</span>
+<span>def <span class="ident">parallelize</span></span>(<span>function, *iterables, wrap_tqdm=True, desc='', **kwargs)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>parallelizes a function by calling it on the supplied iterables and (static) kwargs.
@@ -979,7 +979,7 @@ optionally wraps in tqdm for progress visualization </p>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def parallelize(function, *iterables, wrap_tqdm=True, desc=None, **kwargs):
+<pre><code class="python">def parallelize(function, *iterables, wrap_tqdm=True, desc=&#39;&#39;, **kwargs):
     &#34;&#34;&#34;parallelizes a function by calling it on the supplied iterables and (static) kwargs.
        optionally wraps in tqdm for progress visualization 
 

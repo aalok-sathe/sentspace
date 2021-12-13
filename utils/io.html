@@ -26,10 +26,11 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">import os
+<pre><code class="python">from genericpath import exists
+import os
 import pickle
 import textwrap
-from datetime import date
+import datetime # from datetime import date
 from hashlib import sha1
 from pathlib import Path
 from sys import stderr, stdout
@@ -47,80 +48,37 @@ from sentspace.Sentence import Sentence
 def dump_features(): pass
 
 def create_output_paths(input_file:str, output_dir:str, calling_module=None, stop_words_file:str=None) -&gt; Path:
-    embed_method = &#39;all&#39;  # options: &#39;strict&#39;, &#39;all&#39;
-    content_only = False
+    &#34;&#34;&#34;Creates an output directory structure to output the results of the pipeline based on the supplied input file
 
+    Args:
+        input_file (str): [description]
+        output_dir (str): [description]
+        calling_module ([type], optional): [description]. Defaults to None.
+        stop_words_file (str, optional): [description]. Defaults to None.
+
+    Returns:
+        Path: [description]
+    &#34;&#34;&#34;    
     output_dir = Path(output_dir)
-
-    suffix = &#39;&#39;
-
     # output will be organized based on its respective input file,
-    # together with a hash of the contents (for completeness)
-    out_file_name = os.path.basename(input_file).split(&#39;.&#39;)[0]
-    # with open(input_file, &#39;r&#39;) as f:
-    output_dir /= (out_file_name + &#39;_md5:&#39; + sentspace.utils.md5(input_file))
-    output_dir /= calling_module or &#39;&#39;
+    # together with a hash of the contents (for to avoid the case where two files are 
+    # named similarly to one another but contain different contents)
+    out_file_name = &#39;.&#39;.join(os.path.basename(input_file).split(&#39;.&#39;)[:-1])
+
+    output_dir /= out_file_name
+    output_dir /= sentspace.utils.md5(input_file)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    with (output_dir / &#39;md5.txt&#39;).open(&#39;w&#39;) as f:
+        f.write(f&#39;{Path(input_file).resolve()} md5sum:\t&#39; + sentspace.utils.md5(input_file))
+    with (output_dir / &#39;run_history.txt&#39;).open(&#39;a+&#39;) as f:
+        f.write(datetime.datetime.now().strftime(&#39;run: %Y-%m-%d %H:%M:%S %Z\n&#39;))
+
+    output_dir /= calling_module or &#39;&#39; # to subdir it by &#34;lexical&#34; or &#34;syntax&#34; etc.
     # output_dir /= date.today().strftime(&#39;run_%Y-%m-%d&#39;)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     return output_dir
-
-    sent_suffix = f&#34;_{embed_method}&#34;
-
-    if content_only:
-        sent_suffix = &#39;_content&#39; + sent_suffix
-    if stop_words_file:
-        sent_suffix = &#39;_content&#39;+&#39;_minus_stop_words&#39; + sent_suffix
-    # Make out outlex path
-    word_lex_output_path, embed_lex_output_path, plot_path, na_words_path, bench_perc_out_path = _create_output_paths(
-        output_dir, out_file_name, &#39;lexical&#39;, sent_suffix=sent_suffix)
-    # Make output syntax path
-    _, sent_output_path = _create_output_paths(
-        output_dir, out_file_name, &#39;syntax&#39;, sent_suffix=sent_suffix)
-    glove_words_output_path, glove_sents_output_path = _create_output_paths(
-        output_dir, out_file_name, &#39;embedding&#39;, sent_suffix=sent_suffix)
-    pmi_paths = _create_output_paths(
-        output_dir, out_file_name, &#39;PMI&#39;, sent_suffix=sent_suffix)
-
-    # lex_base = f&#39;analysis_example/{date_}\\lex\\&#39;
-
-    return sent_output_path, glove_words_output_path, glove_sents_output_path
-
-
-# def _create_output_paths(output_dir:Path, name, analysis, suffix=&#39;&#39;, sent_suffix=&#39;&#39;):
-#     &#34;&#34;&#34;
-#     Return list of file paths and create output folder if appropriate
-#     Supports analysis = &#39;lex&#39;, &#39;glove&#39;,&#39;syntax&#39;,&#39;PMI&#39;
-#     &#34;&#34;&#34;
-#     if analysis == &#39;lexical&#39;:
-#         return_paths = [f&#34;{name}_lex_features_words{suffix}.csv&#34;,
-#                         f&#34;{name}_lex_features_sents{suffix}{sent_suffix}.csv&#34;,
-#                         f&#34;{name}_plots{suffix}{sent_suffix}_&#34;,
-#                         f&#34;{name}_unique_NA{suffix}{sent_suffix}.csv&#34;,
-#                         f&#34;{name}_benchmark_percentiles{suffix}{sent_suffix}.csv&#34;]
-#     elif analysis == &#39;embedding&#39;:
-#         return_paths = [f&#34;{name}_glove_words{suffix}.csv&#34;,
-#                         f&#34;{name}_glove_sents{suffix}{sent_suffix}.csv&#34;]
-#     elif analysis == &#39;PMI&#39;:
-#         return_paths = [f&#34;{name}_pPMI_0{suffix}.csv&#34;,
-#                         f&#34;{name}_pPMI_1{suffix}.csv&#34;,
-#                         f&#34;{name}_pPMI_2{suffix}.csv&#34;,
-#                         f&#34;{name}_ngrams{suffix}.pkl&#34;,
-#                         f&#34;{name}_nm1grams{suffix}.pkl&#34;]
-#     elif analysis == &#39;syntax&#39;:
-#         return_paths = [f&#34;{name}_{suffix}.csv&#34;,
-#                         f&#34;{name}_{suffix}{sent_suffix}.csv&#34;]
-#     elif analysis == &#39;lex_per_word&#39;:
-#         return_paths = [f&#34;{name}_{suffix}.csv&#34;,
-#                         f&#34;{name}_{suffix}{sent_suffix}.csv&#34;]
-#     else:
-#         raise ValueError(&#39;Invalid analysis method!&#39;)
-#     output_dir = os.path.join(output_dir, analysis)
-#     if not os.path.isdir(output_dir):  # create output_folder if it doesn&#39;t exist
-#         Path(output_dir).mkdir(parents=True, exist_ok=True)
-
-#     result = [os.path.join(output_dir, path) for path in return_paths]
-#     return result
 
 
 def read_sentences(filename: str, stop_words_file: str = None):
@@ -135,16 +93,13 @@ def read_sentences(filename: str, stop_words_file: str = None):
         list[list]: list of the tokens from each sentences, nested as a list
         list: list of sentences
     &#34;&#34;&#34;
-    
 
-    # if a non-empty collection of stop words has been supplied
     if stop_words_file:
         raise NotImplementedError()
         stop_words = set(np.loadtxt(stop_words_file, delimiter=&#39;\t&#39;, unpack=False, dtype=str))
 
     if filename.endswith(&#39;.txt&#39;):
         UIDs = []
-        token_lists = []
         sentences = []
         with open(filename, &#39;r&#39;) as f:
             UID_prefix = f&#39;{filename[-8:]:#&gt;10}&#39; + &#39;_&#39; + sentspace.utils.md5(filename)[-5:]
@@ -154,15 +109,9 @@ def read_sentences(filename: str, stop_words_file: str = None):
                 UIDs += [uid]
                 
                 s = Sentence(line, uid)
-
-                # if line.strip():
-                #     tokens = sentspace.utils.text.tokenize(line) # line.split()
                 if s: 
                     sentences.append(s)
 
-                # token_lists.append(tokens)
-
-        # return UIDs, token_lists, sentences
         return sentences
 
     elif filename.endswith(&#39;.pkl&#39;):
@@ -174,18 +123,18 @@ def read_sentences(filename: str, stop_words_file: str = None):
     else:
         raise ValueError(&#39;unknown type of file supplied (must be txt/pkl/csv/tsv. if pickle, must be a dataframe object)&#39;)
 
-    try:
-        UIDs = df[&#39;corpora_identifier&#39;]
-        #df[&#39;index&#39;].tolist()
-    except KeyError:
-        UIDs = df.index.tolist()
-    except AttributeError:
-        raise(&#39;does your dataframe have a unique index for each sentence?&#39;)
+    # try to figure out what to use as a unique identifier for the sentence
+    if &#39;corpora_identifier&#39; in df.columns:
+        UIDs = df[&#39;corpora_identifier&#39;].tolist()
+    elif &#39;index&#39; in df.columns:
+        UIDs = df[&#39;index&#39;].tolist()
+    else:
+        try: 
+            UIDs = df.index.tolist()
+        except AttributeError:
+            raise(&#39;does your dataframe have a unique index for each sentence?&#39;)
 
     sentences = [Sentence(raw, uid) for raw, uid in zip(df[&#39;sentence&#39;].tolist(), UIDs)]
-    # token_lists = df[&#39;sentence&#39;].apply(lambda s: sentspace.utils.text.tokenize(s)).tolist()
-
-    # return UIDs, token_lists, sentences
     return sentences
 
 
@@ -201,14 +150,6 @@ def get_batches(iterable, batch_size:int):
             batch = []
     if batch:
         yield batch
-
-
-def load_surprisal(file=&#39;pickle/surprisal-3_dict.pkl&#39;):
-    &#34;&#34;&#34;
-    Load dict mapping word to surprisal value
-    &#34;&#34;&#34;
-    with open(file, &#39;rb&#39;) as f:
-        return pickle.load(f)
 
 
 def log(message, type=&#39;INFO&#39;):
@@ -241,10 +182,7 @@ def log(message, type=&#39;INFO&#39;):
                           initial_indent = c + &#39;%&#39;*4 + f&#39; [{type} @ {timestamp}] &#39;, 
                           subsequent_indent=&#39;.&#39;*20+&#39; &#39;)
     tqdm.write(&#39;\n&#39;.join(lines), file=stderr)
-    # print(*lines, sep=&#39;\n&#39;, file=stderr)
-
-
-# def compile_token_dicts() -&gt; pd.DataFrame:</code></pre>
+    # print(*lines, sep=&#39;\n&#39;, file=stderr)</code></pre>
 </details>
 </section>
 <section>
@@ -258,50 +196,59 @@ def log(message, type=&#39;INFO&#39;):
 <span>def <span class="ident">create_output_paths</span></span>(<span>input_file: str, output_dir: str, calling_module=None, stop_words_file: str = None) ‑> pathlib.Path</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Creates an output directory structure to output the results of the pipeline based on the supplied input file</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>input_file</code></strong> :&ensp;<code>str</code></dt>
+<dd>[description]</dd>
+<dt><strong><code>output_dir</code></strong> :&ensp;<code>str</code></dt>
+<dd>[description]</dd>
+<dt><strong><code>calling_module</code></strong> :&ensp;<code>[type]</code>, optional</dt>
+<dd>[description]. Defaults to None.</dd>
+<dt><strong><code>stop_words_file</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>[description]. Defaults to None.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Path</code></dt>
+<dd>[description]</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def create_output_paths(input_file:str, output_dir:str, calling_module=None, stop_words_file:str=None) -&gt; Path:
-    embed_method = &#39;all&#39;  # options: &#39;strict&#39;, &#39;all&#39;
-    content_only = False
+    &#34;&#34;&#34;Creates an output directory structure to output the results of the pipeline based on the supplied input file
 
+    Args:
+        input_file (str): [description]
+        output_dir (str): [description]
+        calling_module ([type], optional): [description]. Defaults to None.
+        stop_words_file (str, optional): [description]. Defaults to None.
+
+    Returns:
+        Path: [description]
+    &#34;&#34;&#34;    
     output_dir = Path(output_dir)
-
-    suffix = &#39;&#39;
-
     # output will be organized based on its respective input file,
-    # together with a hash of the contents (for completeness)
-    out_file_name = os.path.basename(input_file).split(&#39;.&#39;)[0]
-    # with open(input_file, &#39;r&#39;) as f:
-    output_dir /= (out_file_name + &#39;_md5:&#39; + sentspace.utils.md5(input_file))
-    output_dir /= calling_module or &#39;&#39;
+    # together with a hash of the contents (for to avoid the case where two files are 
+    # named similarly to one another but contain different contents)
+    out_file_name = &#39;.&#39;.join(os.path.basename(input_file).split(&#39;.&#39;)[:-1])
+
+    output_dir /= out_file_name
+    output_dir /= sentspace.utils.md5(input_file)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    with (output_dir / &#39;md5.txt&#39;).open(&#39;w&#39;) as f:
+        f.write(f&#39;{Path(input_file).resolve()} md5sum:\t&#39; + sentspace.utils.md5(input_file))
+    with (output_dir / &#39;run_history.txt&#39;).open(&#39;a+&#39;) as f:
+        f.write(datetime.datetime.now().strftime(&#39;run: %Y-%m-%d %H:%M:%S %Z\n&#39;))
+
+    output_dir /= calling_module or &#39;&#39; # to subdir it by &#34;lexical&#34; or &#34;syntax&#34; etc.
     # output_dir /= date.today().strftime(&#39;run_%Y-%m-%d&#39;)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    return output_dir
-
-    sent_suffix = f&#34;_{embed_method}&#34;
-
-    if content_only:
-        sent_suffix = &#39;_content&#39; + sent_suffix
-    if stop_words_file:
-        sent_suffix = &#39;_content&#39;+&#39;_minus_stop_words&#39; + sent_suffix
-    # Make out outlex path
-    word_lex_output_path, embed_lex_output_path, plot_path, na_words_path, bench_perc_out_path = _create_output_paths(
-        output_dir, out_file_name, &#39;lexical&#39;, sent_suffix=sent_suffix)
-    # Make output syntax path
-    _, sent_output_path = _create_output_paths(
-        output_dir, out_file_name, &#39;syntax&#39;, sent_suffix=sent_suffix)
-    glove_words_output_path, glove_sents_output_path = _create_output_paths(
-        output_dir, out_file_name, &#39;embedding&#39;, sent_suffix=sent_suffix)
-    pmi_paths = _create_output_paths(
-        output_dir, out_file_name, &#39;PMI&#39;, sent_suffix=sent_suffix)
-
-    # lex_base = f&#39;analysis_example/{date_}\\lex\\&#39;
-
-    return sent_output_path, glove_words_output_path, glove_sents_output_path</code></pre>
+    return output_dir</code></pre>
 </details>
 </dd>
 <dt id="sentspace.utils.io.dump_features"><code class="name flex">
@@ -337,23 +284,6 @@ def log(message, type=&#39;INFO&#39;):
             batch = []
     if batch:
         yield batch</code></pre>
-</details>
-</dd>
-<dt id="sentspace.utils.io.load_surprisal"><code class="name flex">
-<span>def <span class="ident">load_surprisal</span></span>(<span>file='pickle/surprisal-3_dict.pkl')</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Load dict mapping word to surprisal value</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def load_surprisal(file=&#39;pickle/surprisal-3_dict.pkl&#39;):
-    &#34;&#34;&#34;
-    Load dict mapping word to surprisal value
-    &#34;&#34;&#34;
-    with open(file, &#39;rb&#39;) as f:
-        return pickle.load(f)</code></pre>
 </details>
 </dd>
 <dt id="sentspace.utils.io.log"><code class="name flex">
@@ -434,16 +364,13 @@ for stopwords</p>
         list[list]: list of the tokens from each sentences, nested as a list
         list: list of sentences
     &#34;&#34;&#34;
-    
 
-    # if a non-empty collection of stop words has been supplied
     if stop_words_file:
         raise NotImplementedError()
         stop_words = set(np.loadtxt(stop_words_file, delimiter=&#39;\t&#39;, unpack=False, dtype=str))
 
     if filename.endswith(&#39;.txt&#39;):
         UIDs = []
-        token_lists = []
         sentences = []
         with open(filename, &#39;r&#39;) as f:
             UID_prefix = f&#39;{filename[-8:]:#&gt;10}&#39; + &#39;_&#39; + sentspace.utils.md5(filename)[-5:]
@@ -453,15 +380,9 @@ for stopwords</p>
                 UIDs += [uid]
                 
                 s = Sentence(line, uid)
-
-                # if line.strip():
-                #     tokens = sentspace.utils.text.tokenize(line) # line.split()
                 if s: 
                     sentences.append(s)
 
-                # token_lists.append(tokens)
-
-        # return UIDs, token_lists, sentences
         return sentences
 
     elif filename.endswith(&#39;.pkl&#39;):
@@ -473,18 +394,18 @@ for stopwords</p>
     else:
         raise ValueError(&#39;unknown type of file supplied (must be txt/pkl/csv/tsv. if pickle, must be a dataframe object)&#39;)
 
-    try:
-        UIDs = df[&#39;corpora_identifier&#39;]
-        #df[&#39;index&#39;].tolist()
-    except KeyError:
-        UIDs = df.index.tolist()
-    except AttributeError:
-        raise(&#39;does your dataframe have a unique index for each sentence?&#39;)
+    # try to figure out what to use as a unique identifier for the sentence
+    if &#39;corpora_identifier&#39; in df.columns:
+        UIDs = df[&#39;corpora_identifier&#39;].tolist()
+    elif &#39;index&#39; in df.columns:
+        UIDs = df[&#39;index&#39;].tolist()
+    else:
+        try: 
+            UIDs = df.index.tolist()
+        except AttributeError:
+            raise(&#39;does your dataframe have a unique index for each sentence?&#39;)
 
     sentences = [Sentence(raw, uid) for raw, uid in zip(df[&#39;sentence&#39;].tolist(), UIDs)]
-    # token_lists = df[&#39;sentence&#39;].apply(lambda s: sentspace.utils.text.tokenize(s)).tolist()
-
-    # return UIDs, token_lists, sentences
     return sentences</code></pre>
 </details>
 </dd>
@@ -505,11 +426,10 @@ for stopwords</p>
 </ul>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
-<ul class="two-column">
+<ul class="">
 <li><code><a title="sentspace.utils.io.create_output_paths" href="#sentspace.utils.io.create_output_paths">create_output_paths</a></code></li>
 <li><code><a title="sentspace.utils.io.dump_features" href="#sentspace.utils.io.dump_features">dump_features</a></code></li>
 <li><code><a title="sentspace.utils.io.get_batches" href="#sentspace.utils.io.get_batches">get_batches</a></code></li>
-<li><code><a title="sentspace.utils.io.load_surprisal" href="#sentspace.utils.io.load_surprisal">load_surprisal</a></code></li>
 <li><code><a title="sentspace.utils.io.log" href="#sentspace.utils.io.log">log</a></code></li>
 <li><code><a title="sentspace.utils.io.read_sentences" href="#sentspace.utils.io.read_sentences">read_sentences</a></code></li>
 </ul>
