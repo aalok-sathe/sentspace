@@ -45,7 +45,9 @@ import IPython
 def get_feature_list():
     return [&#39;NRC_Arousal&#39;, &#39;NRC_Valence&#39;, &#39;OSC&#39;, &#39;aoa&#39;, &#39;concreteness&#39;, &#39;lexical_decision_RT&#39;,
             &#39;log_contextual_diversity&#39;, &#39;log_lexical_frequency&#39;, &#39;n_orthographic_neighbors&#39;, &#39;num_morpheme&#39;,
-            &#39;prevalence&#39;, &#39;surprisal-3&#39;, &#39;total_degree_centrality&#39;]
+            &#39;prevalence&#39;, 
+            &#39;surprisal-3&#39;, &#39;surprisal-1&#39;, &#39;surprisal-2&#39;, &#39;surprisal-4&#39;,
+            &#39;total_degree_centrality&#39;]
 
 def get_feature_list_using_third_party_libraries():
     return [&#39;polysemy&#39;, &#39;num_morpheme_poly&#39;]
@@ -323,7 +325,9 @@ def sanity_check_databases(databases):
 <pre><code class="python">def get_feature_list():
     return [&#39;NRC_Arousal&#39;, &#39;NRC_Valence&#39;, &#39;OSC&#39;, &#39;aoa&#39;, &#39;concreteness&#39;, &#39;lexical_decision_RT&#39;,
             &#39;log_contextual_diversity&#39;, &#39;log_lexical_frequency&#39;, &#39;n_orthographic_neighbors&#39;, &#39;num_morpheme&#39;,
-            &#39;prevalence&#39;, &#39;surprisal-3&#39;, &#39;total_degree_centrality&#39;]</code></pre>
+            &#39;prevalence&#39;, 
+            &#39;surprisal-3&#39;, &#39;surprisal-1&#39;, &#39;surprisal-2&#39;, &#39;surprisal-4&#39;,
+            &#39;total_degree_centrality&#39;]</code></pre>
 </details>
 </dd>
 <dt id="sentspace.lexical.utils.get_feature_list_requiring_calculation"><code class="name flex">
