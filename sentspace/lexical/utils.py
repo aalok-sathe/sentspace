@@ -17,7 +17,9 @@ import IPython
 def get_feature_list():
     return ['NRC_Arousal', 'NRC_Valence', 'OSC', 'aoa', 'concreteness', 'lexical_decision_RT',
             'log_contextual_diversity', 'log_lexical_frequency', 'n_orthographic_neighbors', 'num_morpheme',
-            'prevalence', 'surprisal-3', 'total_degree_centrality']
+            'prevalence', 
+            'surprisal-3', 'surprisal-1', 'surprisal-2', 'surprisal-4',
+            'total_degree_centrality']
 
 def get_feature_list_using_third_party_libraries():
     return ['polysemy', 'num_morpheme_poly']
