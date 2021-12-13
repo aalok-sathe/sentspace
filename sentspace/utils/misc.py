@@ -114,7 +114,7 @@ def sha1(ob):
     return hash_object.hexdigest()
 
 
-def parallelize(function, *iterables, wrap_tqdm=True, desc=None, **kwargs):
+def parallelize(function, *iterables, wrap_tqdm=True, desc='', **kwargs):
     """parallelizes a function by calling it on the supplied iterables and (static) kwargs.
        optionally wraps in tqdm for progress visualization 
 
