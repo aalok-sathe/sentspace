@@ -26,6 +26,8 @@ import multiprocessing
 def main(args):
     '''used to run the main pipeline, start to end, depending on the arguments and flags
     '''
+    
+    utils.io.log(f'SENTSPACE. Received arguments: {args}')
 
     # Estimate sentence embeddings
     features = sentspace.run_sentence_features_pipeline(args.input_file, stop_words_file=args.stop_words,
@@ -35,7 +37,7 @@ def main(args):
                                                         output_dir=args.output_dir,
                                                         output_format=args.output_format,
                                                         parallelize=args.parallelize,
-                                                        #
+                                                        # TODO: return_df or return_path?
                                                         emb_data_dir=args.emb_data_dir)
     #estimate_sentence_embeddings(args.input_file)
 
@@ -45,18 +47,7 @@ if __name__ == "__main__":
     # Parse input
     parser = argparse.ArgumentParser('sentspace', 
                                       usage="""
-        Example run:
-            python3 -m sentspace -i example/example.csv
-
-        Example run without Glove estimation
-            python3 -m sentspace -i example/example.csv --glove false
-            
-        Example run without lexical feature estimation
-            python3 -m sentspace -i example/example.csv --lexical false
-            
-        Example	run with stop words:
-            python3 -m sentspace -i example/example.csv --stop_words example/stopwords.txt
-        """
+                                            """
     )
 
     parser.add_argument('input_file', type=str,
@@ -76,8 +67,9 @@ if __name__ == "__main__":
     # parser.add_argument('--cache_dir', default='.cache', type=str,
     #                  	help='path to directory where results may be cached')
 
-    parser.add_argument('-p', '--parallelize', default=True, type=bool, help='use multiple threads to compute features? '
-                                                                             'disable in case issues arise.')
+    parser.add_argument('-p', '--parallelize', default=True, type=strtobool, 
+                        help='use multiple threads to compute features? '
+                             'disable using `-p False` in case issues arise.')
 
     parser.add_argument('-o', '--output_dir', default='./out', type=str,
                          help='path to output directory where results may be stored')
@@ -86,15 +78,14 @@ if __name__ == "__main__":
                         choices=['pkl','tsv'])
 
     # Add an option for a user to choose to not do some analyses. Default is true
-    parser.add_argument('-lex','--lexical', type=strtobool, default=True, help='compute lexical features? [True]')
-    parser.add_argument('-syn','--syntax', type=strtobool, default=True, help='compute syntactic features? [True]')
-    parser.add_argument('-emb','--embedding', type=strtobool, default=True, help='compute sentence embeddings? [True]')
-    parser.add_argument('-sem','--semantic', type=strtobool, default=True, help='compute semantic (multi-word) features? [True]')
+    parser.add_argument('-lex','--lexical', type=strtobool, default=False, help='compute lexical features? [False]')
+    parser.add_argument('-syn','--syntax', type=strtobool, default=False, help='compute syntactic features? [False]')
+    parser.add_argument('-emb','--embedding', type=strtobool, default=False, help='compute high-dimensional sentence representations? [False]')
+    parser.add_argument('-sem','--semantic', type=strtobool, default=False, help='compute semantic (multi-word) features? [False]')
     
     parser.add_argument('--emb_data_dir', default='/om/data/public/glove/', type=str,
                          help='path to output directory where results may be stored')
     # parser.add_argument('--cache_dir', default=)
 
     args = parser.parse_args()	
-    utils.io.log(f'SENTSPACE. Received arguments: {args}')
     main(args)
