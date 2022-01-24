@@ -277,8 +277,8 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
             token_df = pd.DataFrame(chain.from_iterable(lexical_features))
 
             if output_format == &#39;tsv&#39;:
-                token_df.to_csv(lexical_out / f&#39;{token_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
-                token_df.groupby(&#39;sentence&#39;).mean().to_csv(lexical_out / f&#39;{sentence_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
+                token_df.to_csv(lexical_out / f&#39;{token_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=True)
+                token_df.groupby(&#39;sentence&#39;).mean().to_csv(lexical_out / f&#39;{sentence_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=True)
             elif output_format == &#39;pkl&#39;:
                 token_df.to_pickle(lexical_out / f&#39;{token_features_filestem}.pkl.gz&#39;, protocol=5)
                 token_df.groupby(&#39;sentence&#39;).mean().to_pickle(lexical_out / f&#39;{sentence_features_filestem}.pkl.gz&#39;, protocol=5)
@@ -296,7 +296,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
             # as an exception, we do *not* parallelize syntax since the backend server is somehow unable to handle
             # multiple requests :(
-            syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid())
+            syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid)
                                                                         # !!! TODO:DEBUG
                             for i, sentence in enumerate(tqdm(sentences, desc=&#39;Syntax pipeline&#39;))]
 
@@ -323,7 +323,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
             utils.io.log(f&#39;outputting syntax dataframes to {syntax_out}&#39;)
             if output_format == &#39;tsv&#39;:
-                sentence_df.to_csv(syntax_out / f&#39;{sentence_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
+                sentence_df.to_csv(syntax_out / f&#39;{sentence_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=True)
                 token_df.to_csv(syntax_out / f&#39;{token_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
             elif output_format == &#39;pkl&#39;:
                 sentence_df.to_pickle(syntax_out / f&#39;{sentence_features_filestem}.pkl.gz&#39;, protocol=5)
@@ -433,7 +433,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
                     utils.io.log(f&#39;outputting embedding dataframes for {model_name}-{method} to {embedding_out}&#39;)
                     if output_format == &#39;tsv&#39;:
-                        sentence_df.to_csv(embedding_out / model_name / method / f&#39;{sentence_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
+                        sentence_df.to_csv(embedding_out / model_name / method / f&#39;{sentence_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=True)
                         # token_df.to_csv(embedding_out / f&#39;{token_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
                     elif output_format == &#39;pkl&#39;:
                         sentence_df.to_pickle(embedding_out / model_name / method / f&#39;{sentence_features_filestem}.pkl.gz&#39;, protocol=5)
@@ -586,8 +586,8 @@ compare the current input against; e.g. UD [optional]</dd>
             token_df = pd.DataFrame(chain.from_iterable(lexical_features))
 
             if output_format == &#39;tsv&#39;:
-                token_df.to_csv(lexical_out / f&#39;{token_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
-                token_df.groupby(&#39;sentence&#39;).mean().to_csv(lexical_out / f&#39;{sentence_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
+                token_df.to_csv(lexical_out / f&#39;{token_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=True)
+                token_df.groupby(&#39;sentence&#39;).mean().to_csv(lexical_out / f&#39;{sentence_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=True)
             elif output_format == &#39;pkl&#39;:
                 token_df.to_pickle(lexical_out / f&#39;{token_features_filestem}.pkl.gz&#39;, protocol=5)
                 token_df.groupby(&#39;sentence&#39;).mean().to_pickle(lexical_out / f&#39;{sentence_features_filestem}.pkl.gz&#39;, protocol=5)
@@ -605,7 +605,7 @@ compare the current input against; e.g. UD [optional]</dd>
 
             # as an exception, we do *not* parallelize syntax since the backend server is somehow unable to handle
             # multiple requests :(
-            syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid())
+            syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid)
                                                                         # !!! TODO:DEBUG
                             for i, sentence in enumerate(tqdm(sentences, desc=&#39;Syntax pipeline&#39;))]
 
@@ -632,7 +632,7 @@ compare the current input against; e.g. UD [optional]</dd>
 
             utils.io.log(f&#39;outputting syntax dataframes to {syntax_out}&#39;)
             if output_format == &#39;tsv&#39;:
-                sentence_df.to_csv(syntax_out / f&#39;{sentence_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
+                sentence_df.to_csv(syntax_out / f&#39;{sentence_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=True)
                 token_df.to_csv(syntax_out / f&#39;{token_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
             elif output_format == &#39;pkl&#39;:
                 sentence_df.to_pickle(syntax_out / f&#39;{sentence_features_filestem}.pkl.gz&#39;, protocol=5)
@@ -742,7 +742,7 @@ compare the current input against; e.g. UD [optional]</dd>
 
                     utils.io.log(f&#39;outputting embedding dataframes for {model_name}-{method} to {embedding_out}&#39;)
                     if output_format == &#39;tsv&#39;:
-                        sentence_df.to_csv(embedding_out / model_name / method / f&#39;{sentence_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
+                        sentence_df.to_csv(embedding_out / model_name / method / f&#39;{sentence_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=True)
                         # token_df.to_csv(embedding_out / f&#39;{token_features_filestem}.tsv&#39;, sep=&#39;\t&#39;, index=False)
                     elif output_format == &#39;pkl&#39;:
                         sentence_df.to_pickle(embedding_out / model_name / method / f&#39;{sentence_features_filestem}.pkl.gz&#39;, protocol=5)
