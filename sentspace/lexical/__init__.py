@@ -34,17 +34,3 @@ def get_features(sentence: sentspace.Sentence.Sentence, lock=None) -> dict:
 
     return returnable
 
-    # print('Writing lex sentence embedding to csv at ' + embed_lex_output_path)
-    # sent_embed.to_csv(embed_lex_output_path, index=False)
-
-    # # Make the syntax excel sheet
-    # print('Writing syntax sentence embedding to csv at ' + sent_output_path)
-    # #pdb.set_trace()
-
-    # # Read in benchmark data
-    # df_benchmark = pd.read_csv(benchmark_file)
-
-    # # Return percentile per sentence for each
-    # percentile_df = utils.return_percentile_df(df_benchmark, sent_embed)
-    # print('Writing percentiles')
-    # percentile_df.to_csv(bench_perc_out_path, index=False)
