@@ -5,14 +5,16 @@
 ## About The Project
 
 `sentspace`
-aims to characterize language stimuli using a collection of metrics and comparisons.
-Imagine you generated a set of sentences based on some optimization algorithm or extracted 
-them from an ANN language model. How do these 'artificially' generated sentences compare to 
-naturally occurring sentences?
+gives users a better understanding of the distribution of linguistic stimuli,
+specifically, sentences, in comparison with large corpora. `sentspace` achieves
+this using a collection of psycholinguistic datasets and linguistic features.
+Imagine you have collected a set of sentences for use in a language experiment, or generated 
+sentences using an artificial neural network language model. How does your set of sentences compare to 
+naturally occurring sentences? What are the dimensions along which your sentences deviate from
+*normal*? 
+`sentspace` provides you with numerical estimates of these values, as well as
+allows you to visualize the high-dimensional space in a web-based application.
 
-In the present form of `sentspace`, 
-a user can feed `sentspace` sentences and obtain sentence feature values
-along many metrics in a single interface.
 
 ## Documentation 
 [![CircleCI](https://circleci.com/gh/aalok-sathe/sentspace/tree/main.svg?style=svg)](https://circleci.com/gh/aalok-sathe/sentspace/tree/main)
@@ -25,9 +27,10 @@ For more information, [visit the docs!](https://aalok-sathe.github.io/sentspace/
 
 ## Usage
 
-Example: get only lexical and syntax features for stimuli from a csv containing columns for 'sentence' and 'index'.
+### CLI
+Example: get lexical and embedding features for stimuli from a csv containing columns for 'sentence' and 'index'.
 ```bash
-python3 -m sentspace -lex 1 -syn 1 -emb 0 -sem 0 in/wsj_stimuli.csv
+python3 -m sentspace -lex 1 -syn 0 -emb 1 in/wsj_stimuli.csv
 ```
 
 Example: get embedding features in a custom script
@@ -56,12 +59,6 @@ lex_feat = sentspace.utils.parallelize(sentspace.lexical.get_features, sentences
 
 
 ## Installing
-
-The recommended way to run this project with all its dependencies is using a prebuilt Docker image, `aloxatel/sentspace:latest`.
-However, you are welcome to manually install all the dependencies locally too, which would be useful to be able to import the 
-package into your custom script and extract sentence features there.
-
-
 
 
 ### Container-based usage
