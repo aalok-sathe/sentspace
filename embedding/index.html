@@ -135,7 +135,7 @@ def get_features(sentence: Union[sentspace.Sentence.Sentence, sentspace.Sentence
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="sentspace.embedding.get_features"><code class="name flex">
-<span>def <span class="ident">get_features</span></span>(<span>sentence: Union[<a title="sentspace.Sentence.Sentence" href="../Sentence.html#sentspace.Sentence.Sentence">Sentence</a>, <a title="sentspace.Sentence.SentenceBatch" href="../Sentence.html#sentspace.Sentence.SentenceBatch">SentenceBatch</a>], models_and_methods=[({'glove.840B.300d'}, {'median', 'mean'}), ({'gpt2-xl', 'distilgpt2', 'gpt2'}, {'last'}), ({'roberta-large', 'aloxatel/mbert', 'bert-base-uncased'}, {'first'})], vocab=None, data_dir=None)</span>
+<span>def <span class="ident">get_features</span></span>(<span>sentence: Union[<a title="sentspace.Sentence.Sentence" href="../Sentence.html#sentspace.Sentence.Sentence">Sentence</a>, <a title="sentspace.Sentence.SentenceBatch" href="../Sentence.html#sentspace.Sentence.SentenceBatch">SentenceBatch</a>], models_and_methods=[({'glove.840B.300d'}, {'mean', 'median'}), ({'gpt2', 'gpt2-xl', 'distilgpt2'}, {'last'}), ({'bert-base-uncased', 'aloxatel/mbert', 'roberta-large'}, {'first'})], vocab=None, data_dir=None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>get embedding-based features (e.g. avg, min, max, etc.) for sentence.</p>
