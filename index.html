@@ -40,20 +40,23 @@
 <!-- ABOUT THE PROJECT -->
 <h2 id="about-the-project">About The Project</h2>
 <p><code><a title="sentspace" href="#sentspace">sentspace</a></code>
-aims to characterize language stimuli using a collection of metrics and comparisons.
-Imagine you generated a set of sentences based on some optimization algorithm or extracted
-them from an ANN language model. How do these 'artificially' generated sentences compare to
-naturally occurring sentences?</p>
-<p>In the present form of <code><a title="sentspace" href="#sentspace">sentspace</a></code>,
-a user can feed <code><a title="sentspace" href="#sentspace">sentspace</a></code> sentences and obtain sentence feature values
-along many metrics in a single interface.</p>
+gives users a better understanding of the distribution of linguistic stimuli,
+specifically, sentences, in comparison with large corpora. <code><a title="sentspace" href="#sentspace">sentspace</a></code> achieves
+this using a collection of psycholinguistic datasets and linguistic features.
+Imagine you have collected a set of sentences for use in a language experiment, or generated
+sentences using an artificial neural network language model. How does your set of sentences compare to
+naturally occurring sentences? What are the dimensions along which your sentences deviate from
+<em>normal</em>?
+<code><a title="sentspace" href="#sentspace">sentspace</a></code> provides you with numerical estimates of these values, as well as
+allows you to visualize the high-dimensional space in a web-based application.</p>
 <h2 id="documentation">Documentation</h2>
 <p><a href="https://circleci.com/gh/aalok-sathe/sentspace/tree/main"><img alt="CircleCI" src="https://circleci.com/gh/aalok-sathe/sentspace/tree/main.svg?style=svg"></a></p>
 <p>For more information, <a href="https://aalok-sathe.github.io/sentspace/index.html">visit the docs!</a></p>
 <!-- request read access to the [project doc](https://docs.google.com/document/d/1O1M7T5Ji6KKRvDfI7KQXe_LJ7l9O6_OZA7TEaVP4f8E/edit#). -->
 <h2 id="usage">Usage</h2>
-<p>Example: get only lexical and syntax features for stimuli from a csv containing columns for 'sentence' and 'index'.</p>
-<pre><code class="language-bash">python3 -m sentspace -lex 1 -syn 1 -emb 0 -sem 0 in/wsj_stimuli.csv
+<h3 id="cli">CLI</h3>
+<p>Example: get lexical and embedding features for stimuli from a csv containing columns for 'sentence' and 'index'.</p>
+<pre><code class="language-bash">python3 -m sentspace -lex 1 -syn 0 -emb 1 in/wsj_stimuli.csv
 </code></pre>
 <p>Example: get embedding features in a custom script</p>
 <pre><code class="language-python">import sentspace
@@ -76,9 +79,6 @@ lex_feat = sentspace.utils.parallelize(sentspace.lexical.get_features, sentences
                                        wrap_tqdm=True, desc='Lexical features pipeline')
 </code></pre>
 <h2 id="installing">Installing</h2>
-<p>The recommended way to run this project with all its dependencies is using a prebuilt Docker image, <code>aloxatel/sentspace:latest</code>.
-However, you are welcome to manually install all the dependencies locally too, which would be useful to be able to import the
-package into your custom script and extract sentence features there.</p>
 <h3 id="container-based-usage">Container-based usage</h3>
 <p>To use the image as a container using <code>singularity/docker</code>:</p>
 <h4 id="first-some-important-housekeeping-stuff"><strong>first, some important housekeeping stuff</strong></h4>
@@ -777,7 +777,10 @@ compare the current input against; e.g. UD [optional]</dd>
 <li><a href="#sentspace">sentspace</a><ul>
 <li><a href="#about-the-project">About The Project</a></li>
 <li><a href="#documentation">Documentation</a></li>
-<li><a href="#usage">Usage</a></li>
+<li><a href="#usage">Usage</a><ul>
+<li><a href="#cli">CLI</a></li>
+</ul>
+</li>
 <li><a href="#installing">Installing</a><ul>
 <li><a href="#container-based-usage">Container-based usage</a><ul>
 <li><a href="#first-some-important-housekeeping-stuff">first, some important housekeeping stuff</a></li>
