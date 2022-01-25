@@ -2,7 +2,7 @@
 
 
 <!-- ABOUT THE PROJECT -->
-## About The Project
+## About 
 
 `sentspace`
 gives users a better understanding of the distribution of linguistic stimuli,
@@ -16,29 +16,27 @@ naturally occurring sentences? What are the dimensions along which your sentence
 allows you to visualize the high-dimensional space in a web-based application.
 
 
-## Documentation 
-[![CircleCI](https://circleci.com/gh/aalok-sathe/sentspace/tree/main.svg?style=svg)](https://circleci.com/gh/aalok-sathe/sentspace/tree/main)
-
-For more information, [visit the docs!](https://aalok-sathe.github.io/sentspace/index.html)
-
+## [Documentation](https://aalok-sathe.github.io/sentspace/index.html) [![CircleCI](https://circleci.com/gh/aalok-sathe/sentspace/tree/main.svg?style=svg)](https://circleci.com/gh/aalok-sathe/sentspace/tree/main)
 <!-- request read access to the [project doc](https://docs.google.com/document/d/1O1M7T5Ji6KKRvDfI7KQXe_LJ7l9O6_OZA7TEaVP4f8E/edit#). -->
 
+Documentation is generated using `pdoc3` and available online (click on the title above).
 
 
 ## Usage
 
-### CLI
+### 1. CLI
 Example: get lexical and embedding features for stimuli from a csv containing columns for 'sentence' and 'index'.
 ```bash
 python3 -m sentspace -lex 1 -syn 0 -emb 1 in/wsj_stimuli.csv
 ```
 
-Example: get embedding features in a custom script
+### 2. As a library
+Example: get embedding features in a script
 ```python
 import sentspace
 
-s = sentspace.Sentence.Sentence('The person purchased two mugs at the price of one.')
-emb_feat = sentspace.embedding.get_features(s)
+s = sentspace.Sentence('The person purchased two mugs at the price of one.')
+emb_features = sentspace.embedding.get_features(s)
 ```
 
 Example: parallelize getting features for multiple sentences using multithreading
@@ -48,40 +46,59 @@ import sentspace
 sentences = [
     'Hello, how may I help you today?',
     'The person purchased three mugs at the price of five!',
-    "She's leaving home today.",
+    "She's leaving home.",
     'This is an example sentence we want features of.'
              ]
              
-sentences = [*map(sentspace.Sentence.Sentence, sentences)]
-lex_feat = sentspace.utils.parallelize(sentspace.lexical.get_features, sentences,
-                                       wrap_tqdm=True, desc='Lexical features pipeline')
+# construct sentspace.Sentence objects from strings
+sentences = [*map(sentspace.Sentence, sentences)]
+# make use of parallel processing to get lexical features for the sentences
+lex_features = sentspace.utils.parallelize(sentspace.lexical.get_features, sentences,
+                                           wrap_tqdm=True, desc='Computing lexical features')
 ```
 
 
 ## Installing
 
+### 1. Install using Conda and [Poetry](https://python-poetry.org/)
+Prerequisites: `conda` 
+1. Use your own or create new conda environment: `conda create -n sentspace-env python=3.8` (if using your own, we will assume your environment is called `sentspace-env`)
+   - Activate it: `conda activate sentspace-env`
+2. Install poetry: `curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -` 
+<!-- 3. **Manually install** (`polyglot`)[] dependencies (this step is necessary as some of the packages need to be installed using the system's package manager, rather than `conda` or `pip`) -->
+3. Install `polyglot` dependencies using conda: `conda install -c conda-forge pyicu morfessor icu -y`
+4. Install remaining packages using poetry: `poetry install`
 
-### Container-based usage
+If after the above steps the installation gives you trouble, you may need to refer to: [`polyglot` install instructions](https://polyglot.readthedocs.io/en/latest/Installation.html), which lists how to obtain ICU, a dependency for polyglot.
 
-To use the image as a container using `singularity/docker`:
+To use `sentspace` after installation, simply make sure to have the conda environment active and all packages up to date using `poetry install`
+<br>
 
-#### **first, some important housekeeping stuff**
-- make sure you have `singularity`/`docker`, or load/install it otherwise
-  - `which singularity`   or  `which docker` 
-- make sure you have set the ennvironment variables that specify where `singularity/docker` will cache its images. if you don't do this, `singularity` will make assumptions and you may end up with a full disk and an unresponsive server, if running on a server with filesystem restrictions. you should have about 5GB free space at the target location.
-
-#### **next, running the container** (automatically built and deployed to Docker hub)
+### 2. Container-based usage (Recommended!)
 [![CircleCI](https://circleci.com/gh/aalok-sathe/sentspace/tree/circle-ci.svg?style=svg)](https://circleci.com/gh/aalok-sathe/sentspace/tree/circle-ci)
 
-- `singularity shell docker://aloxatel/sentspace:latest` (or alternatively, from the root of the repo, `bash singularity-shell.sh`). this step can take a while when you run it for the first time as it needs to download the image from docker hub and convert it to singularity image format (`.sif`). however, each subsequent run will execute rapidly. alternatively, use [corresponding commands for Docker](https://docs.docker.com/engine/reference/commandline/exec/).
-- now you are inside the container and ready to run Sentspace!
+Requirements: `singularity` or `docker`. 
 
-For a complete list of options and default values, see the `help` page like so:
+<!-- #### **first, some important housekeeping stuff**
+- make sure you have `singularity`/`docker`, or load/install it otherwise
+  - `which singularity`   or  `which docker` 
+- make sure you have set the ennvironment variables that specify where `singularity/docker` will cache its images. if you don't do this, `singularity` will make assumptions and you may end up with a full disk and an unresponsive server, if running on a server with filesystem restrictions. you should have about 5GB free space at the target location. -->
+
+<!-- #### **next, running the container** (automatically built and deployed to Docker hub) -->
+
+**Singularity:**
 ```bash
-python3 -m sentspace -h
-```
+singularity shell docker://aloxatel/sentspace:latest
+``` 
+Alternatively, from the root of the repo, `bash singularity-shell.sh`). this step can take a while when you run it for the first time as it needs to download the image from docker hub and convert it to singularity image format (`.sif`). however, each subsequent run will execute rapidly. 
 
-### Manual dependency install (not officially supported; needs elevated privileges)
+**Docker:** use [corresponding commands for Docker](https://docs.docker.com/engine/reference/commandline/exec/).
+
+now you are inside the container and ready to run `sentspace`!
+
+### 3. Manual install (use as last resort)
+On Debian/Ubuntu-like systems, follow the steps below. On other systems (RHEL, etc.), 
+substitute commands and package names with appropriate alternates.
 ```bash
 # optional (but recommended): 
 # create a virtual environment using your favorite method (venv, conda, ...) 
@@ -111,9 +128,9 @@ polyglot download morph2.en
 
 ## Submodules
 
-In general, each submodule implements a major class of features. You can run each module on its own by specifying its flag with the module call:
+In general, each submodule implements a major class of features. You can run each module on its own by specifying its flag and `0` or `1` with the module call:
 ```bash
-python -m sentspace -lex 1 <input_file_path>
+python -m sentspace -lex {0,1} -syn {0,1} -emb {0,1} <input_file_path>
 ```
 
 #### `lexical`
@@ -128,7 +145,7 @@ Description pending
 
 #### `embedding`
 Obtain high dimensional representations of sentences using word-embedding and contextualized encoder models.
-- glove
+- `glove`
 - Huggingface model hub (`gpt2-xl`, `bert-base-uncased`)
 
 #### `semantic`
@@ -144,15 +161,14 @@ Multi-word features computed using partial or full sentence context.
 
 Any contributions you make are **greatly appreciated**, and no contribution is *too small* to contribute.
 
-1. Fork the project using Github [(how to fork)](https://docs.github.com/en/get-started/quickstart/fork-a-repo)
+1. Fork the project on Github [(how to fork)](https://docs.github.com/en/get-started/quickstart/fork-a-repo)
 2. Create your feature/patch branch (`git checkout -b feature/AmazingFeature`)
-3. Make some changes! Implement your patch/feature. Test to make sure it works!
-4. Commit your bhanges (`git commit -m 'Add some AmazingFeature'`)
-5. Push the branch (`git push origin feature/AmazingFeature`)
-6. Open a Pull Request (PR) and we will take a look!
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request (PR) and we will take a look asap!
 
-## License & Contact
+## Whom to contact for help
 - `gretatu % mit ^ edu`
 - `asathe % mit ^ edu`
 
-(C) 2020-2021 EvLab, MIT BCS
+(C) 2020-2022 EvLab, MIT BCS
