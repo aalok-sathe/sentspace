@@ -27,7 +27,34 @@ Documentation is generated using `pdoc3` and available online (click on the titl
 ### 1. CLI
 Example: get lexical and embedding features for stimuli from a csv containing columns for 'sentence' and 'index'.
 ```bash
-python3 -m sentspace -lex 1 -syn 0 -emb 1 in/wsj_stimuli.csv
+$ python3 -m sentspace -h
+usage: 
+                                            
+
+positional arguments:
+  input_file            path to input file or a single sentence. If supplying a file, it must be .csv .txt or .xlsx, e.g., example/example.csv
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -sw STOP_WORDS, --stop_words STOP_WORDS
+                        path to delimited file of words to filter out from analysis, e.g., example/stopwords.txt
+  -b BENCHMARK, --benchmark BENCHMARK
+                        path to csv file of benchmark corpora For example benchmarks/lexical/UD_corpora_lex_features_sents_all.csv
+  -p PARALLELIZE, --parallelize PARALLELIZE
+                        use multiple threads to compute features? disable using `-p False` in case issues arise.
+  -o OUTPUT_DIR, --output_dir OUTPUT_DIR
+                        path to output directory where results may be stored
+  -of {pkl,tsv}, --output_format {pkl,tsv}
+  -lex LEXICAL, --lexical LEXICAL
+                        compute lexical features? [False]
+  -syn SYNTAX, --syntax SYNTAX
+                        compute syntactic features? [False]
+  -emb EMBEDDING, --embedding EMBEDDING
+                        compute high-dimensional sentence representations? [False]
+  -sem SEMANTIC, --semantic SEMANTIC
+                        compute semantic (multi-word) features? [False]
+  --emb_data_dir EMB_DATA_DIR
+                        path to output directory where results may be stored
 ```
 
 ### 2. As a library
