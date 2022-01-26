@@ -6,7 +6,7 @@ import sentspace.utils
 from sentspace.utils import io, text
 from sentspace.utils.caching import cache_to_mem #, cache_to_disk
 from sentspace.utils.misc import merge_lists
-
+from pathlib import Path
 
 
 # --------- Lexical features
@@ -149,20 +149,21 @@ def return_percentile_df(bench_df, usr_df):
 
 
 @cache_to_mem
-def load_databases(features='all', path='.feature_database/', 
+def load_databases(features='all', path='~/.cache/sentspace/', 
                    ignore_case=True,
                   ):
     """
     Load dicts mapping word to feature value
     If one feature, provide in list format
     """
+    path = str(Path(path).expanduser().resolve())
     io.log("loading databases with all features")
     databases = {}
     if features == 'all':
         features = get_feature_list()
     for feature in features:
         if not os.path.exists(path+feature+'.pkl'):
-            sentspace.utils.s3.load_feature(key=feature+'.pkl')
+            sentspace.utils.s3.load_feature(key=feature+'.pkl', root_dir=path)
         with open(path+feature+'.pkl', 'rb') as f:
             d = pickle.load(f)
             # if ignore_case:  # add lowercase version to feature database
