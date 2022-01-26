@@ -20,6 +20,8 @@ polyglot = "^16.7.4"
 PyICU = "^2.8"
 pycld2 = "^0.41"
 Morfessor = "^2.0.6"
+dash = "^2.0.0"
+plotly = "^5.5.0"
 
 [tool.poetry.dev-dependencies]
 
