@@ -39,7 +39,8 @@ def create_output_paths(input_file:str, output_dir:str, calling_module=None, sto
     out_file_name = '.'.join(os.path.basename(input_file).split('.')[:-1])
 
     output_dir /= out_file_name
-    output_dir /= sentspace.utils.md5(input_file)
+    # TODO: is this necessary? adds a lot of confusion.
+    # output_dir /= sentspace.utils.md5(input_file)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     with (output_dir / 'md5.txt').open('w') as f:
