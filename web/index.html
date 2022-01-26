@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>sentspace.utils.s3 API documentation</title>
+<title>sentspace.web API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -19,63 +19,9 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>sentspace.utils.s3</code></h1>
+<h1 class="title">Module <code>sentspace.web</code></h1>
 </header>
 <section id="section-intro">
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">import importlib
-import boto3
-import os
-import sys
-from botocore import UNSIGNED
-from botocore.config import Config
-from tqdm import tqdm
-from pathlib import Path
-
-class _S3Storage():
-    &#34;&#34;&#34;
-    load pickles
-    &#34;&#34;&#34;
-
-    _NO_SIGNATURE = Config(signature_version=UNSIGNED)
-
-    def __init__(self, *args, key, bucket=&#39;sentspace-databases&#39;, region=&#39;us-east-1&#39;, root_dir=os.getcwd() + &#39;/.feature_database/&#39;, **kwargs):
-        super(_S3Storage, self).__init__(*args, **kwargs)
-        self._key = key
-        self._bucket = bucket
-        self._region = region
-        # self._local_root_dir = os.path.join(os.getcwd(),&#39;.feature_database/&#39;)
-        self._local_root_dir = str(Path(root_dir).expanduser().resolve()) + &#39;/&#39;
-        os.makedirs(self._local_root_dir, exist_ok=True)
-        self._retrieve()
-
-    #is the relevant file here?
-    def _retrieve(self):
-        key=self._key
-        dir=self._local_root_dir
-        local_path = os.path.join(dir, key)
-        if not os.path.isfile(local_path):
-            self._download_file(key, local_path)
-
-    #download it from s3 bucket
-    def _download_file(self, key, local_path):
-        print(f&#34;Downloading {key} to {local_path}&#34;)
-        s3 = boto3.resource(&#39;s3&#39;, region_name=self._region, config=self._NO_SIGNATURE)
-        obj = s3.Object(self._bucket, key)
-        with tqdm(total=obj.content_length, unit=&#39;B&#39;, unit_scale=True, desc=key, file=sys.stdout) as progress_bar:
-            def progress_hook(bytes_amount):
-                progress_bar.update(bytes_amount)
-
-            obj.download_file(local_path, Callback=progress_hook)
-
-    def save(self, result, function_identifier):
-        raise NotImplementedError(&#34;can only load from S3, but not save&#34;)
-
-load_feature = _S3Storage</code></pre>
-</details>
 </section>
 <section>
 </section>
@@ -84,75 +30,6 @@ load_feature = _S3Storage</code></pre>
 <section>
 </section>
 <section>
-<h2 class="section-title" id="header-classes">Classes</h2>
-<dl>
-<dt id="sentspace.utils.s3._S3Storage"><code class="flex name class">
-<span>class <span class="ident">load_feature</span></span>
-<span>(</span><span>*args, key, bucket='sentspace-databases', region='us-east-1', root_dir='/root/project/.feature_database/', **kwargs)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>load pickles</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">class _S3Storage():
-    &#34;&#34;&#34;
-    load pickles
-    &#34;&#34;&#34;
-
-    _NO_SIGNATURE = Config(signature_version=UNSIGNED)
-
-    def __init__(self, *args, key, bucket=&#39;sentspace-databases&#39;, region=&#39;us-east-1&#39;, root_dir=os.getcwd() + &#39;/.feature_database/&#39;, **kwargs):
-        super(_S3Storage, self).__init__(*args, **kwargs)
-        self._key = key
-        self._bucket = bucket
-        self._region = region
-        # self._local_root_dir = os.path.join(os.getcwd(),&#39;.feature_database/&#39;)
-        self._local_root_dir = str(Path(root_dir).expanduser().resolve()) + &#39;/&#39;
-        os.makedirs(self._local_root_dir, exist_ok=True)
-        self._retrieve()
-
-    #is the relevant file here?
-    def _retrieve(self):
-        key=self._key
-        dir=self._local_root_dir
-        local_path = os.path.join(dir, key)
-        if not os.path.isfile(local_path):
-            self._download_file(key, local_path)
-
-    #download it from s3 bucket
-    def _download_file(self, key, local_path):
-        print(f&#34;Downloading {key} to {local_path}&#34;)
-        s3 = boto3.resource(&#39;s3&#39;, region_name=self._region, config=self._NO_SIGNATURE)
-        obj = s3.Object(self._bucket, key)
-        with tqdm(total=obj.content_length, unit=&#39;B&#39;, unit_scale=True, desc=key, file=sys.stdout) as progress_bar:
-            def progress_hook(bytes_amount):
-                progress_bar.update(bytes_amount)
-
-            obj.download_file(local_path, Callback=progress_hook)
-
-    def save(self, result, function_identifier):
-        raise NotImplementedError(&#34;can only load from S3, but not save&#34;)</code></pre>
-</details>
-<h3>Methods</h3>
-<dl>
-<dt id="sentspace.utils.s3._S3Storage.save"><code class="name flex">
-<span>def <span class="ident">save</span></span>(<span>self, result, function_identifier)</span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def save(self, result, function_identifier):
-    raise NotImplementedError(&#34;can only load from S3, but not save&#34;)</code></pre>
-</details>
-</dd>
-</dl>
-</dd>
-</dl>
 </section>
 </article>
 <nav id="sidebar">
@@ -163,17 +40,7 @@ load_feature = _S3Storage</code></pre>
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="sentspace.utils" href="index.html">sentspace.utils</a></code></li>
-</ul>
-</li>
-<li><h3><a href="#header-classes">Classes</a></h3>
-<ul>
-<li>
-<h4><code><a title="sentspace.utils.s3._S3Storage" href="#sentspace.utils.s3._S3Storage">_S3Storage</a></code></h4>
-<ul class="">
-<li><code><a title="sentspace.utils.s3._S3Storage.save" href="#sentspace.utils.s3._S3Storage.save">save</a></code></li>
-</ul>
-</li>
+<li><code><a title="sentspace" href="../index.html">sentspace</a></code></li>
 </ul>
 </li>
 </ul>

@@ -289,7 +289,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
 
     for part, sentence_batch in enumerate(tqdm(utils.io.get_batches(sentences, batch_size=batch_size), 
-                                               desc=&#39;processing batches&#39;)):
+                                               desc=&#39;processing batches&#39;, total=len(sentences)//batch_size+1)):
         sentence_features_filestem = f&#39;sentence-features_part{part:0&gt;4}&#39;
         token_features_filestem = f&#39;token-features_part{part:0&gt;4}&#39;
 
@@ -518,6 +518,10 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 <dd>
 <div class="desc"></div>
 </dd>
+<dt><code class="name"><a title="sentspace.web" href="web/index.html">sentspace.web</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 </dl>
 </section>
 <section>
@@ -598,7 +602,7 @@ compare the current input against; e.g. UD [optional]</dd>
 
 
     for part, sentence_batch in enumerate(tqdm(utils.io.get_batches(sentences, batch_size=batch_size), 
-                                               desc=&#39;processing batches&#39;)):
+                                               desc=&#39;processing batches&#39;, total=len(sentences)//batch_size+1)):
         sentence_features_filestem = f&#39;sentence-features_part{part:0&gt;4}&#39;
         token_features_filestem = f&#39;token-features_part{part:0&gt;4}&#39;
 
@@ -849,6 +853,7 @@ compare the current input against; e.g. UD [optional]</dd>
 <li><code><a title="sentspace.lexical" href="lexical/index.html">sentspace.lexical</a></code></li>
 <li><code><a title="sentspace.syntax" href="syntax/index.html">sentspace.syntax</a></code></li>
 <li><code><a title="sentspace.utils" href="utils/index.html">sentspace.utils</a></code></li>
+<li><code><a title="sentspace.web" href="web/index.html">sentspace.web</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
