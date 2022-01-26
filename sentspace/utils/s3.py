@@ -14,13 +14,13 @@ class _S3Storage():
 
     _NO_SIGNATURE = Config(signature_version=UNSIGNED)
 
-    def __init__(self, *args, key, bucket='sentspace-databases', region='us-east-1', root_dir=os.getcwd() + '/.feature_database', **kwargs):
+    def __init__(self, *args, key, bucket='sentspace-databases', region='us-east-1', root_dir=os.getcwd() + '/.feature_database/', **kwargs):
         super(_S3Storage, self).__init__(*args, **kwargs)
         self._key = key
         self._bucket = bucket
         self._region = region
         # self._local_root_dir = os.path.join(os.getcwd(),'.feature_database/')
-        self._local_root_dir = str(Path(root_dir).expanduser().resolve())
+        self._local_root_dir = str(Path(root_dir).expanduser().resolve()) + '/'
         os.makedirs(self._local_root_dir, exist_ok=True)
         self._retrieve()
 

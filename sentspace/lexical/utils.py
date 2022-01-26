@@ -156,7 +156,7 @@ def load_databases(features='all', path='~/.cache/sentspace/',
     Load dicts mapping word to feature value
     If one feature, provide in list format
     """
-    path = str(Path(path).expanduser().resolve())
+    path = str(Path(path).expanduser().resolve()) + '/'
     io.log("loading databases with all features")
     databases = {}
     if features == 'all':
