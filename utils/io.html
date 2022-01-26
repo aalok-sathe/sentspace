@@ -66,7 +66,8 @@ def create_output_paths(input_file:str, output_dir:str, calling_module=None, sto
     out_file_name = &#39;.&#39;.join(os.path.basename(input_file).split(&#39;.&#39;)[:-1])
 
     output_dir /= out_file_name
-    output_dir /= sentspace.utils.md5(input_file)
+    # TODO: is this necessary? adds a lot of confusion.
+    # output_dir /= sentspace.utils.md5(input_file)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     with (output_dir / &#39;md5.txt&#39;).open(&#39;w&#39;) as f:
@@ -236,7 +237,8 @@ def log(message, type=&#39;INFO&#39;):
     out_file_name = &#39;.&#39;.join(os.path.basename(input_file).split(&#39;.&#39;)[:-1])
 
     output_dir /= out_file_name
-    output_dir /= sentspace.utils.md5(input_file)
+    # TODO: is this necessary? adds a lot of confusion.
+    # output_dir /= sentspace.utils.md5(input_file)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     with (output_dir / &#39;md5.txt&#39;).open(&#39;w&#39;) as f:

@@ -33,6 +33,7 @@ import sys
 from botocore import UNSIGNED
 from botocore.config import Config
 from tqdm import tqdm
+from pathlib import Path
 
 class _S3Storage():
     &#34;&#34;&#34;
@@ -41,12 +42,13 @@ class _S3Storage():
 
     _NO_SIGNATURE = Config(signature_version=UNSIGNED)
 
-    def __init__(self, *args, key, bucket=&#39;sentspace-databases&#39;, region=&#39;us-east-1&#39;, **kwargs):
+    def __init__(self, *args, key, bucket=&#39;sentspace-databases&#39;, region=&#39;us-east-1&#39;, root_dir=os.getcwd() + &#39;/.feature_database&#39;, **kwargs):
         super(_S3Storage, self).__init__(*args, **kwargs)
         self._key = key
         self._bucket = bucket
         self._region = region
-        self._local_root_dir = os.path.join(os.getcwd(),&#39;.feature_database/&#39;)
+        # self._local_root_dir = os.path.join(os.getcwd(),&#39;.feature_database/&#39;)
+        self._local_root_dir = str(Path(root_dir).expanduser().resolve())
         os.makedirs(self._local_root_dir, exist_ok=True)
         self._retrieve()
 
@@ -86,7 +88,7 @@ load_feature = _S3Storage</code></pre>
 <dl>
 <dt id="sentspace.utils.s3._S3Storage"><code class="flex name class">
 <span>class <span class="ident">load_feature</span></span>
-<span>(</span><span>*args, key, bucket='sentspace-databases', region='us-east-1', **kwargs)</span>
+<span>(</span><span>*args, key, bucket='sentspace-databases', region='us-east-1', root_dir='/root/project/.feature_database', **kwargs)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>load pickles</p></div>
@@ -101,12 +103,13 @@ load_feature = _S3Storage</code></pre>
 
     _NO_SIGNATURE = Config(signature_version=UNSIGNED)
 
-    def __init__(self, *args, key, bucket=&#39;sentspace-databases&#39;, region=&#39;us-east-1&#39;, **kwargs):
+    def __init__(self, *args, key, bucket=&#39;sentspace-databases&#39;, region=&#39;us-east-1&#39;, root_dir=os.getcwd() + &#39;/.feature_database&#39;, **kwargs):
         super(_S3Storage, self).__init__(*args, **kwargs)
         self._key = key
         self._bucket = bucket
         self._region = region
-        self._local_root_dir = os.path.join(os.getcwd(),&#39;.feature_database/&#39;)
+        # self._local_root_dir = os.path.join(os.getcwd(),&#39;.feature_database/&#39;)
+        self._local_root_dir = str(Path(root_dir).expanduser().resolve())
         os.makedirs(self._local_root_dir, exist_ok=True)
         self._retrieve()
 
