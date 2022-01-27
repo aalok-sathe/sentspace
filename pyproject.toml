@@ -9,22 +9,36 @@ python = "^3.8,<3.10"
 nltk = "3.6.2"
 pandas = "^1.3.5"
 PyYAML = "^6.0"
-pdoc3 = "^0.10.0"
 transformers = "4.11.3"
 scipy = "^1.7.3"
 boto3 = "^1.20.25"
 torch = "1.9.0"
 seaborn = "0.11.2"
 numpy = "^1.22.1"
-polyglot = "^16.7.4"
-PyICU = "^2.8"
-pycld2 = "^0.41"
-Morfessor = "^2.0.6"
 dash = "^2.0.0"
 plotly = "^5.5.0"
 
+Morfessor = { version = "^2.0.6", optional = true }
+PyICU = { version = "^2.8", optional = true }
+pycld2 = { version = "^0.41", optional = true }
+polyglot = { version = "^16.7.4", optional = true }
+
+[tool.poetry.extras]
+polyglot = ["polyglot", "PyICU", "pycld2"]
+morfessor = ["Morfessor"]
+
 [tool.poetry.dev-dependencies]
+pdoc3 = "^0.10.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+sentspace = 'sentspace.__main__:main'
+"sentspace.web" = 'sentspace.web.__main__:main'
+
+[tool.poetry.urls]
+"issues" = "https://github.com/sentspace/sentspace/issues"
+"homepage" = "https://github.com/aalok-sathe/sentspace"
+"documentation" = "https://aalok-sathe.github.io/sentspace"
