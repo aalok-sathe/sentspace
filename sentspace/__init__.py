@@ -85,7 +85,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
 
     for part, sentence_batch in enumerate(tqdm(utils.io.get_batches(sentences, batch_size=batch_size), 
-                                               desc='processing batches')):
+                                               desc='processing batches', total=len(sentences)//batch_size+1)):
         sentence_features_filestem = f'sentence-features_part{part:0>4}'
         token_features_filestem = f'token-features_part{part:0>4}'
 
