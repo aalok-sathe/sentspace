@@ -23,28 +23,9 @@ import multiprocessing
 #     # Plot input data to benchmark data
 #     #utils.plot_usr_input_against_benchmark_dist_plots(df_benchmark, sent_embed)
 
-def main(args):
+def main(**kwargs):
     '''used to run the main pipeline, start to end, depending on the arguments and flags
     '''
-    
-    utils.io.log(f'SENTSPACE. Received arguments: {args}')
-
-    # Estimate sentence embeddings
-    output_dir = sentspace.run_sentence_features_pipeline(args.input_file, stop_words_file=args.stop_words,
-                                                          benchmark_file=args.benchmark, process_lexical=args.lexical,
-                                                          process_syntax=args.syntax, process_embedding=args.embedding,
-                                                          process_semantic=args.semantic,
-                                                          output_dir=args.output_dir,
-                                                          output_format=args.output_format,
-                                                          parallelize=args.parallelize,
-                                                          # TODO: return_df or return_path?
-                                                          emb_data_dir=args.emb_data_dir)
-
-    with (output_dir/'FINISHED').open('w+') as f:
-        pass
-
-if __name__ == "__main__":
-
     # Parse input
     parser = argparse.ArgumentParser('sentspace', 
                                       usage="""
@@ -90,3 +71,23 @@ if __name__ == "__main__":
 
     args = parser.parse_args()	
     main(args)
+
+    
+    utils.io.log(f'SENTSPACE. Received arguments: {args}')
+
+    # Estimate sentence embeddings
+    output_dir = sentspace.run_sentence_features_pipeline(args.input_file, stop_words_file=args.stop_words,
+                                                          benchmark_file=args.benchmark, process_lexical=args.lexical,
+                                                          process_syntax=args.syntax, process_embedding=args.embedding,
+                                                          process_semantic=args.semantic,
+                                                          output_dir=args.output_dir,
+                                                          output_format=args.output_format,
+                                                          parallelize=args.parallelize,
+                                                          # TODO: return_df or return_path?
+                                                          emb_data_dir=args.emb_data_dir)
+
+    with (output_dir/'FINISHED').open('w+') as f:
+        pass
+
+if __name__ == "__main__":
+    main() 
