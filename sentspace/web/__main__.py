@@ -26,7 +26,7 @@ def load_df_from_directory(corpus: str, directory: str, module: str = 'lexical')
     dfs[dfs.index.name] = dfs.index
     dfs['corpus'] = corpus
     dfs['sentence_length'] = dfs['sentence'].apply(lambda x: len(sentspace.Sentence(x, warn=False)))
-    return dfs.sample(frac=.1)
+    return dfs.sample(frac=.3)
 
 df = pd.DataFrame()
 df = df.append(load_df_from_directory('brown', 'out/brown_subsampled_grouped_by_length_n=500_stimuli'))
@@ -35,6 +35,7 @@ df = df.append(load_df_from_directory('wsj', 'out/wsj_subsampled_grouped_by_leng
 df = df.append(load_df_from_directory('ud', 'out/ud_subsampled_grouped_by_length_n=500_stimuli'))
 df = df.append(load_df_from_directory('c4', 'out/c4_subsampled_grouped_by_length_n=500_stimuli'))
 df = df.append(load_df_from_directory('cocaspok1991', 'out/cocaspok1991_subsampled_grouped_by_length_n=500_stimuli'))
+df = df.append(load_df_from_directory('cocaspok2001', 'out/cocaspok2001_subsampled_grouped_by_length_n=500_stimuli'))
 df = df.append(load_df_from_directory('cocaspok2012', 'out/cocaspok2012_subsampled_grouped_by_length_n=500_stimuli'))
 # df = df.drop(columns=[None])
 
@@ -124,7 +125,7 @@ app.layout = html.Div(
                                 options=[{'label': i, 'value': i} for i in range(6,50)] + [dict(label='None', value=0)],
                                 value=None,
                             ),
-            ]),
+            ], style={'width': '50%', 'display': 'inline-block'}),
         ]),
 
         dcc.Graph(id='the-graph',),
@@ -182,10 +183,11 @@ def update_graph(plot_type,
 
     if plot_type == 'histogram':
         fig = px.histogram(df_, x=hist_column, color="corpus",
-                        marginal="violin", # 'rug', "box", "violin"
+                        marginal="box", # 'rug', "box", "violin"
                         #hover_data=df.columns
                         histnorm='probability density',
                         hover_name='sentence',
+                        nbins=100,
                         )
         return fig
 
@@ -207,6 +209,8 @@ def update_graph(plot_type,
         return fig
 
 
-if __name__ == '__main__':
-    app.run_server(debug=True)
+def main():
+    app.run_server(debug=True, port=8051)
 
+if __name__ == '__main__':
+    main()
