@@ -44,6 +44,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                    process_lexical: bool = False, process_syntax: bool = False,
                                    process_embedding: bool = False, process_semantic: bool = False,
                                    parallelize: bool = True,
+                                   # preserve_metadata: bool = True,
                                    #
                                    emb_data_dir: str = None) -> Path:
     """
