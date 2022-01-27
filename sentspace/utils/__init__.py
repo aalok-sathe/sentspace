@@ -1,5 +1,5 @@
 
-from sentspace.utils.utils import *
+from sentspace.utils.misc import *
 download_nltk_resources()
 
 import sentspace.utils.io as io

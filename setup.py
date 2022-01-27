@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='sentspace',
-      version='0.1',
+      version='0.0.2',
       description='comaprison of sentences in large sentence spaces along meaningful and latent feature dimensions',
       author='Greta Tuckute <gretatu@mit.edu>, Alvincé Le Arnz Pongos <alvincepongos@gmail.com>, Aalok Sathe <aalok.sathe@richmond.edu> @ EvLab, MIT BCS',
       author_email='gretatu@mit.edu',

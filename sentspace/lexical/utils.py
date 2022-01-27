@@ -4,35 +4,9 @@ import pickle
 import numpy as np
 import sentspace.utils
 from sentspace.utils import io, text
-from sentspace.utils.caching import cache_to_disk, cache_to_mem
-from sentspace.utils.utils import Word, merge_lists, wordnet
-
-
-
-def get_all_features(wordlist, databases):
-    """
-    Given list of words, return dict mapping feature to list of feature values
-    """
-    result = {}
-    for feature in get_feature_list() + get_feature_list_using_third_party_libraries():
-        result[feature] = get_feature(wordlist, feature, databases)
-    return result
-
-
-def get_all_features_merged(flat_token_list, flat_lemmatized_token_list, databases):
-    """
-    Given list of words & list of lemmatized words,
-    return dict mapping feature to list of feature values after merging
-    (if a word in its original form exists in the database, use its associated value;
-    if not, use value associated with the lemmatized version)
-    """
-    all_vals = get_all_features(flat_token_list, databases)
-    all_vals_lem = get_all_features(flat_lemmatized_token_list, databases)
-    merged = {}
-    for feature in all_vals:
-        merged[feature] = merge_lists(all_vals[feature], all_vals_lem[feature], feature=feature)
-    return merged
-
+from sentspace.utils.caching import cache_to_mem #, cache_to_disk
+from sentspace.utils.misc import merge_lists
+from pathlib import Path
 
 
 # --------- Lexical features
@@ -42,37 +16,54 @@ def get_all_features_merged(flat_token_list, flat_lemmatized_token_list, databas
 def get_feature_list():
     return ['NRC_Arousal', 'NRC_Valence', 'OSC', 'aoa', 'concreteness', 'lexical_decision_RT',
             'log_contextual_diversity', 'log_lexical_frequency', 'n_orthographic_neighbors', 'num_morpheme',
-            'prevalence', 'surprisal-3', 'total_degree_centrality']
-
+            'prevalence', 
+            'surprisal-3', 'surprisal-1', 'surprisal-2', 'surprisal-4',
+            'total_degree_centrality']
 
 def get_feature_list_using_third_party_libraries():
     return ['polysemy', 'num_morpheme_poly']
-
 
 def get_feature_list_requiring_calculation():
     return ['PMI']
 
 
-def get_poly_morpheme(sent_num, word_list):
+def get_all_features(sentence: 'sentspace.Sentence.Sentence', databases):
+    """
+    Given list of words, return dict mapping feature to list of feature values
+    """
+    
+    result = {}
+    for feature in get_feature_list() + get_feature_list_using_third_party_libraries():
+        # we don't want to compute num_morpheme using the dictionary DB by default. 
+        # we want to do it only if the polyglot library is unavailable.
+        if feature == 'num_morpheme': 
+            continue
+        computed_feature = get_feature(sentence, feature, databases) 
+        # even though we are computing "num_morpheme_poly", we want to
+        # record it as "num_morpheme", since the _poly suffix comes from the polyglot library
+        # that provides the feature
+        if feature == 'num_morpheme_polyglot':
+            try:
+                import polyglot
+            except ImportError:
+                feature = 'num_morpheme'
+        result[feature] = computed_feature
+    return result
+
+
+def get_feature(sentence: 'sentspace.Sentence.Sentence', feature, databases={}):
     '''
-        Given sent_number and word_list, calculate the morphemes of each word in each sentence
+    get specific `feature` for the tokens in `sentence`; fall back to using `lemmas` if necessary
     '''
-    raise NotImplementedError
 
-
-
-
-def get_feature(flat_token_list, feature, databases):
-
-    # @cache_to_mem  # (ignore=['databases'])
-    def get_feature_(word, feature):
-        """given a word and a feature to exatract, returns the value of that
-            feature for the word using available databases
+    def get_feature_(token, lemma, feature):
+        """given a `word` and a feature to extract, returns the value of that
+            feature for the `word` using available databases
 
         Args:
             word (str): the token (word) to extract a feature for
             feature (str): name identifier of the feature acc to predefined convention
-            databases (dict, optional): dictionary of feature --> (word --> feature_value) dictionaries. 
+            databases (dict, in-scope): dictionary of feature --> (word --> feature_value) dictionaries. 
                                         Defaults to {}.
 
         Returns:
@@ -82,28 +73,54 @@ def get_feature(flat_token_list, feature, databases):
         # database can be a dictionary or an object that implements
         # get(key, default)
         if feature in get_feature_list():
-            return databases.get(feature, {}).get(word, np.nan)
+            feature_dict = databases[feature]            
+            try:
+                return feature_dict[token]
+            except KeyError as e:
+                try:
+                    return feature_dict[lemma]
+                except KeyError as e_:
+                    return np.nan
 
-        # Other databases we use from libraries we load such as NLTK and Polyglot
+        # Other databases we use from libraries we load such as NLTK-Wordnet and Polyglot
         elif feature in get_feature_list_using_third_party_libraries():
             if feature == 'polysemy':
-                if wordnet.synsets(word):
-                    return len(wordnet.synsets(word))
+                from nltk.corpus import wordnet
+                # first try it with the token itself
+                if (synsets := wordnet.synsets(token)):
+                    return len(synsets) # TODO does a word's synset include itself?
+                # if token is OOV, try again with the lemma
+                elif (synsets := wordnet.synsets(lemma)):
+                    return len(synsets)
+                # otherwise the len of its synset is 1 (itself)
                 return 1
             elif feature == 'num_morpheme_poly':
-                morphed = Word(word, language='en').morphemes
-                if morphed:
-                    return len(morphed)
-                return np.nan
+                try:
+                    from polyglot.text import Word
+                    # try first to obtain # morphemes of the token
+                    if (morphed := Word(token, language='en').morphemes):
+                        return len(morphed)
+                    # otherwise, try using the lemmatized form
+                    elif (morphed := Word(lemma, language='en').morphemes):
+                        return len(morphed)
+                    # if both token and lemma OOV, then return nan? or 1 (i.e. full word is the morpheme?)
+                    # but that only means we failed to analyze its morphology, not necessarily that is
+                    # *is* a single morpheme
+                    return 1 # np.nan
+                except ImportError as e:
+                    # fall back to simply using a dictionary-based feature
+                    # TODO make a note of this somewhere
+                    io.log(e.msg, type='WARN')
+                    return get_feature_(token, lemma, 'num_morpheme')
+
         else:
             raise ValueError(f'unable to compute unknown feature `{feature}`')
 
 
-    d = {}
     features_list = []
 
-    for word in flat_token_list:
-        features_list += [get_feature_(word, feature)]
+    for token, lemma in zip(sentence.tokens, sentence.lemmas):
+        features_list += [get_feature_(token, lemma, feature)]
 
     return features_list
 
@@ -132,23 +149,26 @@ def return_percentile_df(bench_df, usr_df):
 
 
 @cache_to_mem
-def load_databases(features='all', path='.feature_database/', ignore_case=True):
+def load_databases(features='all', path='~/.cache/sentspace/', 
+                   ignore_case=True,
+                  ):
     """
     Load dicts mapping word to feature value
     If one feature, provide in list format
     """
+    path = str(Path(path).expanduser().resolve()) + '/'
     io.log("loading databases with all features")
     databases = {}
     if features == 'all':
         features = get_feature_list()
     for feature in features:
         if not os.path.exists(path+feature+'.pkl'):
-            sentspace.utils.s3.load_feature(key=feature+'.pkl')
+            sentspace.utils.s3.load_feature(key=feature+'.pkl', root_dir=path)
         with open(path+feature+'.pkl', 'rb') as f:
             d = pickle.load(f)
-            if ignore_case:  # add lowercase version to feature database
-                for key, val in d.copy().items():
-                    d[str(key).lower()] = val
+            # if ignore_case:  # add lowercase version to feature database
+            #     for key, val in d.copy().items():
+            #         d[str(key).lower()] = val
             databases[feature] = d
 
     sanity_check_databases(databases)
