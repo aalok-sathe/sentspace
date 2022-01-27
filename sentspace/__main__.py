@@ -78,6 +78,8 @@ if __name__ == "__main__":
     parser.add_argument('-of', '--output_format', default='pkl', type=str,
                         choices=['pkl','tsv'])
 
+    # parser.add_argument('-id', '--request_id', type=str, default=None, required=False,
+    #                     help='Provide a custom identifier string to mark unique requests made to the program')
     # Add an option for a user to choose to not do some analyses. Default is true
     parser.add_argument('-lex','--lexical', type=strtobool, default=False, help='compute lexical features? [False]')
     parser.add_argument('-syn','--syntax', type=strtobool, default=False, help='compute syntactic features? [False]')
