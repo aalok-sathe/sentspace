@@ -249,6 +249,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                    process_lexical: bool = False, process_syntax: bool = False,
                                    process_embedding: bool = False, process_semantic: bool = False,
                                    parallelize: bool = True,
+                                   # preserve_metadata: bool = True,
                                    #
                                    emb_data_dir: str = None) -&gt; Path:
     &#34;&#34;&#34;
@@ -562,6 +563,7 @@ compare the current input against; e.g. UD [optional]</dd>
                                    process_lexical: bool = False, process_syntax: bool = False,
                                    process_embedding: bool = False, process_semantic: bool = False,
                                    parallelize: bool = True,
+                                   # preserve_metadata: bool = True,
                                    #
                                    emb_data_dir: str = None) -&gt; Path:
     &#34;&#34;&#34;
