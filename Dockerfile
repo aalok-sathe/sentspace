@@ -19,9 +19,9 @@ RUN apt install -y python2.7 python2.7-dev
 RUN apt install -y build-essential curl
 RUN DEBIAN_FRONTEND="noninteractive" TZ="America/New_York" apt install -y python3-icu
 
-RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/1.1.10/get-poetry.py | python3.8 -
 # RUN pip install "poetry==$POETRY_VERSION"
-
+RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/1.1.10/get-poetry.py | python3.8 -
+RUN ln -s "$HOME/.poetry/bin/poetry" /usr/bin/poetry
 ADD poetry.lock pyproject.toml /app/
 # RUN python3.8 -m venv /venv
 RUN poetry config virtualenvs.create false 
