@@ -16,7 +16,7 @@ RUN apt update
 RUN apt install -y python3.8 python3.8-dev python3-pip
 RUN apt install -y python2.7 python2.7-dev 
 # RUN apt install -y openjdk-8-jdk-headless openjdk-8-jre-headless
-RUN apt install -y build-essential curl
+RUN apt install -y build-essential curl pkg-config libicu-dev
 RUN DEBIAN_FRONTEND="noninteractive" TZ="America/New_York" apt install -y python3-icu
 
 # RUN pip install "poetry==$POETRY_VERSION"
