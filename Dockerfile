@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM ubuntu:20.04
+FROM ubuntu:20.04 as builddeps
 
 # source: https://stackoverflow.com/a/54763270/2434875
 ENV PYTHONFAULTHANDLER=1 \
@@ -24,6 +24,9 @@ RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/1.1.10/get-
 RUN ln -s "$HOME/.poetry/bin/poetry" /usr/bin/poetry
 ADD poetry.lock pyproject.toml /app/
 # RUN python3.8 -m venv /venv
+
+FROM builddeps as build
+
 RUN poetry config virtualenvs.create false 
 RUN poetry install -E polyglot --no-interaction --no-ansi --no-root && \
     poetry build -f wheel && \
