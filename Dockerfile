@@ -27,6 +27,7 @@ ADD poetry.lock pyproject.toml /app/
 
 FROM builddeps as build
 
+RUN ls -lah
 RUN poetry config virtualenvs.create false 
 RUN poetry install -E polyglot --no-interaction --no-ansi --no-root && \
     poetry build -f wheel && \
