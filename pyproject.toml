@@ -1,9 +1,5 @@
 [tool.poetry]
 name = "sentspace"
-packages = [
-    { include = "sentspace" },
-    # { include = "sentspace/**/*.py" },
-]
 version = "0.0.2"
 description = ""
 authors = ["Your Name <you@example.com>"]
