@@ -2,7 +2,7 @@
 name = "sentspace"
 packages = [
     { include = "sentspace" },
-    { include = "sentspace/**/*.py" },
+    # { include = "sentspace/**/*.py" },
 ]
 version = "0.0.2"
 description = ""
