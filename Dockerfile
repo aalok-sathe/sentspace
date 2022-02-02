@@ -22,7 +22,8 @@ RUN DEBIAN_FRONTEND="noninteractive" TZ="America/New_York" apt install -y pkg-co
 # RUN pip install "poetry==$POETRY_VERSION"
 RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/1.1.10/get-poetry.py | python3.8 -
 RUN ln -s "$HOME/.poetry/bin/poetry" /usr/bin/poetry
-ADD poetry.lock pyproject.toml /app/
+COPY poetry.lock pyproject.toml /app/
+COPY sentspace /app/
 # RUN python3.8 -m venv /venv
 
 FROM builddeps as build
