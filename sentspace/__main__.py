@@ -28,8 +28,6 @@ def main(**kwargs):
     '''
     # Parse input
     parser = argparse.ArgumentParser('sentspace', 
-                                      usage="""
-                                            """
     )
 
     parser.add_argument('input_file', type=str,
