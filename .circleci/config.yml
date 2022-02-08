@@ -59,6 +59,7 @@ jobs:
       - add_ssh_keys:
           fingerprints:
             - "69:08:74:89:7c:dd:ed:e2:e3:a8:85:3b:73:3d:dd:24"
+            - "c1:3f:24:18:44:23:67:60:bc:bc:be:09:f8:01:83:22"
       - run:
           name: Install and configure dependencies
           command: |
