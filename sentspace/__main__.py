@@ -28,8 +28,6 @@ def main(**kwargs):
     '''
     # Parse input
     parser = argparse.ArgumentParser('sentspace', 
-                                      usage="""
-                                            """
     )
 
     parser.add_argument('input_file', type=str,
@@ -72,8 +70,6 @@ def main(**kwargs):
     # parser.add_argument('--cache_dir', default=)
 
     args = parser.parse_args()	
-    main(args)
-
     
     utils.io.log(f'SENTSPACE. Received arguments: {args}')
 
