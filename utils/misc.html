@@ -113,7 +113,7 @@ def START_TIME(): return _START_TIME
 def download_nltk_resources():
     for category, nltk_resource in [(&#39;taggers&#39;, &#39;averaged_perceptron_tagger&#39;), 
                                     (&#39;corpora&#39;, &#39;wordnet&#39;),
-                                    # (&#39;tokenizers&#39;, &#39;punkt&#39;)
+                                    (&#39;tokenizers&#39;, &#39;punkt&#39;),
                                     ]:
         try:
             nltk.data.find(category+&#39;/&#39;+nltk_resource)
@@ -716,7 +716,7 @@ def sizeof_fmt(num, suffix=&#39;B&#39;):
 <pre><code class="python">def download_nltk_resources():
     for category, nltk_resource in [(&#39;taggers&#39;, &#39;averaged_perceptron_tagger&#39;), 
                                     (&#39;corpora&#39;, &#39;wordnet&#39;),
-                                    # (&#39;tokenizers&#39;, &#39;punkt&#39;)
+                                    (&#39;tokenizers&#39;, &#39;punkt&#39;),
                                     ]:
         try:
             nltk.data.find(category+&#39;/&#39;+nltk_resource)
