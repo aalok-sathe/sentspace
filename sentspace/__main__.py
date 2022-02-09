@@ -69,6 +69,11 @@ def main(**kwargs):
                          help='path to output directory where results may be stored')
     # parser.add_argument('--cache_dir', default=)
 
+    parser.add_argument('--syntax_port', type=int, default=8000, help='The port where Syntax module\'s parser is running. '
+                                                                      'The syntax module requires a parser server based on '
+                                                                      'https://github.com/aalok-sathe/berkeley-interact.')
+
+
     args = parser.parse_args()	
     
     utils.io.log(f'SENTSPACE. Received arguments: {args}')

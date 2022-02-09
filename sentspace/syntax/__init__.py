@@ -20,7 +20,9 @@ __pdoc__ = {'compute_tree_dlt_left_corner': False,
 os.environ['PERL_BADLANG'] = '0'
 
 
-def get_features(sentence: str = None, identifier: str = None, dlt: bool = True, left_corner: bool = True) -> dict:
+def get_features(sentence: str = None, identifier: str = None, 
+                 dlt: bool = True, left_corner: bool = True,
+                 syntax_port: int = 8000) -> dict:
     """executes the syntactic features pipeline
 
     Args:
@@ -47,7 +49,8 @@ def get_features(sentence: str = None, identifier: str = None, dlt: bool = True,
             # io.log(f'parsing into syntax tree: `{sentence}`')
             # parsed = parse_input(sentence)
             try:
-                features.tree = Tree(utils.compute_trees(sub_sentence))
+                server_url = f'http://localhost:{syntax_port}/fullberk'
+                features.tree = Tree(utils.compute_trees(sub_sentence, server_url=server_url))
             except RuntimeError:
                 pass
             # io.log(f'--- done: tree computed')
