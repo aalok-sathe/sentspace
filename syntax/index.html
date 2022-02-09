@@ -46,7 +46,9 @@ __pdoc__ = {&#39;compute_tree_dlt_left_corner&#39;: False,
 os.environ[&#39;PERL_BADLANG&#39;] = &#39;0&#39;
 
 
-def get_features(sentence: str = None, identifier: str = None, dlt: bool = True, left_corner: bool = True) -&gt; dict:
+def get_features(sentence: str = None, identifier: str = None, 
+                 dlt: bool = True, left_corner: bool = True,
+                 syntax_port: int = 8000) -&gt; dict:
     &#34;&#34;&#34;executes the syntactic features pipeline
 
     Args:
@@ -61,7 +63,8 @@ def get_features(sentence: str = None, identifier: str = None, dlt: bool = True,
     if dlt or left_corner:
         # io.log(f&#39;parsing into syntax tree: `{sentence}`&#39;)
         # parsed = parse_input(sentence)
-        features.tree = Tree(utils.compute_trees(sentence))
+        server_url = f&#39;http://localhost:{syntax_port}/fullberk&#39;
+        features.tree = Tree(utils.compute_trees(sentence, server_url=server_url))
         # io.log(f&#39;--- done: tree computed&#39;)
     else:
         return None
@@ -116,7 +119,7 @@ def get_features(sentence: str = None, identifier: str = None, dlt: bool = True,
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="sentspace.syntax.get_features"><code class="name flex">
-<span>def <span class="ident">get_features</span></span>(<span>sentence: str = None, identifier: str = None, dlt: bool = True, left_corner: bool = True) ‑> dict</span>
+<span>def <span class="ident">get_features</span></span>(<span>sentence: str = None, identifier: str = None, dlt: bool = True, left_corner: bool = True, syntax_port: int = 8000) ‑> dict</span>
 </code></dt>
 <dd>
 <div class="desc"><p>executes the syntactic features pipeline</p>
@@ -138,7 +141,9 @@ def get_features(sentence: str = None, identifier: str = None, dlt: bool = True,
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_features(sentence: str = None, identifier: str = None, dlt: bool = True, left_corner: bool = True) -&gt; dict:
+<pre><code class="python">def get_features(sentence: str = None, identifier: str = None, 
+                 dlt: bool = True, left_corner: bool = True,
+                 syntax_port: int = 8000) -&gt; dict:
     &#34;&#34;&#34;executes the syntactic features pipeline
 
     Args:
@@ -153,7 +158,8 @@ def get_features(sentence: str = None, identifier: str = None, dlt: bool = True,
     if dlt or left_corner:
         # io.log(f&#39;parsing into syntax tree: `{sentence}`&#39;)
         # parsed = parse_input(sentence)
-        features.tree = Tree(utils.compute_trees(sentence))
+        server_url = f&#39;http://localhost:{syntax_port}/fullberk&#39;
+        features.tree = Tree(utils.compute_trees(sentence, server_url=server_url))
         # io.log(f&#39;--- done: tree computed&#39;)
     else:
         return None

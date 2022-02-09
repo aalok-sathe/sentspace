@@ -251,6 +251,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                    parallelize: bool = True,
                                    # preserve_metadata: bool = True,
                                    #
+                                   syntax_port: int = 8000,
                                    emb_data_dir: str = None) -&gt; Path:
     &#34;&#34;&#34;
     Runs the full sentence features pipeline on the given input according to
@@ -337,7 +338,8 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
             # as an exception, we do *not* parallelize syntax since the backend server is somehow unable to handle
             # multiple requests :(
-            syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid)
+            syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid,
+                                                   syntax_port=syntax_port)
                                                                         # !!! TODO:DEBUG
                             for i, sentence in enumerate(tqdm(sentences, desc=&#39;Syntax pipeline&#39;))]
 
@@ -531,7 +533,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="sentspace.run_sentence_features_pipeline"><code class="name flex">
-<span>def <span class="ident">run_sentence_features_pipeline</span></span>(<span>input_file: str, stop_words_file: str = None, benchmark_file: str = None, output_dir: str = None, output_format: str = None, batch_size: int = 2000, process_lexical: bool = False, process_syntax: bool = False, process_embedding: bool = False, process_semantic: bool = False, parallelize: bool = True, emb_data_dir: str = None) ‑> pathlib.Path</span>
+<span>def <span class="ident">run_sentence_features_pipeline</span></span>(<span>input_file: str, stop_words_file: str = None, benchmark_file: str = None, output_dir: str = None, output_format: str = None, batch_size: int = 2000, process_lexical: bool = False, process_syntax: bool = False, process_embedding: bool = False, process_semantic: bool = False, parallelize: bool = True, syntax_port: int = 8000, emb_data_dir: str = None) ‑> pathlib.Path</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Runs the full sentence features pipeline on the given input according to
@@ -565,6 +567,7 @@ compare the current input against; e.g. UD [optional]</dd>
                                    parallelize: bool = True,
                                    # preserve_metadata: bool = True,
                                    #
+                                   syntax_port: int = 8000,
                                    emb_data_dir: str = None) -&gt; Path:
     &#34;&#34;&#34;
     Runs the full sentence features pipeline on the given input according to
@@ -651,7 +654,8 @@ compare the current input against; e.g. UD [optional]</dd>
 
             # as an exception, we do *not* parallelize syntax since the backend server is somehow unable to handle
             # multiple requests :(
-            syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid)
+            syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid,
+                                                   syntax_port=syntax_port)
                                                                         # !!! TODO:DEBUG
                             for i, sentence in enumerate(tqdm(sentences, desc=&#39;Syntax pipeline&#39;))]
 
