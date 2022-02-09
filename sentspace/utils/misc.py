@@ -87,7 +87,7 @@ def START_TIME(): return _START_TIME
 def download_nltk_resources():
     for category, nltk_resource in [('taggers', 'averaged_perceptron_tagger'), 
                                     ('corpora', 'wordnet'),
-                                    # ('tokenizers', 'punkt')
+                                    ('tokenizers', 'punkt'),
                                     ]:
         try:
             nltk.data.find(category+'/'+nltk_resource)
