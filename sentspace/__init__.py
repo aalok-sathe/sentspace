@@ -46,6 +46,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                    parallelize: bool = True,
                                    # preserve_metadata: bool = True,
                                    #
+                                   syntax_port: int = 8000,
                                    emb_data_dir: str = None) -> Path:
     """
     Runs the full sentence features pipeline on the given input according to
@@ -132,7 +133,8 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
             # as an exception, we do *not* parallelize syntax since the backend server is somehow unable to handle
             # multiple requests :(
-            syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid)
+            syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid,
+                                                   syntax_port=syntax_port)
                                                                         # !!! TODO:DEBUG
                             for i, sentence in enumerate(tqdm(sentences, desc='Syntax pipeline'))]
 
