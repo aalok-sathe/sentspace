@@ -87,7 +87,8 @@ def main(**kwargs):
                                                           output_format=args.output_format,
                                                           parallelize=args.parallelize,
                                                           # TODO: return_df or return_path?
-                                                          emb_data_dir=args.emb_data_dir)
+                                                          emb_data_dir=args.emb_data_dir,
+                                                          syntax_port=args.syntax_port)
 
     with (output_dir/'FINISHED').open('w+') as f:
         pass
