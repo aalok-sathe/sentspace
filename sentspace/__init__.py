@@ -47,6 +47,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                    # preserve_metadata: bool = True,
                                    #
                                    syntax_port: int = 8000,
+                                   limit: float = float('inf'),
                                    emb_data_dir: str = None) -> Path:
     """
     Runs the full sentence features pipeline on the given input according to
@@ -85,7 +86,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
     utils.io.log('---done--- reading input sentences')
 
 
-    for part, sentence_batch in enumerate(tqdm(utils.io.get_batches(sentences, batch_size=batch_size), 
+    for part, sentence_batch in enumerate(tqdm(utils.io.get_batches(sentences, batch_size=batch_size, limit=limit), 
                                                desc='processing batches', total=len(sentences)//batch_size+1)):
         sentence_features_filestem = f'sentence-features_part{part:0>4}'
         token_features_filestem = f'token-features_part{part:0>4}'
