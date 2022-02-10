@@ -73,7 +73,8 @@ def main(**kwargs):
                                                                       'The syntax module requires a parser server based on '
                                                                       'https://github.com/aalok-sathe/berkeley-interact.')
 
-    parser.add_argument('--limit', type=float, default=float('inf'), help='Limit input to the first X sentences')
+    parser.add_argument('--limit', type=float, default=float('inf'), help='Limit input to X sentences in total')
+    parser.add_argument('--offset', type=int, default=0, help='Skip the first X sentences')
 
     args = parser.parse_args()	
     
@@ -90,7 +91,7 @@ def main(**kwargs):
                                                           # TODO: return_df or return_path?
                                                           emb_data_dir=args.emb_data_dir,
                                                           syntax_port=args.syntax_port,
-                                                          limit=args.limit)
+                                                          limit=args.limit, offset=args.offset,)
 
     with (output_dir/'FINISHED').open('w+') as f:
         pass

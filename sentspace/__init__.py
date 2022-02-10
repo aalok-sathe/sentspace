@@ -47,7 +47,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                    # preserve_metadata: bool = True,
                                    #
                                    syntax_port: int = 8000,
-                                   limit: float = float('inf'),
+                                   limit: float = float('inf'), offset: int = 0,
                                    emb_data_dir: str = None) -> Path:
     """
     Runs the full sentence features pipeline on the given input according to
@@ -86,7 +86,8 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
     utils.io.log('---done--- reading input sentences')
 
 
-    for part, sentence_batch in enumerate(tqdm(utils.io.get_batches(sentences, batch_size=batch_size, limit=limit), 
+    for part, sentence_batch in enumerate(tqdm(utils.io.get_batches(sentences, batch_size=batch_size, 
+                                                                    limit=limit, offset=offset), 
                                                desc='processing batches', total=len(sentences)//batch_size+1)):
         sentence_features_filestem = f'sentence-features_part{part:0>4}'
         token_features_filestem = f'token-features_part{part:0>4}'
@@ -137,7 +138,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
             syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid,
                                                    syntax_port=syntax_port)
                                                                         # !!! TODO:DEBUG
-                            for i, sentence in enumerate(tqdm(sentences, desc='Syntax pipeline'))]
+                            for i, sentence in enumerate(tqdm(sentence_batch, desc='Syntax pipeline'))]
 
             syntax_out = output_dir / 'syntax'
             syntax_out.mkdir(parents=True, exist_ok=True)
@@ -145,7 +146,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
             # put all features in the sentence df except the token-level ones
             token_syntax_features = {'dlt', 'leftcorner'}
             sentence_df = pd.DataFrame([{k: v for k, v in feature_dict.items() if k not in token_syntax_features}
-                                        for feature_dict in syntax_features], index=[s.uid() for s in sentences])
+                                        for feature_dict in syntax_features], index=[s.uid for s in sentence_batch])
 
             # output gives us dataframes corresponding to each token-level feature. we need to combine these
             # into a single dataframe
@@ -194,7 +195,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
             if any('glove' in model or 'word2vec' in model for models, _ in models_and_methods for model in models):
                 # get a vocabulary across all sentences given as input
                 # as the first step, remove any punctuation from the tokens
-                stripped_tokens = utils.text.strip_words(chain(*[s.tokens for s in sentences]), method='punctuation')
+                stripped_tokens = utils.text.strip_words(chain(*[s.tokens for s in sentence_batch]), method='punctuation')
                 # assemble a set of unique tokens
                 vocab = set(stripped_tokens)
                 # make a spurious function call so that loading glove is cached for subsequent calls
@@ -211,13 +212,13 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
             else:
                 embedding_features = [embedding.get_features(sentence, models_and_methods=models_and_methods, 
                                                              vocab=vocab, data_dir=emb_data_dir)
-                                      for i, sentence in enumerate(tqdm(sentences, desc='Embedding pipeline'))]
+                                      for i, sentence in enumerate(tqdm(sentence_batch, desc='Embedding pipeline'))]
 
             # a misc. stat being computed that needs to be handled better 
             # "no" means no. the stat below is counting how many sentences have NO content words (not to be confused with num. content words)
-            no_content_words = len(sentences)-sum(any(s.content_words) for s in sentences)
+            no_content_words = len(sentences)-sum(any(s.content_words) for s in sentence_batch)
 
-            utils.io.log(f'sentences without any content words: {no_content_words}/{len(sentences)}; {no_content_words/len(sentences):.2f}')
+            utils.io.log(f'sentences without any content words: {no_content_words}/{len(sentence_batch)}; {no_content_words/len(sentence_batch):.2f}')
 
             embedding_out = output_dir / 'embedding'
             embedding_out.mkdir(parents=True, exist_ok=True)

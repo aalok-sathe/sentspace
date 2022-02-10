@@ -112,18 +112,29 @@ def read_sentences(filename: str, stop_words_file: str = None):
     return sentences
 
 
-def get_batches(iterable, batch_size:int, limit:float=float('inf')):
+def get_batches(iterable, batch_size:int, 
+                limit:float=float('inf'), offset:int=0):
     """
     splits iterable into batches of size batch_size
     """
+
     batch = []
+    count = 0
     for i, item in enumerate(iterable):
+        # skip till we hit the offset
+        if i < offset: continue
+
         batch.append(item)
-        if (i + 1) % batch_size == 0 or i >= limit:
+        count += 1
+
+        # batch size reached, or limit reached
+        if (i + 1) % batch_size == 0 or count >= limit:
             yield batch
             batch = []
-        if i >= limit:
-            break
+
+        # if we have accumulated enough items, return
+        if count >= limit:
+            return
     if batch:
         yield batch
 
