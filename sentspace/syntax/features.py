@@ -32,25 +32,3 @@ def rawdatatodf(data, sentence=None, identifier=None):
     return df
 
 DLT = LeftCorner = rawdatatodf
-
-
-# class DLT:
-#     """Description of a DLT object"""
-
-#     def __init__(self, data=None):
-#         self.pandas_dataframe = pd.read_csv(StringIO(data), sep=' ')
-#         self.raw = data
-
-#     def __repr__(self):
-#         return repr(self.pandas_dataframe)
-
-
-# class LeftCorner:
-#     """Description of a LeftCorner object"""
-
-#     def __init__(self, data=None):
-#         self.pandas_dataframe = pd.read_csv(StringIO(data), sep=' ')
-#         self.raw = data
-
-#     def __repr__(self):
-#         return repr(self.pandas_dataframe)
