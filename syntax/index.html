@@ -26,10 +26,12 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">import os
+<pre><code class="python">from collections import defaultdict
+import os
 import sentspace
 from pathlib import Path
 
+import pandas as pd
 from nltk.tree import ParentedTree
 from sentspace.syntax import utils
 from sentspace.syntax.features import DLT, Feature, LeftCorner, Tree
@@ -59,31 +61,71 @@ def get_features(sentence: str = None, identifier: str = None,
     Returns:
         sentspace.syntax.features.Feature: a Feature instance with appropriate attributes
     &#34;&#34;&#34;
-    features = Feature()
-    if dlt or left_corner:
-        # io.log(f&#39;parsing into syntax tree: `{sentence}`&#39;)
-        # parsed = parse_input(sentence)
-        server_url = f&#39;http://localhost:{syntax_port}/fullberk&#39;
-        features.tree = Tree(utils.compute_trees(sentence, server_url=server_url))
-        # io.log(f&#39;--- done: tree computed&#39;)
-    else:
-        return None
 
-    # print(parse_input(sentence), features.tree)
+    # if the &#34;sentence&#34; actually consists of multiple sentences (as determined by the 
+    # NLTK Punkt Sentence Tokenizer), we want to repeat the below block per sentence and 
+    # then pool across sentences
+    from nltk.tokenize import sent_tokenize 
+    stripped = &#39;&#39;.join([i if ord(i) &lt; 128 else &#39;&#39; for i in sentence])
+    sentences = sent_tokenize(stripped, language=&#39;english&#39;)
+    features_to_pool = defaultdict(list)
+    features = None
+
+    for i, sub_sentence in enumerate(sentences):
+
+        features = Feature()
+        if dlt or left_corner:
+            # io.log(f&#39;parsing into syntax tree: `{sentence}`&#39;)
+            # parsed = parse_input(sentence)
+            try:
+                server_url = f&#39;http://localhost:{syntax_port}/fullberk&#39;
+                features.tree = Tree(utils.compute_trees(sub_sentence, server_url=server_url)) 
+            except RuntimeError:
+                pass
+            # io.log(f&#39;--- done: tree computed&#39;)
+        # this else block will skip any other syntax features from being computed
+        #else:
+        #    return None
+        
+        try:
+            features.tree.raw 
+            # print(parse_input(sentence), features.tree)
+            if dlt:
+                # io.log(f&#39;computing DLT feature&#39;)
+                features.dlt = DLT(utils.compute_feature(&#39;dlt.sh&#39;, features.tree.raw), sub_sentence, identifier)
+                # io.log(f&#39;--- done: DLT&#39;)
+            if left_corner:
+                # io.log(f&#39;computing left corner feature&#39;)
+                features.left_corner = LeftCorner(utils.compute_feature(&#39;leftcorner.sh&#39;, features.tree.raw), sub_sentence, identifier)
+                # io.log(f&#39;--- done: left corner&#39;)
+
+            features_to_pool[&#39;dlt&#39;] += [features.dlt]
+            features_to_pool[&#39;left_corner&#39;] += [features.left_corner]
+        except AttributeError as ae:
+            io.log(f&#39;FAILED to process Tree features for chunk [{sub_sentence}] of sentence [{sentence}]&#39;, type=&#39;ERR&#39;)
+            pass 
+
+    # do the groupby index and mean() here and then continue
     if dlt:
-        # io.log(f&#39;computing DLT feature&#39;)
-        features.dlt = DLT(utils.compute_feature(&#39;dlt.sh&#39;, features.tree.raw), sentence, identifier)
-        # io.log(f&#39;--- done: DLT&#39;)
+        dlt_concat = pd.concat(features_to_pool[&#39;dlt&#39;], axis=&#39;index&#39;)
+        dlt_concat = dlt_concat.groupby(&#39;index&#39;).mean()
+        dlt_concat[&#39;sentence&#39;] = sentence
+    else:
+        dlt_concat = None
     if left_corner:
-        # io.log(f&#39;computing left corner feature&#39;)
-        features.left_corner = LeftCorner(utils.compute_feature(&#39;leftcorner.sh&#39;, features.tree.raw), sentence, identifier)
-        # io.log(f&#39;--- done: left corner&#39;)
+        left_corner_concat = pd.concat(features_to_pool[&#39;left_corner&#39;], axis=&#39;index&#39;)
+        left_corner_concat = left_corner_concat.groupby(&#39;index&#39;).mean()
+    else:
+        left_corner_concat = None    
 
-    tokenized = utils.tokenize(sentence).split()
+
+
+    tokenized = utils.tokenize(sub_sentence).split()
     tagged_sentence = text.get_pos_tags(tokenized)
     is_content_word = utils.get_is_content(tagged_sentence, content_pos=text.pos_for_content)  # content or function word
     pronoun_ratio = utils.get_pronoun_ratio(tagged_sentence)
     content_ratio = utils.get_content_ratio(is_content_word)
+
 
     return {
         &#39;index&#39;: identifier,
@@ -95,8 +137,8 @@ def get_features(sentence: str = None, identifier: str = None,
         &#39;content_ratio&#39;: content_ratio,
 
         # &#39;tree&#39;: features.tree
-        &#39;dlt&#39;: features.dlt, 
-        &#39;leftcorner&#39;: features.left_corner,
+        &#39;dlt&#39;: dlt_concat, 
+        &#39;leftcorner&#39;: left_corner_concat,
     }</code></pre>
 </details>
 </section>
@@ -154,31 +196,71 @@ def get_features(sentence: str = None, identifier: str = None,
     Returns:
         sentspace.syntax.features.Feature: a Feature instance with appropriate attributes
     &#34;&#34;&#34;
-    features = Feature()
-    if dlt or left_corner:
-        # io.log(f&#39;parsing into syntax tree: `{sentence}`&#39;)
-        # parsed = parse_input(sentence)
-        server_url = f&#39;http://localhost:{syntax_port}/fullberk&#39;
-        features.tree = Tree(utils.compute_trees(sentence, server_url=server_url))
-        # io.log(f&#39;--- done: tree computed&#39;)
-    else:
-        return None
 
-    # print(parse_input(sentence), features.tree)
+    # if the &#34;sentence&#34; actually consists of multiple sentences (as determined by the 
+    # NLTK Punkt Sentence Tokenizer), we want to repeat the below block per sentence and 
+    # then pool across sentences
+    from nltk.tokenize import sent_tokenize 
+    stripped = &#39;&#39;.join([i if ord(i) &lt; 128 else &#39;&#39; for i in sentence])
+    sentences = sent_tokenize(stripped, language=&#39;english&#39;)
+    features_to_pool = defaultdict(list)
+    features = None
+
+    for i, sub_sentence in enumerate(sentences):
+
+        features = Feature()
+        if dlt or left_corner:
+            # io.log(f&#39;parsing into syntax tree: `{sentence}`&#39;)
+            # parsed = parse_input(sentence)
+            try:
+                server_url = f&#39;http://localhost:{syntax_port}/fullberk&#39;
+                features.tree = Tree(utils.compute_trees(sub_sentence, server_url=server_url)) 
+            except RuntimeError:
+                pass
+            # io.log(f&#39;--- done: tree computed&#39;)
+        # this else block will skip any other syntax features from being computed
+        #else:
+        #    return None
+        
+        try:
+            features.tree.raw 
+            # print(parse_input(sentence), features.tree)
+            if dlt:
+                # io.log(f&#39;computing DLT feature&#39;)
+                features.dlt = DLT(utils.compute_feature(&#39;dlt.sh&#39;, features.tree.raw), sub_sentence, identifier)
+                # io.log(f&#39;--- done: DLT&#39;)
+            if left_corner:
+                # io.log(f&#39;computing left corner feature&#39;)
+                features.left_corner = LeftCorner(utils.compute_feature(&#39;leftcorner.sh&#39;, features.tree.raw), sub_sentence, identifier)
+                # io.log(f&#39;--- done: left corner&#39;)
+
+            features_to_pool[&#39;dlt&#39;] += [features.dlt]
+            features_to_pool[&#39;left_corner&#39;] += [features.left_corner]
+        except AttributeError as ae:
+            io.log(f&#39;FAILED to process Tree features for chunk [{sub_sentence}] of sentence [{sentence}]&#39;, type=&#39;ERR&#39;)
+            pass 
+
+    # do the groupby index and mean() here and then continue
     if dlt:
-        # io.log(f&#39;computing DLT feature&#39;)
-        features.dlt = DLT(utils.compute_feature(&#39;dlt.sh&#39;, features.tree.raw), sentence, identifier)
-        # io.log(f&#39;--- done: DLT&#39;)
+        dlt_concat = pd.concat(features_to_pool[&#39;dlt&#39;], axis=&#39;index&#39;)
+        dlt_concat = dlt_concat.groupby(&#39;index&#39;).mean()
+        dlt_concat[&#39;sentence&#39;] = sentence
+    else:
+        dlt_concat = None
     if left_corner:
-        # io.log(f&#39;computing left corner feature&#39;)
-        features.left_corner = LeftCorner(utils.compute_feature(&#39;leftcorner.sh&#39;, features.tree.raw), sentence, identifier)
-        # io.log(f&#39;--- done: left corner&#39;)
+        left_corner_concat = pd.concat(features_to_pool[&#39;left_corner&#39;], axis=&#39;index&#39;)
+        left_corner_concat = left_corner_concat.groupby(&#39;index&#39;).mean()
+    else:
+        left_corner_concat = None    
 
-    tokenized = utils.tokenize(sentence).split()
+
+
+    tokenized = utils.tokenize(sub_sentence).split()
     tagged_sentence = text.get_pos_tags(tokenized)
     is_content_word = utils.get_is_content(tagged_sentence, content_pos=text.pos_for_content)  # content or function word
     pronoun_ratio = utils.get_pronoun_ratio(tagged_sentence)
     content_ratio = utils.get_content_ratio(is_content_word)
+
 
     return {
         &#39;index&#39;: identifier,
@@ -190,8 +272,8 @@ def get_features(sentence: str = None, identifier: str = None,
         &#39;content_ratio&#39;: content_ratio,
 
         # &#39;tree&#39;: features.tree
-        &#39;dlt&#39;: features.dlt, 
-        &#39;leftcorner&#39;: features.left_corner,
+        &#39;dlt&#39;: dlt_concat, 
+        &#39;leftcorner&#39;: left_corner_concat,
     }</code></pre>
 </details>
 </dd>

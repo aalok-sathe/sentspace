@@ -59,29 +59,7 @@ def rawdatatodf(data, sentence=None, identifier=None):
     df = df[[&#39;sentence&#39;, &#39;index&#39;, *df.columns[:-2]]]
     return df
 
-DLT = LeftCorner = rawdatatodf
-
-
-# class DLT:
-#     &#34;&#34;&#34;Description of a DLT object&#34;&#34;&#34;
-
-#     def __init__(self, data=None):
-#         self.pandas_dataframe = pd.read_csv(StringIO(data), sep=&#39; &#39;)
-#         self.raw = data
-
-#     def __repr__(self):
-#         return repr(self.pandas_dataframe)
-
-
-# class LeftCorner:
-#     &#34;&#34;&#34;Description of a LeftCorner object&#34;&#34;&#34;
-
-#     def __init__(self, data=None):
-#         self.pandas_dataframe = pd.read_csv(StringIO(data), sep=&#39; &#39;)
-#         self.raw = data
-
-#     def __repr__(self):
-#         return repr(self.pandas_dataframe)</code></pre>
+DLT = LeftCorner = rawdatatodf</code></pre>
 </details>
 </section>
 <section>

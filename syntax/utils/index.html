@@ -150,9 +150,9 @@ def compute_feature(feature, trees):
     cmd = [&#39;bash&#39;, feature, trees]
     try:
         completed = subprocess.run(cmd, check=True, capture_output=True)
-    except  subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError as e:
         print(&#39;ERROR&#39;, e.output, e.returncode, sep=&#39;\n&#39;)
-        exit()
+        raise RuntimeError(e.output)
     return completed.stdout
     # out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)
     # return out</code></pre>
