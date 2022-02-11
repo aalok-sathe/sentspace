@@ -70,6 +70,7 @@ def get_features(sentence: str = None, identifier: str = None,
     sentences = sent_tokenize(stripped, language=&#39;english&#39;)
     features_to_pool = defaultdict(list)
     features = None
+    dlt_concat, left_corner_concat = None, None
 
     for i, sub_sentence in enumerate(sentences):
 
@@ -80,43 +81,61 @@ def get_features(sentence: str = None, identifier: str = None,
             try:
                 server_url = f&#39;http://localhost:{syntax_port}/fullberk&#39;
                 features.tree = Tree(utils.compute_trees(sub_sentence, server_url=server_url)) 
-            except RuntimeError:
+                if type(features.trees) is RuntimeError:
+                    raise features.trees
+
+                features.tree.raw 
+                # print(parse_input(sentence), features.tree)
+                if dlt and features.tree.raw:
+                    # io.log(f&#39;computing DLT feature&#39;)
+                    dlt_stdout = utils.compute_feature(&#39;dlt.sh&#39;, features.tree.raw)
+                    if type(dlt_stdout) == RuntimeError:
+                        raise dlt_stdout
+                    else:
+                        features.dlt = DLT(dlt_stdout, sub_sentence, identifier)
+                    # io.log(f&#39;--- done: DLT&#39;)
+                if left_corner and features.tree.raw:
+                    # io.log(f&#39;computing left corner feature&#39;)
+                    left_corner_stdout = utils.compute_feature(&#39;leftcorner.sh&#39;, features.tree.raw)
+                    if type(left_corner_stdout) == RuntimeError:
+                        raise left_corner_stdout
+                    else:
+                        features.left_corner = LeftCorner(left_corner_stdout, sub_sentence, identifier)
+                    # io.log(f&#39;--- done: left corner&#39;)
+
+                features_to_pool[&#39;dlt&#39;] += [features.dlt]
+                features_to_pool[&#39;left_corner&#39;] += [features.left_corner]
+
+            except AttributeError as ae:
+                io.log(f&#39;FAILED: AttributeError: to process Tree features for chunk [{sub_sentence}] of sentence [{sentence}]&#39;, 
+                       type=&#39;ERR&#39;)
                 pass
-            # io.log(f&#39;--- done: tree computed&#39;)
-        # this else block will skip any other syntax features from being computed
-        #else:
-        #    return None
-        
-        try:
-            features.tree.raw 
-            # print(parse_input(sentence), features.tree)
+
+            except RuntimeError:
+                io.log(f&#39;FAILED: RuntimeError to process Tree features for chunk [{sub_sentence}] of sentence [{sentence}]&#39;, type=&#39;ERR&#39;)
+                pass
+
+         
+
+            # do the groupby index and mean() here and then continue
             if dlt:
-                # io.log(f&#39;computing DLT feature&#39;)
-                features.dlt = DLT(utils.compute_feature(&#39;dlt.sh&#39;, features.tree.raw), sub_sentence, identifier)
-                # io.log(f&#39;--- done: DLT&#39;)
+                try:
+                    dlt_concat = pd.concat(features_to_pool[&#39;dlt&#39;], axis=&#39;index&#39;)
+                    dlt_concat = dlt_concat.groupby(&#39;index&#39;).mean()
+                    dlt_concat[&#39;sentence&#39;] = sentence
+                except ValueError:
+                    dlt_concat = pd.DataFrame()
+            else:
+                dlt_concat = None
             if left_corner:
-                # io.log(f&#39;computing left corner feature&#39;)
-                features.left_corner = LeftCorner(utils.compute_feature(&#39;leftcorner.sh&#39;, features.tree.raw), sub_sentence, identifier)
-                # io.log(f&#39;--- done: left corner&#39;)
-
-            features_to_pool[&#39;dlt&#39;] += [features.dlt]
-            features_to_pool[&#39;left_corner&#39;] += [features.left_corner]
-        except AttributeError as ae:
-            io.log(f&#39;FAILED to process Tree features for chunk [{sub_sentence}] of sentence [{sentence}]&#39;, type=&#39;ERR&#39;)
-            pass 
-
-    # do the groupby index and mean() here and then continue
-    if dlt:
-        dlt_concat = pd.concat(features_to_pool[&#39;dlt&#39;], axis=&#39;index&#39;)
-        dlt_concat = dlt_concat.groupby(&#39;index&#39;).mean()
-        dlt_concat[&#39;sentence&#39;] = sentence
-    else:
-        dlt_concat = None
-    if left_corner:
-        left_corner_concat = pd.concat(features_to_pool[&#39;left_corner&#39;], axis=&#39;index&#39;)
-        left_corner_concat = left_corner_concat.groupby(&#39;index&#39;).mean()
-    else:
-        left_corner_concat = None    
+                try:
+                    left_corner_concat = pd.concat(features_to_pool[&#39;left_corner&#39;], axis=&#39;index&#39;)
+                    left_corner_concat = left_corner_concat.groupby(&#39;index&#39;).mean()
+                    left_corner_concat[&#39;sentence&#39;] = sentence
+                except ValueError:
+                    left_corner_concat = pd.DataFrame()
+            else:
+                left_corner_concat = None    
 
 
 
@@ -205,6 +224,7 @@ def get_features(sentence: str = None, identifier: str = None,
     sentences = sent_tokenize(stripped, language=&#39;english&#39;)
     features_to_pool = defaultdict(list)
     features = None
+    dlt_concat, left_corner_concat = None, None
 
     for i, sub_sentence in enumerate(sentences):
 
@@ -215,43 +235,61 @@ def get_features(sentence: str = None, identifier: str = None,
             try:
                 server_url = f&#39;http://localhost:{syntax_port}/fullberk&#39;
                 features.tree = Tree(utils.compute_trees(sub_sentence, server_url=server_url)) 
-            except RuntimeError:
+                if type(features.trees) is RuntimeError:
+                    raise features.trees
+
+                features.tree.raw 
+                # print(parse_input(sentence), features.tree)
+                if dlt and features.tree.raw:
+                    # io.log(f&#39;computing DLT feature&#39;)
+                    dlt_stdout = utils.compute_feature(&#39;dlt.sh&#39;, features.tree.raw)
+                    if type(dlt_stdout) == RuntimeError:
+                        raise dlt_stdout
+                    else:
+                        features.dlt = DLT(dlt_stdout, sub_sentence, identifier)
+                    # io.log(f&#39;--- done: DLT&#39;)
+                if left_corner and features.tree.raw:
+                    # io.log(f&#39;computing left corner feature&#39;)
+                    left_corner_stdout = utils.compute_feature(&#39;leftcorner.sh&#39;, features.tree.raw)
+                    if type(left_corner_stdout) == RuntimeError:
+                        raise left_corner_stdout
+                    else:
+                        features.left_corner = LeftCorner(left_corner_stdout, sub_sentence, identifier)
+                    # io.log(f&#39;--- done: left corner&#39;)
+
+                features_to_pool[&#39;dlt&#39;] += [features.dlt]
+                features_to_pool[&#39;left_corner&#39;] += [features.left_corner]
+
+            except AttributeError as ae:
+                io.log(f&#39;FAILED: AttributeError: to process Tree features for chunk [{sub_sentence}] of sentence [{sentence}]&#39;, 
+                       type=&#39;ERR&#39;)
                 pass
-            # io.log(f&#39;--- done: tree computed&#39;)
-        # this else block will skip any other syntax features from being computed
-        #else:
-        #    return None
-        
-        try:
-            features.tree.raw 
-            # print(parse_input(sentence), features.tree)
+
+            except RuntimeError:
+                io.log(f&#39;FAILED: RuntimeError to process Tree features for chunk [{sub_sentence}] of sentence [{sentence}]&#39;, type=&#39;ERR&#39;)
+                pass
+
+         
+
+            # do the groupby index and mean() here and then continue
             if dlt:
-                # io.log(f&#39;computing DLT feature&#39;)
-                features.dlt = DLT(utils.compute_feature(&#39;dlt.sh&#39;, features.tree.raw), sub_sentence, identifier)
-                # io.log(f&#39;--- done: DLT&#39;)
+                try:
+                    dlt_concat = pd.concat(features_to_pool[&#39;dlt&#39;], axis=&#39;index&#39;)
+                    dlt_concat = dlt_concat.groupby(&#39;index&#39;).mean()
+                    dlt_concat[&#39;sentence&#39;] = sentence
+                except ValueError:
+                    dlt_concat = pd.DataFrame()
+            else:
+                dlt_concat = None
             if left_corner:
-                # io.log(f&#39;computing left corner feature&#39;)
-                features.left_corner = LeftCorner(utils.compute_feature(&#39;leftcorner.sh&#39;, features.tree.raw), sub_sentence, identifier)
-                # io.log(f&#39;--- done: left corner&#39;)
-
-            features_to_pool[&#39;dlt&#39;] += [features.dlt]
-            features_to_pool[&#39;left_corner&#39;] += [features.left_corner]
-        except AttributeError as ae:
-            io.log(f&#39;FAILED to process Tree features for chunk [{sub_sentence}] of sentence [{sentence}]&#39;, type=&#39;ERR&#39;)
-            pass 
-
-    # do the groupby index and mean() here and then continue
-    if dlt:
-        dlt_concat = pd.concat(features_to_pool[&#39;dlt&#39;], axis=&#39;index&#39;)
-        dlt_concat = dlt_concat.groupby(&#39;index&#39;).mean()
-        dlt_concat[&#39;sentence&#39;] = sentence
-    else:
-        dlt_concat = None
-    if left_corner:
-        left_corner_concat = pd.concat(features_to_pool[&#39;left_corner&#39;], axis=&#39;index&#39;)
-        left_corner_concat = left_corner_concat.groupby(&#39;index&#39;).mean()
-    else:
-        left_corner_concat = None    
+                try:
+                    left_corner_concat = pd.concat(features_to_pool[&#39;left_corner&#39;], axis=&#39;index&#39;)
+                    left_corner_concat = left_corner_concat.groupby(&#39;index&#39;).mean()
+                    left_corner_concat[&#39;sentence&#39;] = sentence
+                except ValueError:
+                    left_corner_concat = pd.DataFrame()
+            else:
+                left_corner_concat = None    
 
 
 

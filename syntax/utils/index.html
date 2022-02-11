@@ -135,7 +135,7 @@ def compute_trees(sentence, server_url=&#39;http://localhost:8000/fullberk&#39;)
         
         break
     else:
-        raise RuntimeError(f&#39;failed to process [{sentence}] after {retries} retries&#39;)
+        return RuntimeError(f&#39;failed to process [{sentence}] after {retries} retries&#39;)
 
 
     cmd = [&#39;bash&#39;, &#39;postprocess_trees.sh&#39;, response]
@@ -152,7 +152,9 @@ def compute_feature(feature, trees):
         completed = subprocess.run(cmd, check=True, capture_output=True)
     except subprocess.CalledProcessError as e:
         print(&#39;ERROR&#39;, e.output, e.returncode, sep=&#39;\n&#39;)
-        raise RuntimeError(e.output)
+        # NOTE we are NOT raising an error here as that messes up the completion of @path_decorator
+        # instead we will *return* the Exception instance to be raised at another time
+        return RuntimeError(e.output)
     return completed.stdout
     # out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)
     # return out</code></pre>

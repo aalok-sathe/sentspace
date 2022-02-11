@@ -59,7 +59,7 @@ def create_output_paths(input_file:str, output_dir:str, calling_module=None, sto
     Returns:
         Path: [description]
     &#34;&#34;&#34;    
-    output_dir = Path(output_dir)
+    output_dir = Path(output_dir).expanduser().resolve()
     # output will be organized based on its respective input file,
     # together with a hash of the contents (for to avoid the case where two files are 
     # named similarly to one another but contain different contents)
@@ -243,7 +243,7 @@ def log(message, type=&#39;INFO&#39;):
     Returns:
         Path: [description]
     &#34;&#34;&#34;    
-    output_dir = Path(output_dir)
+    output_dir = Path(output_dir).expanduser().resolve()
     # output will be organized based on its respective input file,
     # together with a hash of the contents (for to avoid the case where two files are 
     # named similarly to one another but contain different contents)
