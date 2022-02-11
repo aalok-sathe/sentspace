@@ -25,6 +25,7 @@
 from collections import defaultdict
 from pathlib import Path
 
+
 import sentspace.utils as utils
 import sentspace.syntax as syntax
 import sentspace.lexical as lexical
@@ -138,10 +139,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
             syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid,
                                                    syntax_port=syntax_port)
                                                                         # !!! TODO:DEBUG
-                            for i, sentence in enumerate(tqdm(sentence_batch, desc='Syntax pipeline'))]
-
-            syntax_out = output_dir / 'syntax'
-            syntax_out.mkdir(parents=True, exist_ok=True)
+                               for i, sentence in enumerate(tqdm(sentence_batch, desc='Syntax pipeline'))] 
 
             # put all features in the sentence df except the token-level ones
             token_syntax_features = {'dlt', 'leftcorner'}
@@ -161,15 +159,21 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
             token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
             token_df = token_df.loc[:, ~token_df.columns.duplicated()]
 
+            syntax_out = output_dir / 'syntax'
+            syntax_out.mkdir(parents=True, exist_ok=True)
             utils.io.log(f'outputting syntax dataframes to {syntax_out}')
+
             if output_format == 'tsv':
                 sentence_df.to_csv(syntax_out / f'{sentence_features_filestem}.tsv', sep='\t', index=True)
-                token_df.to_csv(syntax_out / f'{token_features_filestem}.tsv', sep='\t', index=False)
+                token_df.to_csv(syntax_out / f'{token_features_filestem}.tsv', sep='\t', index=True)
             elif output_format == 'pkl':
                 sentence_df.to_pickle(syntax_out / f'{sentence_features_filestem}.pkl.gz', protocol=5)
                 token_df.to_pickle(syntax_out / f'{token_features_filestem}.pkl.gz', protocol=5)
+            else:
+                raise ValueError(f'unknown output format {output_format}')
 
             utils.io.log(f'--- finished syntax pipeline')
+            
 
         # Calculate PMI
         # utils.GrabNGrams(sent_rows,pmi_paths)
@@ -292,4 +296,5 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
     ################################################################################
     #### \end{run_sentence_features_pipeline} ######################################
     ################################################################################
+    utils.io.log(f'FINISHED ALL')
     return output_dir
