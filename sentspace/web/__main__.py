@@ -1,9 +1,11 @@
 
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+import typing
 import functools
-from sys import maxsize
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc
+from dash import html
 from dash.dependencies import Input, Output, State
 import plotly.express as px
 import plotly.graph_objects as go # or plotly.express as px  
@@ -20,58 +22,72 @@ import sentspace
 app = dash.Dash('sentspace', external_stylesheets=[dbc.themes.LUMEN])
 
 
-def load_df_from_directory(corpus: str, directory: str, module: str = 'lexical',
+def load_df_from_directory(corpus: str, directory: typing.Union[str, Path], module: str = 'lexical',
                            subsample=True, fmt='pkl.gz'):
     dfs = pd.DataFrame()
-    glob = [*Path(directory+'/'+module).resolve().glob(f'sentence-features_part*.{fmt}')]
+    glob = [*(Path(directory)/module).resolve().glob(f'sentence-features_part*.{fmt}')]
     if module == 'syntax':
-        glob += [*Path(directory+'/'+module).resolve().glob(f'token-features_part*.{fmt}')]
-    print(Path(directory+'/'+module).resolve(), glob)
-    for path in glob:
-        if 'pkl' in fmt: 
-            df = pd.read_pickle(path)
-        else:
-            df = pd.read_csv(path, sep='\t')
-        dfs = pd.concat([dfs,df])
+        glob += [*(Path(directory)/module).resolve().glob(f'token-features_part*.{fmt}')]
+    # print((Path(directory)/module).resolve(), glob)
 
-    print(dfs.head())
+    if len(glob) == 0: 
+        sentspace.utils.io.log(f'found no {module} data for {corpus} in {directory}')
+        # raise ValueError(f'found no data for {corpus} in {directory}')
+        return
+    else:
+        sentspace.utils.io.log(f'loading processed [{module}] data for [{corpus}] in [{directory}]')
+        for path in glob:
+            if 'pkl' in fmt: 
+                df = pd.read_pickle(path)
+            else:
+                df = pd.read_csv(path, sep='\t')
+            dfs = pd.concat([dfs,df])
 
-    # reassigning the index as a column rather than just an index (sometimes
-    # input files have sentence as their index)
-    dfs[dfs.index.name] = dfs.index
-    dfs['corpus'] = corpus
-    dfs['sentence_length'] = dfs['sentence'].apply(lambda x: len(sentspace.Sentence(x, warn=False)))
-    if subsample:
-        return dfs.sample(frac=.3)
-    return dfs
+        # print(dfs.head())
 
-# @functools.lru_cache(maxsize=5)
-def load_benchmarks(module='lexical', subsample=False):
+        # reassigning the index as a column rather than just an index (sometimes
+        # input files have sentence as their index)
+        dfs[dfs.index.name] = dfs.index
+        dfs['corpus'] = corpus
+        dfs['sentence_length'] = dfs['sentence'].apply(lambda x: len(sentspace.Sentence(x, warn=False)))
+        if subsample:
+            return dfs.sample(frac=.3)
+        return dfs
+
+@functools.lru_cache(maxsize=5)
+def load_benchmarks(module='lexical', subsample=False,
+                    load_gpt_human=True, 
+                    load_corpora=True
+                    ):
     df = pd.DataFrame()
-    df = df.append(load_df_from_directory('gpt_stories', 'out/gpt2stories_sents_target0_subset', 
-                                          module=module, subsample=subsample, fmt='tsv'))
-    df = df.append(load_df_from_directory('human_stories', 'out/gpt2stories_sents_target1', 
-                                          module=module, subsample=subsample))
-    # df = df.append(load_df_from_directory('brown', 'out/benchmarks/brown_subsampled_grouped_by_length_n=500_stimuli', 
-    #                                       module=module, subsample=subsample))
-    # df = df.append(load_df_from_directory('torontoadv', 'out/benchmarks/torontoadv_subsampled_grouped_by_length_n=500_stimuli', 
-    #                                       module=module, subsample=subsample))
-    # df = df.append(load_df_from_directory('wsj', 'out/benchmarks/wsj_subsampled_grouped_by_length_n=500_stimuli', 
-    #                                       module=module, subsample=subsample))
-    # df = df.append(load_df_from_directory('ud', 'out/benchmarks/ud_subsampled_grouped_by_length_n=500_stimuli', 
-    #                                       module=module, subsample=subsample))
-    # df = df.append(load_df_from_directory('c4', 'out/benchmarks/c4_subsampled_grouped_by_length_n=500_stimuli', 
-    #                                       module=module, subsample=subsample))
-    # df = df.append(load_df_from_directory('cocaspok1991', 'out/benchmarks/cocaspok1991_subsampled_grouped_by_length_n=500_stimuli', 
-    #                                       module=module, subsample=subsample))
-    # df = df.append(load_df_from_directory('cocaspok2001', 'out/benchmarks/cocaspok2001_subsampled_grouped_by_length_n=500_stimuli', 
-    #                                       module=module, subsample=subsample))
-    # df = df.append(load_df_from_directory('cocaspok2012', 'out/benchmarks/cocaspok2012_subsampled_grouped_by_length_n=500_stimuli', 
-    #                                       module=module, subsample=subsample))
+    relprefix = Path(__file__).parent / '..' / '..'
+    if load_gpt_human:
+        df = df.append(load_df_from_directory('gpt_stories', relprefix/'out/gpt2stories_sents_target0_subset', 
+                                            module=module, subsample=subsample, fmt='tsv'))
+        df = df.append(load_df_from_directory('human_stories', relprefix/'out/gpt2stories_sents_target1', 
+                                            module=module, subsample=subsample))
+    if load_corpora:
+        df = df.append(load_df_from_directory('brown', relprefix/'out/benchmarks/brown_subsampled_grouped_by_length_n=500_stimuli', 
+                                            module=module, subsample=subsample))
+        df = df.append(load_df_from_directory('torontoadv', relprefix/'out/benchmarks/torontoadv_subsampled_grouped_by_length_n=500_stimuli', 
+                                            module=module, subsample=subsample))
+        df = df.append(load_df_from_directory('wsj', relprefix/'out/benchmarks/wsj_subsampled_grouped_by_length_n=500_stimuli', 
+                                            module=module, subsample=subsample))
+        df = df.append(load_df_from_directory('ud', relprefix/'out/benchmarks/ud_subsampled_grouped_by_length_n=500_stimuli', 
+                                            module=module, subsample=subsample))
+        df = df.append(load_df_from_directory('c4', relprefix/'out/benchmarks/c4_subsampled_grouped_by_length_n=500_stimuli', 
+                                            module=module, subsample=subsample))
+        df = df.append(load_df_from_directory('cocaspok1991', relprefix/'out/benchmarks/cocaspok1991_subsampled_grouped_by_length_n=500_stimuli', 
+                                            module=module, subsample=subsample))
+        df = df.append(load_df_from_directory('cocaspok2001', relprefix/'out/benchmarks/cocaspok2001_subsampled_grouped_by_length_n=500_stimuli', 
+                                            module=module, subsample=subsample))
+        df = df.append(load_df_from_directory('cocaspok2012', relprefix/'out/benchmarks/cocaspok2012_subsampled_grouped_by_length_n=500_stimuli', 
+                                            module=module, subsample=subsample))
     
-    print(f'loaded df for module {module}:', df.head(5), df.columns)
-    print('-'*79)
-
+    # print(f'loaded df for module {module}:', df.head(5), df.columns)
+    # print('-'*79)
+    df['sentence'] = df["sentence"].apply( lambda t: "<br>".join(textwrap.wrap(t)) )
+    
     return df
     # df = df.drop(columns=[None])
 
@@ -194,7 +210,7 @@ def parse_df(data, filename) -> pd.DataFrame:
         temp_df = pd.read_pickle(f, compression='gzip' if filename.endswith('pkl.gz') else None)
     temp_df['corpus'] = filename
     temp_df[temp_df.index.name] = temp_df.index
-    print(temp_df.head(), 'temp_df')
+    # print(temp_df.head(), 'temp_df')
     return temp_df
 
 
@@ -232,21 +248,20 @@ def update_graph(plot_type,
     if filter_length > 0: 
         df_ = load_benchmarks(module=module, subsample=False)
     else:
-        df_ = load_benchmarks(module=module)
+        df_ = load_benchmarks(module=module, subsample=True)
     # print(upload_contents, filename)
     if upload_contents and filename:
         uploaded_df = parse_df(upload_contents, filename)
         uploaded_df['sentence_length'] = uploaded_df['sentence'].apply(lambda x: len(sentspace.Sentence(x, warn=False)))
         df_ = df_.append(uploaded_df)
 
-    df_['sentence'] = df_["sentence"].apply( lambda t: "<br>".join(textwrap.wrap(t)) )
 
     if filter_length > 0: 
         df_ = df_[df_['sentence_length'] == int(filter_length)]
 
     if plot_type == 'histogram':
         fig = px.box(df_, y="corpus", x=x_column, color='corpus',
-                     points='all',
+                    #  points='all',
                      hover_name='sentence', #notched=True,
                      height=400,
                     )
@@ -278,7 +293,9 @@ def update_graph(plot_type,
 
 
 def main():
-    app.run_server(debug=True, port=8051)
+    ''' '''
+    sentspace.utils.io.log(f'SENTSPACE.vis')
+    app.run_server(debug=False, port=8051)
 
 if __name__ == '__main__':
     main()
