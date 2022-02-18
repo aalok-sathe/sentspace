@@ -1,24 +1,13 @@
 '''
-    ### Sentspace 0.0.2 (C) 2020-2021 EvLab <evlab.mit.edu>, MIT BCS. All rights reserved.
+    ### Sentspace 0.0.2 (C) 2020-2021 [EvLab](evlab.mit.edu), MIT BCS. All rights reserved.
 
     Homepage: https://github.com/sentspace/sentspace
 
-    Authors (reverse alphabet.; insert `@` symbol for valid email):
+    Authors & Contributors: 
     
-    - Greta Tuckute `<gretatu % mit.edu>`
-    - Aalok Sathe `<asathe % mit.edu>`
-    - Mingye Wang
-    - Harley Yoder
-    - Cory Shain
-    - Alvince Pongos
-    - Josef Affourtit
-    - Ev Fedorenko
-
-
-    Please contact any of the following with questions about the code or license.
+    Greta Tuckute, Aalok Sathe, Mingye Wang, Harley Yoder, Cory Shain, Alvince Pongos, Josef Affourtit, Ev Fedorenko
     
-    - Aalok Sathe `<asathe % mit.edu>` 
-    - Greta Tuckute `<gretatu % mit.edu>`
+    `{gretatu,asathe} @ mit.edu`    
 
     .. include:: ../README.md
 '''
