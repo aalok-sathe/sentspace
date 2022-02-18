@@ -4,7 +4,7 @@ version = "0.0.2"
 description = ""
 authors = ["Greta Tuckute <gretatu@mit.edu>", 
            "Aalok Sathe <asathe@mit.edu>",
-           "Alvince Pongos <apongos@mit.edu>"]
+          ]
 
 [tool.poetry.dependencies]
 python = "^3.8,<3.10"
