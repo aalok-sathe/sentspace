@@ -1,5 +1,5 @@
 '''
-    ### Sentspace 0.0.2 (C) 2020-2021 [EvLab](evlab.mit.edu), MIT BCS. All rights reserved.
+    ### Sentspace 0.0.2 (C) 2020-2022 [EvLab](evlab.mit.edu), MIT BCS. All rights reserved.
 
     Homepage: https://github.com/sentspace/sentspace
 
