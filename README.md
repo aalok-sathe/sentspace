@@ -15,6 +15,8 @@ naturally occurring sentences? What are the dimensions along which your sentence
 `sentspace` provides you with numerical estimates of these values, as well as
 allows you to visualize the high-dimensional space in a web-based application.
 
+**Online interface:** [http://evlabwebapps.mit.edu:8764/](http://evlabwebapps.mit.edu:8764/#/compute-features)
+
 **Screencast video demo:** [https://youtu.be/a66_nvcCakw](https://youtu.be/a66_nvcCakw)
 
 **CLI usage demo:**
