@@ -52,22 +52,22 @@ def load_benchmarks(module='lexical', subsample=False):
                                           module=module, subsample=subsample, fmt='tsv'))
     df = df.append(load_df_from_directory('human_stories', 'out/gpt2stories_sents_target1', 
                                           module=module, subsample=subsample))
-    # df = df.append(load_df_from_directory('brown', 'out/benchmarks/brown_subsampled_grouped_by_length_n=500_stimuli', 
-    #                                       module=module, subsample=subsample))
-    # df = df.append(load_df_from_directory('torontoadv', 'out/benchmarks/torontoadv_subsampled_grouped_by_length_n=500_stimuli', 
-    #                                       module=module, subsample=subsample))
-    # df = df.append(load_df_from_directory('wsj', 'out/benchmarks/wsj_subsampled_grouped_by_length_n=500_stimuli', 
-    #                                       module=module, subsample=subsample))
-    # df = df.append(load_df_from_directory('ud', 'out/benchmarks/ud_subsampled_grouped_by_length_n=500_stimuli', 
-    #                                       module=module, subsample=subsample))
-    # df = df.append(load_df_from_directory('c4', 'out/benchmarks/c4_subsampled_grouped_by_length_n=500_stimuli', 
-    #                                       module=module, subsample=subsample))
-    # df = df.append(load_df_from_directory('cocaspok1991', 'out/benchmarks/cocaspok1991_subsampled_grouped_by_length_n=500_stimuli', 
-    #                                       module=module, subsample=subsample))
-    # df = df.append(load_df_from_directory('cocaspok2001', 'out/benchmarks/cocaspok2001_subsampled_grouped_by_length_n=500_stimuli', 
-    #                                       module=module, subsample=subsample))
-    # df = df.append(load_df_from_directory('cocaspok2012', 'out/benchmarks/cocaspok2012_subsampled_grouped_by_length_n=500_stimuli', 
-    #                                       module=module, subsample=subsample))
+    df = df.append(load_df_from_directory('brown', 'out/benchmarks/brown_subsampled_grouped_by_length_n=500_stimuli', 
+                                          module=module, subsample=subsample))
+    df = df.append(load_df_from_directory('torontoadv', 'out/benchmarks/torontoadv_subsampled_grouped_by_length_n=500_stimuli', 
+                                          module=module, subsample=subsample))
+    df = df.append(load_df_from_directory('wsj', 'out/benchmarks/wsj_subsampled_grouped_by_length_n=500_stimuli', 
+                                          module=module, subsample=subsample))
+    df = df.append(load_df_from_directory('ud', 'out/benchmarks/ud_subsampled_grouped_by_length_n=500_stimuli', 
+                                          module=module, subsample=subsample))
+    df = df.append(load_df_from_directory('c4', 'out/benchmarks/c4_subsampled_grouped_by_length_n=500_stimuli', 
+                                          module=module, subsample=subsample))
+    df = df.append(load_df_from_directory('cocaspok1991', 'out/benchmarks/cocaspok1991_subsampled_grouped_by_length_n=500_stimuli', 
+                                          module=module, subsample=subsample))
+    df = df.append(load_df_from_directory('cocaspok2001', 'out/benchmarks/cocaspok2001_subsampled_grouped_by_length_n=500_stimuli', 
+                                          module=module, subsample=subsample))
+    df = df.append(load_df_from_directory('cocaspok2012', 'out/benchmarks/cocaspok2012_subsampled_grouped_by_length_n=500_stimuli', 
+                                          module=module, subsample=subsample))
     
     print(f'loaded df for module {module}:', df.head(5), df.columns)
     print('-'*79)
@@ -131,7 +131,7 @@ def PLOTTING_DROPDOWNS(df):
 
     html.Div(children=[
         html.Div(children=[
-            html.P(children=f'filter by sentence length:',
+            html.P(children=f'filter by length:',
                 style=dict(height='10px', lineheight='10px')),
             dcc.Dropdown(id=f'filter-length',
                 options=[{'label': i, 'value': i} for i in [-1] + [*range(6,50)]],
@@ -246,9 +246,9 @@ def update_graph(plot_type,
 
     if plot_type == 'histogram':
         fig = px.box(df_, y="corpus", x=x_column, color='corpus',
-                     points='all',
+                    #  points='all',
                      hover_name='sentence', #notched=True,
-                     height=400,
+                     height=600,
                     )
         #fig = px.histogram(df_, x=x_column, color="corpus",
         #                marginal="box", # 'rug', "box", "violin"
