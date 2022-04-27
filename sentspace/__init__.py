@@ -1,25 +1,17 @@
 '''
-    ### Sentspace 0.0.1 (C) 2020-2021 EvLab <evlab.mit.edu>, MIT BCS. All rights reserved.
+    ### Sentspace 0.0.2 (C) 2020-2022 [EvLab](evlab.mit.edu), MIT BCS. All rights reserved.
 
-    Homepage: https://github.com/aalok-sathe/sentspace
+    Homepage: https://github.com/sentspace/sentspace
 
-    Authors (reverse alphabet.; insert `@` symbol for valid email):
+    Authors & Contributors: 
     
-    - Greta Tuckute `<gretatu % mit.edu>`
-    - Aalok Sathe `<asathe % mit.edu>`
-    - Alvince Pongos `<apongos % mit.edu>`
-    - Josef Affourtit `<jaffourt % mit.edu>`
-
-    Please contact any of the following with questions about the code or license.
+    Greta Tuckute, Aalok Sathe, Mingye Wang, Harley Yoder, Cory Shain, Alvince Pongos, Josef Affourtit, Ev Fedorenko
     
-    - Aalok Sathe `<asathe % mit.edu>` 
-    - Greta Tuckute `<gretatu % mit.edu>`
+    `{gretatu,asathe} @ mit.edu`    
 
     .. include:: ../README.md
 '''
 
-# __pdoc__ = {'semantic': False,
-#             }
 
 
 from collections import defaultdict
@@ -296,5 +288,4 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
     ################################################################################
     #### \end{run_sentence_features_pipeline} ######################################
     ################################################################################
-    utils.io.log(f'FINISHED ALL')
     return output_dir
