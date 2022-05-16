@@ -60,31 +60,10 @@ def load_benchmarks(module='lexical', subsample=False,
                     load_corpora=True
                     ):
     df = pd.DataFrame()
-<<<<<<< HEAD
-    df = df.append(load_df_from_directory('gpt_stories', 'out/gpt2stories_sents_target0_subset', 
-                                          module=module, subsample=subsample, fmt='tsv'))
-    df = df.append(load_df_from_directory('human_stories', 'out/gpt2stories_sents_target1', 
-                                          module=module, subsample=subsample))
-    df = df.append(load_df_from_directory('brown', 'out/benchmarks/brown_subsampled_grouped_by_length_n=500_stimuli', 
-                                          module=module, subsample=subsample))
-    df = df.append(load_df_from_directory('torontoadv', 'out/benchmarks/torontoadv_subsampled_grouped_by_length_n=500_stimuli', 
-                                          module=module, subsample=subsample))
-    df = df.append(load_df_from_directory('wsj', 'out/benchmarks/wsj_subsampled_grouped_by_length_n=500_stimuli', 
-                                          module=module, subsample=subsample))
-    df = df.append(load_df_from_directory('ud', 'out/benchmarks/ud_subsampled_grouped_by_length_n=500_stimuli', 
-                                          module=module, subsample=subsample))
-    df = df.append(load_df_from_directory('c4', 'out/benchmarks/c4_subsampled_grouped_by_length_n=500_stimuli', 
-                                          module=module, subsample=subsample))
-    df = df.append(load_df_from_directory('cocaspok1991', 'out/benchmarks/cocaspok1991_subsampled_grouped_by_length_n=500_stimuli', 
-                                          module=module, subsample=subsample))
-    df = df.append(load_df_from_directory('cocaspok2001', 'out/benchmarks/cocaspok2001_subsampled_grouped_by_length_n=500_stimuli', 
-                                          module=module, subsample=subsample))
-    df = df.append(load_df_from_directory('cocaspok2012', 'out/benchmarks/cocaspok2012_subsampled_grouped_by_length_n=500_stimuli', 
-                                          module=module, subsample=subsample))
-=======
     relprefix = Path(__file__).parent / '..' / '..'
     if load_gpt_human:
-        df = df.append(load_df_from_directory('gpt_stories', relprefix/'out/gpt2stories_sents_target0_subset', 
+        # df = df.append(load_df_from_directory('gpt_stories', relprefix/'out/gpt2stories_sents_target0_subset', 
+        df = df.append(load_df_from_directory('gpt_stories', relprefix/'out/CR_gpt-generated/', 
                                             module=module, subsample=subsample, fmt='tsv'))
         df = df.append(load_df_from_directory('human_stories', relprefix/'out/gpt2stories_sents_target1', 
                                             module=module, subsample=subsample))
@@ -109,7 +88,6 @@ def load_benchmarks(module='lexical', subsample=False,
     # print(f'loaded df for module {module}:', df.head(5), df.columns)
     # print('-'*79)
     df['sentence'] = df["sentence"].apply( lambda t: "<br>".join(textwrap.wrap(t)) )
->>>>>>> 5b6aa08ab49ec3946c409feb2f1e35ba45245242
     
     return df
     # df = df.drop(columns=[None])
