@@ -81,12 +81,12 @@ def get_features(sentence: str = None, identifier: str = None,
             try:
                 server_url = f&#39;http://localhost:{syntax_port}/fullberk&#39;
                 features.tree = Tree(utils.compute_trees(sub_sentence, server_url=server_url)) 
-                if type(features.trees) is RuntimeError:
-                    raise features.trees
+                if type(features.tree) is RuntimeError:
+                    raise features.tree
 
-                features.tree.raw 
+                getattr(features.tree, &#39;raw&#39;) 
                 # print(parse_input(sentence), features.tree)
-                if dlt and features.tree.raw:
+                if dlt and features.tree.raw is not None:
                     # io.log(f&#39;computing DLT feature&#39;)
                     dlt_stdout = utils.compute_feature(&#39;dlt.sh&#39;, features.tree.raw)
                     if type(dlt_stdout) == RuntimeError:
@@ -94,7 +94,7 @@ def get_features(sentence: str = None, identifier: str = None,
                     else:
                         features.dlt = DLT(dlt_stdout, sub_sentence, identifier)
                     # io.log(f&#39;--- done: DLT&#39;)
-                if left_corner and features.tree.raw:
+                if left_corner and features.tree.raw is not None:
                     # io.log(f&#39;computing left corner feature&#39;)
                     left_corner_stdout = utils.compute_feature(&#39;leftcorner.sh&#39;, features.tree.raw)
                     if type(left_corner_stdout) == RuntimeError:
@@ -107,8 +107,14 @@ def get_features(sentence: str = None, identifier: str = None,
                 features_to_pool[&#39;left_corner&#39;] += [features.left_corner]
 
             except AttributeError as ae:
-                io.log(f&#39;FAILED: AttributeError: to process Tree features for chunk [{sub_sentence}] of sentence [{sentence}]&#39;, 
+                import traceback
+                io.log(f&#39;FAILED: AttributeError while processing &#39;
+                       f&#39;Tree [{features.tree}] features for chunk [{sub_sentence}] of sentence [{sentence}] &#39;
+                       f&#39;traceback: {traceback.format_exc()}&#39;, 
                        type=&#39;ERR&#39;)
+                # for attr in [&#39;dlt&#39;, &#39;left_corner&#39;, &#39;tree&#39;]:
+                #     io.log(f&#39;hasattr(features, {attr}): {hasattr(features, attr)}&#39;, type=&#39;ERR&#39;)
+                # io.log(f&#39;hasattr(features.tree, raw): {hasattr(features.tree, &#34;raw&#34;)}&#39;, type=&#39;ERR&#39;)
                 pass
 
             except RuntimeError:
@@ -235,12 +241,12 @@ def get_features(sentence: str = None, identifier: str = None,
             try:
                 server_url = f&#39;http://localhost:{syntax_port}/fullberk&#39;
                 features.tree = Tree(utils.compute_trees(sub_sentence, server_url=server_url)) 
-                if type(features.trees) is RuntimeError:
-                    raise features.trees
+                if type(features.tree) is RuntimeError:
+                    raise features.tree
 
-                features.tree.raw 
+                getattr(features.tree, &#39;raw&#39;) 
                 # print(parse_input(sentence), features.tree)
-                if dlt and features.tree.raw:
+                if dlt and features.tree.raw is not None:
                     # io.log(f&#39;computing DLT feature&#39;)
                     dlt_stdout = utils.compute_feature(&#39;dlt.sh&#39;, features.tree.raw)
                     if type(dlt_stdout) == RuntimeError:
@@ -248,7 +254,7 @@ def get_features(sentence: str = None, identifier: str = None,
                     else:
                         features.dlt = DLT(dlt_stdout, sub_sentence, identifier)
                     # io.log(f&#39;--- done: DLT&#39;)
-                if left_corner and features.tree.raw:
+                if left_corner and features.tree.raw is not None:
                     # io.log(f&#39;computing left corner feature&#39;)
                     left_corner_stdout = utils.compute_feature(&#39;leftcorner.sh&#39;, features.tree.raw)
                     if type(left_corner_stdout) == RuntimeError:
@@ -261,8 +267,14 @@ def get_features(sentence: str = None, identifier: str = None,
                 features_to_pool[&#39;left_corner&#39;] += [features.left_corner]
 
             except AttributeError as ae:
-                io.log(f&#39;FAILED: AttributeError: to process Tree features for chunk [{sub_sentence}] of sentence [{sentence}]&#39;, 
+                import traceback
+                io.log(f&#39;FAILED: AttributeError while processing &#39;
+                       f&#39;Tree [{features.tree}] features for chunk [{sub_sentence}] of sentence [{sentence}] &#39;
+                       f&#39;traceback: {traceback.format_exc()}&#39;, 
                        type=&#39;ERR&#39;)
+                # for attr in [&#39;dlt&#39;, &#39;left_corner&#39;, &#39;tree&#39;]:
+                #     io.log(f&#39;hasattr(features, {attr}): {hasattr(features, attr)}&#39;, type=&#39;ERR&#39;)
+                # io.log(f&#39;hasattr(features.tree, raw): {hasattr(features.tree, &#34;raw&#34;)}&#39;, type=&#39;ERR&#39;)
                 pass
 
             except RuntimeError:
