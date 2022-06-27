@@ -42,11 +42,39 @@ from pathlib import Path
 # list of acceptable feature terms to load_databases(...)
 # @cache_to_mem
 def get_feature_list():
-    return [&#39;NRC_Arousal&#39;, &#39;NRC_Valence&#39;, &#39;OSC&#39;, &#39;aoa&#39;, &#39;concreteness&#39;, &#39;lexical_decision_RT&#39;,
-            &#39;log_contextual_diversity&#39;, &#39;log_lexical_frequency&#39;, &#39;n_orthographic_neighbors&#39;, &#39;num_morpheme&#39;,
+    return [&#39;NRC_Arousal&#39;, 
+            &#39;NRC_Valence&#39;, 
+            &#39;NRC_Dominance&#39;, 
+            &#39;OSC&#39;, # Orthographic-semantics consistency (Marelli &amp; Amenta, 2018)
+            &#39;aoa&#39;, # Age of Acquisition (Kuperman et al., 2012)
+            &#39;concreteness&#39;, # (Brysbaert et al., 2014)
+            &#39;lexical_decision_RT&#39;, # (Balota et al., 2007)
+            &#39;log_contextual_diversity&#39;, 
+            &#39;log_lexical_frequency&#39;, 
+            &#39;n_orthographic_neighbors&#39;, 
+            &#39;num_morpheme&#39;,
             &#39;prevalence&#39;, 
-            &#39;surprisal-3&#39;, &#39;surprisal-1&#39;, &#39;surprisal-2&#39;, &#39;surprisal-4&#39;,
-            &#39;total_degree_centrality&#39;]
+            &#39;surprisal-1&#39;, 
+            &#39;surprisal-2&#39;, 
+            &#39;surprisal-3&#39;, 
+            &#39;surprisal-4&#39;,
+            &#39;total_degree_centrality&#39;,
+            &#39;imageability&#39;, # Glasgow norms (Scott et al, 2019) https://link.springer.com/article/10.3758/s13428-018-1099-3#Sec1
+            &#39;body-object-interaction&#39;, # (Pexman et al, 2019)  https://link.springer.com/article/10.3758/s13428-018-1171-z#Sec9
+            &#39;zipf&#39;, # SUBTLEXus
+            # Lancaster norms (Lynott et al, 2020) https://link.springer.com/article/10.3758/s13428-019-01316-z#Bib1
+            &#39;Auditory&#39;,
+            &#39;Gustatory&#39;,
+            &#39;Interoceptive&#39;,
+            &#39;Haptic&#39;,
+            &#39;Olfactory&#39;,
+            &#39;Visual&#39;,
+            &#39;Foot_leg&#39;,
+            &#39;Hand_arm&#39;,
+            &#39;Head&#39;,
+            &#39;Mouth&#39;,
+            &#39;Torso&#39;,
+            ]
 
 def get_feature_list_using_third_party_libraries():
     return [&#39;polysemy&#39;, &#39;num_morpheme_poly&#39;]
@@ -54,6 +82,8 @@ def get_feature_list_using_third_party_libraries():
 def get_feature_list_requiring_calculation():
     return [&#39;PMI&#39;]
 
+def get_user_contributed_features():
+    return []
 
 def get_all_features(sentence: &#39;sentspace.Sentence.Sentence&#39;, databases):
     &#34;&#34;&#34;
@@ -61,7 +91,9 @@ def get_all_features(sentence: &#39;sentspace.Sentence.Sentence&#39;, databases)
     &#34;&#34;&#34;
     
     result = {}
-    for feature in get_feature_list() + get_feature_list_using_third_party_libraries():
+    for feature in (get_feature_list() +
+                    get_feature_list_using_third_party_libraries() + 
+                    get_user_contributed_features()):
         # we don&#39;t want to compute num_morpheme using the dictionary DB by default. 
         # we want to do it only if the polyglot library is unavailable.
         if feature == &#39;num_morpheme&#39;: 
@@ -248,7 +280,9 @@ def sanity_check_databases(databases):
     &#34;&#34;&#34;
     
     result = {}
-    for feature in get_feature_list() + get_feature_list_using_third_party_libraries():
+    for feature in (get_feature_list() +
+                    get_feature_list_using_third_party_libraries() + 
+                    get_user_contributed_features()):
         # we don&#39;t want to compute num_morpheme using the dictionary DB by default. 
         # we want to do it only if the polyglot library is unavailable.
         if feature == &#39;num_morpheme&#39;: 
@@ -359,11 +393,39 @@ def sanity_check_databases(databases):
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def get_feature_list():
-    return [&#39;NRC_Arousal&#39;, &#39;NRC_Valence&#39;, &#39;OSC&#39;, &#39;aoa&#39;, &#39;concreteness&#39;, &#39;lexical_decision_RT&#39;,
-            &#39;log_contextual_diversity&#39;, &#39;log_lexical_frequency&#39;, &#39;n_orthographic_neighbors&#39;, &#39;num_morpheme&#39;,
+    return [&#39;NRC_Arousal&#39;, 
+            &#39;NRC_Valence&#39;, 
+            &#39;NRC_Dominance&#39;, 
+            &#39;OSC&#39;, # Orthographic-semantics consistency (Marelli &amp; Amenta, 2018)
+            &#39;aoa&#39;, # Age of Acquisition (Kuperman et al., 2012)
+            &#39;concreteness&#39;, # (Brysbaert et al., 2014)
+            &#39;lexical_decision_RT&#39;, # (Balota et al., 2007)
+            &#39;log_contextual_diversity&#39;, 
+            &#39;log_lexical_frequency&#39;, 
+            &#39;n_orthographic_neighbors&#39;, 
+            &#39;num_morpheme&#39;,
             &#39;prevalence&#39;, 
-            &#39;surprisal-3&#39;, &#39;surprisal-1&#39;, &#39;surprisal-2&#39;, &#39;surprisal-4&#39;,
-            &#39;total_degree_centrality&#39;]</code></pre>
+            &#39;surprisal-1&#39;, 
+            &#39;surprisal-2&#39;, 
+            &#39;surprisal-3&#39;, 
+            &#39;surprisal-4&#39;,
+            &#39;total_degree_centrality&#39;,
+            &#39;imageability&#39;, # Glasgow norms (Scott et al, 2019) https://link.springer.com/article/10.3758/s13428-018-1099-3#Sec1
+            &#39;body-object-interaction&#39;, # (Pexman et al, 2019)  https://link.springer.com/article/10.3758/s13428-018-1171-z#Sec9
+            &#39;zipf&#39;, # SUBTLEXus
+            # Lancaster norms (Lynott et al, 2020) https://link.springer.com/article/10.3758/s13428-019-01316-z#Bib1
+            &#39;Auditory&#39;,
+            &#39;Gustatory&#39;,
+            &#39;Interoceptive&#39;,
+            &#39;Haptic&#39;,
+            &#39;Olfactory&#39;,
+            &#39;Visual&#39;,
+            &#39;Foot_leg&#39;,
+            &#39;Hand_arm&#39;,
+            &#39;Head&#39;,
+            &#39;Mouth&#39;,
+            &#39;Torso&#39;,
+            ]</code></pre>
 </details>
 </dd>
 <dt id="sentspace.lexical.utils.get_feature_list_requiring_calculation"><code class="name flex">
@@ -390,6 +452,19 @@ def sanity_check_databases(databases):
 </summary>
 <pre><code class="python">def get_feature_list_using_third_party_libraries():
     return [&#39;polysemy&#39;, &#39;num_morpheme_poly&#39;]</code></pre>
+</details>
+</dd>
+<dt id="sentspace.lexical.utils.get_user_contributed_features"><code class="name flex">
+<span>def <span class="ident">get_user_contributed_features</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_user_contributed_features():
+    return []</code></pre>
 </details>
 </dd>
 <dt id="sentspace.lexical.utils.return_percentile_df"><code class="name flex">
@@ -477,6 +552,7 @@ to ensure validity of the loaded data</p></div>
 <li><code><a title="sentspace.lexical.utils.get_feature_list" href="#sentspace.lexical.utils.get_feature_list">get_feature_list</a></code></li>
 <li><code><a title="sentspace.lexical.utils.get_feature_list_requiring_calculation" href="#sentspace.lexical.utils.get_feature_list_requiring_calculation">get_feature_list_requiring_calculation</a></code></li>
 <li><code><a title="sentspace.lexical.utils.get_feature_list_using_third_party_libraries" href="#sentspace.lexical.utils.get_feature_list_using_third_party_libraries">get_feature_list_using_third_party_libraries</a></code></li>
+<li><code><a title="sentspace.lexical.utils.get_user_contributed_features" href="#sentspace.lexical.utils.get_user_contributed_features">get_user_contributed_features</a></code></li>
 <li><code><a title="sentspace.lexical.utils.return_percentile_df" href="#sentspace.lexical.utils.return_percentile_df">return_percentile_df</a></code></li>
 <li><code><a title="sentspace.lexical.utils.sanity_check_databases" href="#sentspace.lexical.utils.sanity_check_databases">sanity_check_databases</a></code></li>
 </ul>
