@@ -31,6 +31,7 @@ polyglot = ["polyglot", "PyICU", "pycld2", "Morfessor"]
 
 [tool.poetry.dev-dependencies]
 pdoc3 = "^0.10.0"
+ipython = "^8.4.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
