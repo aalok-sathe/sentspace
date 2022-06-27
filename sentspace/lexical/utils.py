@@ -14,11 +14,39 @@ from pathlib import Path
 # list of acceptable feature terms to load_databases(...)
 # @cache_to_mem
 def get_feature_list():
-    return ['NRC_Arousal', 'NRC_Valence', 'OSC', 'aoa', 'concreteness', 'lexical_decision_RT',
-            'log_contextual_diversity', 'log_lexical_frequency', 'n_orthographic_neighbors', 'num_morpheme',
+    return ['NRC_Arousal', 
+            'NRC_Valence', 
+            'NRC_Dominance', 
+            'OSC', # Orthographic-semantics consistency (Marelli & Amenta, 2018)
+            'aoa', # Age of Acquisition (Kuperman et al., 2012)
+            'concreteness', # (Brysbaert et al., 2014)
+            'lexical_decision_RT', # (Balota et al., 2007)
+            'log_contextual_diversity', 
+            'log_lexical_frequency', 
+            'n_orthographic_neighbors', 
+            'num_morpheme',
             'prevalence', 
-            'surprisal-3', 'surprisal-1', 'surprisal-2', 'surprisal-4',
-            'total_degree_centrality']
+            'surprisal-1', 
+            'surprisal-2', 
+            'surprisal-3', 
+            'surprisal-4',
+            'total_degree_centrality',
+            'imageability', # Glasgow norms (Scott et al, 2019) https://link.springer.com/article/10.3758/s13428-018-1099-3#Sec1
+            'body-object-interaction', # (Pexman et al, 2019)  https://link.springer.com/article/10.3758/s13428-018-1171-z#Sec9
+            'zipf', # SUBTLEXus
+            # Lancaster norms (Lynott et al, 2020) https://link.springer.com/article/10.3758/s13428-019-01316-z#Bib1
+            'Auditory',
+            'Gustatory',
+            'Interoceptive',
+            'Haptic',
+            'Olfactory',
+            'Visual',
+            'Foot_leg',
+            'Hand_arm',
+            'Head',
+            'Mouth',
+            'Torso',
+            ]
 
 def get_feature_list_using_third_party_libraries():
     return ['polysemy', 'num_morpheme_poly']
@@ -26,6 +54,8 @@ def get_feature_list_using_third_party_libraries():
 def get_feature_list_requiring_calculation():
     return ['PMI']
 
+def get_user_contributed_features():
+    return []
 
 def get_all_features(sentence: 'sentspace.Sentence.Sentence', databases):
     """
@@ -33,7 +63,9 @@ def get_all_features(sentence: 'sentspace.Sentence.Sentence', databases):
     """
     
     result = {}
-    for feature in get_feature_list() + get_feature_list_using_third_party_libraries():
+    for feature in (get_feature_list() +
+                    get_feature_list_using_third_party_libraries() + 
+                    get_user_contributed_features()):
         # we don't want to compute num_morpheme using the dictionary DB by default. 
         # we want to do it only if the polyglot library is unavailable.
         if feature == 'num_morpheme': 
