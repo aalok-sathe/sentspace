@@ -14,9 +14,9 @@ from pathlib import Path
 # list of acceptable feature terms to load_databases(...)
 # @cache_to_mem
 def get_feature_list():
-    return ['NRC_Arousal', 
-            'NRC_Valence', 
-            'NRC_Dominance', 
+    return ['NRC_Arousal', # (Mohammad 2018)
+            'NRC_Valence', # (Mohammad 2018)
+            'NRC_Dominance', # (Mohammad 2018)
             'OSC', # Orthographic-semantics consistency (Marelli & Amenta, 2018)
             'aoa', # Age of Acquisition (Kuperman et al., 2012)
             'concreteness', # (Brysbaert et al., 2014)
@@ -34,6 +34,7 @@ def get_feature_list():
             'imageability', # Glasgow norms (Scott et al, 2019) https://link.springer.com/article/10.3758/s13428-018-1099-3#Sec1
             'body-object-interaction', # (Pexman et al, 2019)  https://link.springer.com/article/10.3758/s13428-018-1171-z#Sec9
             'zipf', # SUBTLEXus
+            'socialness', # (Diveica et al., 2022) https://link.springer.com/article/10.3758/s13428-022-01810-x#Sec15
             # Lancaster norms (Lynott et al, 2020) https://link.springer.com/article/10.3758/s13428-019-01316-z#Bib1
             'Auditory',
             'Gustatory',
