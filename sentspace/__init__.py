@@ -1,22 +1,17 @@
 '''
     ### Sentspace 0.0.2 (C) 2020-2022 [EvLab](evlab.mit.edu), MIT BCS. All rights reserved.
 
-    Homepage: https://github.com/sentspace/sentspace
+    Homepage: https://sentspace.github.io/sentspace
 
-    Authors & Contributors: 
-    
-    Greta Tuckute, Aalok Sathe, Mingye Wang, Harley Yoder, Cory Shain, Alvince Pongos, Josef Affourtit, Ev Fedorenko
+    For questions, email:
     
     `{gretatu,asathe} @ mit.edu`    
 
     .. include:: ../README.md
 '''
 
-
-
 from collections import defaultdict
 from pathlib import Path
-
 
 import sentspace.utils as utils
 import sentspace.syntax as syntax
@@ -38,7 +33,6 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                    process_embedding: bool = False, process_semantic: bool = False,
                                    parallelize: bool = True,
                                    # preserve_metadata: bool = True,
-                                   #
                                    syntax_port: int = 8000,
                                    limit: float = float('inf'), offset: int = 0,
                                    emb_data_dir: str = None) -> Path:
@@ -95,7 +89,7 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
 
             if parallelize:
                 lexical_features = utils.parallelize(lexical.get_features, sentence_batch,
-                                                    wrap_tqdm=True, desc='Lexical pipeline')
+                                                     wrap_tqdm=True, desc='Lexical pipeline')
             else:
                 lexical_features = [lexical.get_features(sentence)
                                     for _, sentence in enumerate(tqdm(sentence_batch, desc='Lexical pipeline'))]
@@ -126,8 +120,6 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
         if process_syntax:
             utils.io.log('*** running syntax submodule pipeline')
 
-            # as an exception, we do *not* parallelize syntax since the backend server is somehow unable to handle
-            # multiple requests :(
             syntax_features = [syntax.get_features(sentence._raw, dlt=True, left_corner=True, identifier=sentence.uid,
                                                    syntax_port=syntax_port)
                                                                         # !!! TODO:DEBUG
@@ -146,10 +138,17 @@ def run_sentence_features_pipeline(input_file: str, stop_words_file: str = None,
                                 (v for k, v in feature_dict.items() if k in token_syntax_features))
                         for feature_dict in syntax_features]
 
+            for i, df in enumerate(token_dfs):
+                token_dfs[i]['index'] = df.index
+            #     token_dfs[i].reset_index(inplace=True)
+
+            dicts = [{k: v[list(v.keys())[0]] for k, v in df.to_dict().items()} for df in token_dfs]
+            token_df = pd.DataFrame(dicts)
+            token_df.index = token_df['index']
             # by this point we have merged dataframes with tokens along a column (rather than just a sentence)
             # now we need to stack them on top of each other to have all tokens across all sentences in a single dataframe
-            token_df = reduce(lambda x, y: pd.concat([x, y], ignore_index=True), token_dfs)
-            token_df = token_df.loc[:, ~token_df.columns.duplicated()]
+            # token_df = reduce(lambda x, y: pd.concat([x.reset_index(drop=True), y.reset_index(drop=True)]), token_dfs)
+            # token_df = token_df.loc[:, ~token_df.columns.duplicated()]
 
             syntax_out = output_dir / 'syntax'
             syntax_out.mkdir(parents=True, exist_ok=True)
