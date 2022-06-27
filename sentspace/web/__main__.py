@@ -16,6 +16,7 @@ import io
 from pathlib import Path
 import dash_bootstrap_components as dbc
 import textwrap
+import argparse
 
 import sentspace
 
@@ -55,7 +56,8 @@ def load_df_from_directory(corpus: str, directory: typing.Union[str, Path], modu
         return dfs
 
 @functools.lru_cache(maxsize=5)
-def load_benchmarks(module='lexical', subsample=False,
+def load_benchmarks(module='lexical', 
+                    subsample=False,
                     load_gpt_human=True, 
                     load_corpora=True
                     ):
@@ -63,10 +65,10 @@ def load_benchmarks(module='lexical', subsample=False,
     relprefix = Path(__file__).parent / '..' / '..'
     if load_gpt_human:
         # df = df.append(load_df_from_directory('gpt_stories', relprefix/'out/gpt2stories_sents_target0_subset', 
-        df = df.append(load_df_from_directory('gpt_stories', relprefix/'out/CR_gpt-generated/', 
-                                            module=module, subsample=subsample, fmt='tsv'))
+        df = df.append(load_df_from_directory('gpt_stories', relprefix/'out/CR_gpt-generated', 
+                                            module=module, subsample=False))
         df = df.append(load_df_from_directory('human_stories', relprefix/'out/gpt2stories_sents_target1', 
-                                            module=module, subsample=subsample))
+                                            module=module, subsample=False))
     if load_corpora:
         df = df.append(load_df_from_directory('brown', relprefix/'out/benchmarks/brown_subsampled_grouped_by_length_n=500_stimuli', 
                                             module=module, subsample=subsample))
@@ -247,9 +249,15 @@ def update_graph(plot_type,
                  module='lexical'):
 
     if filter_length > 0: 
-        df_ = load_benchmarks(module=module, subsample=False)
+        df_ = load_benchmarks(module=module, subsample=False,
+                              # NAACL submission: load_corpora=False,
+                              load_corpora=True,
+                             )
     else:
-        df_ = load_benchmarks(module=module, subsample=True)
+        df_ = load_benchmarks(module=module, subsample=True,
+                              # NAACL submission: load_corpora=False,
+                              load_corpora=True,
+                             )
     # print(upload_contents, filename)
     if upload_contents and filename:
         uploaded_df = parse_df(upload_contents, filename)
@@ -262,7 +270,7 @@ def update_graph(plot_type,
 
     if plot_type == 'histogram':
         fig = px.box(df_, y="corpus", x=x_column, color='corpus',
-                    #  points='all',
+                     points='outliers',
                      hover_name='sentence', #notched=True,
                      height=600,
                     )
