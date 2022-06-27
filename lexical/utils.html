@@ -42,9 +42,9 @@ from pathlib import Path
 # list of acceptable feature terms to load_databases(...)
 # @cache_to_mem
 def get_feature_list():
-    return [&#39;NRC_Arousal&#39;, 
-            &#39;NRC_Valence&#39;, 
-            &#39;NRC_Dominance&#39;, 
+    return [&#39;NRC_Arousal&#39;, # (Mohammad 2018)
+            &#39;NRC_Valence&#39;, # (Mohammad 2018)
+            &#39;NRC_Dominance&#39;, # (Mohammad 2018)
             &#39;OSC&#39;, # Orthographic-semantics consistency (Marelli &amp; Amenta, 2018)
             &#39;aoa&#39;, # Age of Acquisition (Kuperman et al., 2012)
             &#39;concreteness&#39;, # (Brysbaert et al., 2014)
@@ -62,6 +62,7 @@ def get_feature_list():
             &#39;imageability&#39;, # Glasgow norms (Scott et al, 2019) https://link.springer.com/article/10.3758/s13428-018-1099-3#Sec1
             &#39;body-object-interaction&#39;, # (Pexman et al, 2019)  https://link.springer.com/article/10.3758/s13428-018-1171-z#Sec9
             &#39;zipf&#39;, # SUBTLEXus
+            &#39;socialness&#39;, # (Diveica et al., 2022) https://link.springer.com/article/10.3758/s13428-022-01810-x#Sec15
             # Lancaster norms (Lynott et al, 2020) https://link.springer.com/article/10.3758/s13428-019-01316-z#Bib1
             &#39;Auditory&#39;,
             &#39;Gustatory&#39;,
@@ -393,9 +394,9 @@ def sanity_check_databases(databases):
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def get_feature_list():
-    return [&#39;NRC_Arousal&#39;, 
-            &#39;NRC_Valence&#39;, 
-            &#39;NRC_Dominance&#39;, 
+    return [&#39;NRC_Arousal&#39;, # (Mohammad 2018)
+            &#39;NRC_Valence&#39;, # (Mohammad 2018)
+            &#39;NRC_Dominance&#39;, # (Mohammad 2018)
             &#39;OSC&#39;, # Orthographic-semantics consistency (Marelli &amp; Amenta, 2018)
             &#39;aoa&#39;, # Age of Acquisition (Kuperman et al., 2012)
             &#39;concreteness&#39;, # (Brysbaert et al., 2014)
@@ -413,6 +414,7 @@ def sanity_check_databases(databases):
             &#39;imageability&#39;, # Glasgow norms (Scott et al, 2019) https://link.springer.com/article/10.3758/s13428-018-1099-3#Sec1
             &#39;body-object-interaction&#39;, # (Pexman et al, 2019)  https://link.springer.com/article/10.3758/s13428-018-1171-z#Sec9
             &#39;zipf&#39;, # SUBTLEXus
+            &#39;socialness&#39;, # (Diveica et al., 2022) https://link.springer.com/article/10.3758/s13428-022-01810-x#Sec15
             # Lancaster norms (Lynott et al, 2020) https://link.springer.com/article/10.3758/s13428-019-01316-z#Bib1
             &#39;Auditory&#39;,
             &#39;Gustatory&#39;,
