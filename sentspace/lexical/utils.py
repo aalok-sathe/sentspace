@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 import sentspace.utils
 from sentspace.utils import io, text
-from sentspace.utils.caching import cache_to_mem #, cache_to_disk
+from sentspace.utils.caching import cache_to_mem  # , cache_to_disk
 from sentspace.utils.misc import merge_lists
 from pathlib import Path
 
@@ -14,80 +14,87 @@ from pathlib import Path
 # list of acceptable feature terms to load_databases(...)
 # @cache_to_mem
 def get_feature_list():
-    return ['NRC_Arousal', # (Mohammad 2018)
-            'NRC_Valence', # (Mohammad 2018)
-            'NRC_Dominance', # (Mohammad 2018)
-            'OSC', # Orthographic-semantics consistency (Marelli & Amenta, 2018)
-            'aoa', # Age of Acquisition (Kuperman et al., 2012)
-            'concreteness', # (Brysbaert et al., 2014)
-            'lexical_decision_RT', # (Balota et al., 2007)
-            'log_contextual_diversity', 
-            'log_lexical_frequency', 
-            'n_orthographic_neighbors', 
-            'num_morpheme',
-            'prevalence', 
-            'surprisal-1', 
-            'surprisal-2', 
-            'surprisal-3', 
-            'surprisal-4',
-            'total_degree_centrality',
-            'imageability', # Glasgow norms (Scott et al, 2019) https://link.springer.com/article/10.3758/s13428-018-1099-3#Sec1
-            'body-object-interaction', # (Pexman et al, 2019)  https://link.springer.com/article/10.3758/s13428-018-1171-z#Sec9
-            'zipf', # SUBTLEXus
-            'socialness', # (Diveica et al., 2022) https://link.springer.com/article/10.3758/s13428-022-01810-x#Sec15
-            # Lancaster norms (Lynott et al, 2020) https://link.springer.com/article/10.3758/s13428-019-01316-z#Bib1
-            'Auditory',
-            'Gustatory',
-            'Interoceptive',
-            'Haptic',
-            'Olfactory',
-            'Visual',
-            'Foot_leg',
-            'Hand_arm',
-            'Head',
-            'Mouth',
-            'Torso',
-            ]
+    return [
+        "NRC_Arousal",  # (Mohammad 2018)
+        "NRC_Valence",  # (Mohammad 2018)
+        "NRC_Dominance",  # (Mohammad 2018)
+        "OSC",  # Orthographic-semantics consistency (Marelli & Amenta, 2018)
+        "aoa",  # Age of Acquisition (Kuperman et al., 2012)
+        "concreteness",  # (Brysbaert et al., 2014)
+        "lexical_decision_RT",  # (Balota et al., 2007)
+        "log_contextual_diversity",
+        "log_lexical_frequency",
+        "n_orthographic_neighbors",
+        "num_morpheme",
+        "prevalence",
+        "surprisal-1",
+        "surprisal-2",
+        "surprisal-3",
+        "surprisal-4",
+        "total_degree_centrality",
+        "imageability",  # Glasgow norms (Scott et al, 2019) https://link.springer.com/article/10.3758/s13428-018-1099-3#Sec1
+        "body-object-interaction",  # (Pexman et al, 2019)  https://link.springer.com/article/10.3758/s13428-018-1171-z#Sec9
+        "zipf",  # SUBTLEXus
+        "socialness",  # (Diveica et al., 2022) https://link.springer.com/article/10.3758/s13428-022-01810-x#Sec15
+        # Lancaster norms (Lynott et al, 2020) https://link.springer.com/article/10.3758/s13428-019-01316-z#Bib1
+        "Auditory",
+        "Gustatory",
+        "Interoceptive",
+        "Haptic",
+        "Olfactory",
+        "Visual",
+        "Foot_leg",
+        "Hand_arm",
+        "Head",
+        "Mouth",
+        "Torso",
+    ]
+
 
 def get_feature_list_using_third_party_libraries():
-    return ['polysemy', 'num_morpheme_poly']
+    return ["polysemy", "num_morpheme_poly"]
+
 
 def get_feature_list_requiring_calculation():
-    return ['PMI']
+    return ["PMI"]
+
 
 def get_user_contributed_features():
     return []
 
-def get_all_features(sentence: 'sentspace.Sentence.Sentence', databases):
+
+def get_all_features(sentence: "sentspace.Sentence.Sentence", databases):
     """
     Given list of words, return dict mapping feature to list of feature values
     """
-    
+
     result = {}
-    for feature in (get_feature_list() +
-                    get_feature_list_using_third_party_libraries() + 
-                    get_user_contributed_features()):
-        # we don't want to compute num_morpheme using the dictionary DB by default. 
+    for feature in (
+        get_feature_list()
+        + get_feature_list_using_third_party_libraries()
+        + get_user_contributed_features()
+    ):
+        # we don't want to compute num_morpheme using the dictionary DB by default.
         # we want to do it only if the polyglot library is unavailable.
-        if feature == 'num_morpheme': 
+        if feature == "num_morpheme":
             continue
-        computed_feature = get_feature(sentence, feature, databases) 
+        computed_feature = get_feature(sentence, feature, databases)
         # even though we are computing "num_morpheme_poly", we want to
         # record it as "num_morpheme", since the _poly suffix comes from the polyglot library
         # that provides the feature
-        if feature == 'num_morpheme_polyglot':
+        if feature == "num_morpheme_polyglot":
             try:
                 import polyglot
             except ImportError:
-                feature = 'num_morpheme'
+                feature = "num_morpheme"
         result[feature] = computed_feature
     return result
 
 
-def get_feature(sentence: 'sentspace.Sentence.Sentence', feature, databases={}):
-    '''
+def get_feature(sentence: "sentspace.Sentence.Sentence", feature, databases={}):
+    """
     get specific `feature` for the tokens in `sentence`; fall back to using `lemmas` if necessary
-    '''
+    """
 
     def get_feature_(token, lemma, feature):
         """given a `word` and a feature to extract, returns the value of that
@@ -96,7 +103,7 @@ def get_feature(sentence: 'sentspace.Sentence.Sentence', feature, databases={}):
         Args:
             word (str): the token (word) to extract a feature for
             feature (str): name identifier of the feature acc to predefined convention
-            databases (dict, in-scope): dictionary of feature --> (word --> feature_value) dictionaries. 
+            databases (dict, in-scope): dictionary of feature --> (word --> feature_value) dictionaries.
                                         Defaults to {}.
 
         Returns:
@@ -106,7 +113,7 @@ def get_feature(sentence: 'sentspace.Sentence.Sentence', feature, databases={}):
         # database can be a dictionary or an object that implements
         # get(key, default)
         if feature in get_feature_list():
-            feature_dict = databases[feature]            
+            feature_dict = databases[feature]
             try:
                 return feature_dict[token]
             except KeyError as e:
@@ -117,38 +124,39 @@ def get_feature(sentence: 'sentspace.Sentence.Sentence', feature, databases={}):
 
         # Other databases we use from libraries we load such as NLTK-Wordnet and Polyglot
         elif feature in get_feature_list_using_third_party_libraries():
-            if feature == 'polysemy':
+            if feature == "polysemy":
                 from nltk.corpus import wordnet
+
                 # first try it with the token itself
-                if (synsets := wordnet.synsets(token)):
-                    return len(synsets) # TODO does a word's synset include itself?
+                if synsets := wordnet.synsets(token):
+                    return len(synsets)  # TODO does a word's synset include itself?
                 # if token is OOV, try again with the lemma
-                elif (synsets := wordnet.synsets(lemma)):
+                elif synsets := wordnet.synsets(lemma):
                     return len(synsets)
                 # otherwise the len of its synset is 1 (itself)
                 return 1
-            elif feature == 'num_morpheme_poly':
+            elif feature == "num_morpheme_poly":
                 try:
                     from polyglot.text import Word
+
                     # try first to obtain # morphemes of the token
-                    if (morphed := Word(token, language='en').morphemes):
+                    if morphed := Word(token, language="en").morphemes:
                         return len(morphed)
                     # otherwise, try using the lemmatized form
-                    elif (morphed := Word(lemma, language='en').morphemes):
+                    elif morphed := Word(lemma, language="en").morphemes:
                         return len(morphed)
                     # if both token and lemma OOV, then return nan? or 1 (i.e. full word is the morpheme?)
                     # but that only means we failed to analyze its morphology, not necessarily that is
                     # *is* a single morpheme
-                    return 1 # np.nan
+                    return 1  # np.nan
                 except ImportError as e:
                     # fall back to simply using a dictionary-based feature
                     # TODO make a note of this somewhere
-                    io.log(e.msg, type='WARN')
-                    return get_feature_(token, lemma, 'num_morpheme')
+                    io.log(e.msg, type="WARN")
+                    return get_feature_(token, lemma, "num_morpheme")
 
         else:
-            raise ValueError(f'unable to compute unknown feature `{feature}`')
-
+            raise ValueError(f"unable to compute unknown feature `{feature}`")
 
     features_list = []
 
@@ -166,38 +174,38 @@ def return_percentile_df(bench_df, usr_df):
         temp_df = {}
         # Iterate through the features
         for col in usr_df.columns:
-            if col == 'Sentence no.':
+            if col == "Sentence no.":
                 temp_df[col] = row[col]
                 continue
-            #print(percentileofscore(bench_df[col],row[col]))
+            # print(percentileofscore(bench_df[col],row[col]))
             temp_df[col] = percentileofscore(bench_df[col], row[col])
-            #pdb.set_trace()
+            # pdb.set_trace()
         # Append percentile feature row
         perc_df = perc_df.append(temp_df, ignore_index=True)
 
-    perc_df.drop(columns=['Sentence no.'])
+    perc_df.drop(columns=["Sentence no."])
     return perc_df
 
 
-
-
 @cache_to_mem
-def load_databases(features='all', path='~/.cache/sentspace/', 
-                   ignore_case=True,
-                  ):
+def load_databases(
+    features="all",
+    path="~/.cache/sentspace/",
+    ignore_case=True,
+):
     """
     Load dicts mapping word to feature value
     If one feature, provide in list format
     """
-    path = str(Path(path).expanduser().resolve()) + '/'
+    path = str(Path(path).expanduser().resolve()) + "/"
     io.log("loading databases with all features")
     databases = {}
-    if features == 'all':
+    if features == "all":
         features = get_feature_list()
     for feature in features:
-        if not os.path.exists(path+feature+'.pkl'):
-            sentspace.utils.s3.load_feature(key=feature+'.pkl', root_dir=path)
-        with open(path+feature+'.pkl', 'rb') as f:
+        if not os.path.exists(path + feature + ".pkl"):
+            sentspace.utils.s3.load_feature(key=feature + ".pkl", root_dir=path)
+        with open(path + feature + ".pkl", "rb") as f:
             d = pickle.load(f)
             # if ignore_case:  # add lowercase version to feature database
             #     for key, val in d.copy().items():
@@ -210,22 +218,22 @@ def load_databases(features='all', path='~/.cache/sentspace/',
 
 
 def sanity_check_databases(databases):
-    '''
+    """
     perform sanity checks upon loading various datasets
     to ensure validity of the loaded data
-    '''
+    """
 
-    assert databases['NRC_Arousal']['happy'] == 0.735
-    assert databases['NRC_Valence']['happy'] == 1
-    assert databases['OSC']['happy'] == 0.951549893181384
-    assert abs(databases['aoa']['a'] - 2.893384) < 1e-4
-    assert databases['concreteness']['roadsweeper'] == 4.85
+    assert databases["NRC_Arousal"]["happy"] == 0.735
+    assert databases["NRC_Valence"]["happy"] == 1
+    assert databases["OSC"]["happy"] == 0.951549893181384
+    assert abs(databases["aoa"]["a"] - 2.893384) < 1e-4
+    assert databases["concreteness"]["roadsweeper"] == 4.85
     # assert abs(databases['imag']['abbey'] - 5.344) < 1e-4
-    assert databases['total_degree_centrality']['a'] == 30
-    assert databases['lexical_decision_RT']['a'] == 798.917
-    assert abs(databases['log_contextual_diversity']['a'] - 3.9234) < 1e-4
-    assert abs(databases['log_lexical_frequency']['a'] - 6.0175) < 1e-4
-    assert databases['n_orthographic_neighbors']['a'] == 950.59
-    assert databases['num_morpheme']['abbreviated'] == 4
-    assert abs(databases['prevalence']['a'] - 1.917) < 1e-3
-    assert databases['surprisal-3']['beekeeping'] == 10.258
+    assert databases["total_degree_centrality"]["a"] == 30
+    assert databases["lexical_decision_RT"]["a"] == 798.917
+    assert abs(databases["log_contextual_diversity"]["a"] - 3.9234) < 1e-4
+    assert abs(databases["log_lexical_frequency"]["a"] - 6.0175) < 1e-4
+    assert databases["n_orthographic_neighbors"]["a"] == 950.59
+    assert databases["num_morpheme"]["abbreviated"] == 4
+    assert abs(databases["prevalence"]["a"] - 1.917) < 1e-3
+    assert databases["surprisal-3"]["beekeeping"] == 10.258
