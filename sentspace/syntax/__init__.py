@@ -74,7 +74,7 @@ def get_features(
                     if type(dlt_stdout) == RuntimeError:
                         raise dlt_stdout
                     else:
-                        features.dlt = DLT(dlt_stdout, sub_sentence, identifier)
+                        features.dlt = DLT(dlt_stdout, sub_sentence, sentence.uid)
                     # io.log(f'--- done: DLT')
                 if left_corner and features.tree.raw is not None:
                     # io.log(f'computing left corner feature')
@@ -85,7 +85,7 @@ def get_features(
                         raise left_corner_stdout
                     else:
                         features.left_corner = LeftCorner(
-                            left_corner_stdout, sub_sentence, identifier
+                            left_corner_stdout, sub_sentence, sentence.uid
                         )
                     # io.log(f'--- done: left corner')
 
