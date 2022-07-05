@@ -22,18 +22,20 @@ os.environ["PERL_BADLANG"] = "0"
 
 
 def get_features(
-    sentence: str = None,
-    identifier: str = None,
+    sentence: sentspace.Sentence.Sentence,
+    # identifier: str = None,
     dlt: bool = True,
     left_corner: bool = True,
     syntax_port: int = 8000,
 ) -> dict:
-    """executes the syntactic features pipeline
+    """Obtains contextual/syntactic features for `sentence`
 
     Args:
-        sentence (str, optional): exactly 1 sentence [None].
-        dlt (bool, optional): calculate DLT feature? [False].
-        left_corner (bool, optional): calculate Left Corner feature? [False].
+        sentence (`sentspace.Sentence.Sentence`): a single instance of Sentence to compute features for.
+        dlt (bool, optional): whether to calculate Syntactic Integration related Dependency
+            Lexicality Theory (DLT) features [False].
+        left_corner (bool, optional): whether to calculate embedding depth and similar related
+            Left Corner features [False].
 
     Returns:
         sentspace.syntax.features.Feature: a Feature instance with appropriate attributes
@@ -44,7 +46,7 @@ def get_features(
     # then pool across sentences
     from nltk.tokenize import sent_tokenize
 
-    stripped = "".join([i if ord(i) < 128 else "" for i in sentence])
+    stripped = "".join([i if ord(i) < 128 else "" for i in str(sentence)])
     sentences = sent_tokenize(stripped, language="english")
     features_to_pool = defaultdict(list)
     features = None
@@ -72,7 +74,7 @@ def get_features(
                     if type(dlt_stdout) == RuntimeError:
                         raise dlt_stdout
                     else:
-                        features.dlt = DLT(dlt_stdout, sub_sentence, identifier)
+                        features.dlt = DLT(dlt_stdout, sub_sentence, sentence.uid)
                     # io.log(f'--- done: DLT')
                 if left_corner and features.tree.raw is not None:
                     # io.log(f'computing left corner feature')
@@ -83,7 +85,7 @@ def get_features(
                         raise left_corner_stdout
                     else:
                         features.left_corner = LeftCorner(
-                            left_corner_stdout, sub_sentence, identifier
+                            left_corner_stdout, sub_sentence, sentence.uid
                         )
                     # io.log(f'--- done: left corner')
 
@@ -111,12 +113,13 @@ def get_features(
                 )
                 pass
 
-            # do the groupby index and mean() here and then continue
+            # do groupby index and mean() here to merge all features for the same sentence into one
+            # row and then carry on (because we first split them into sub-parts based on punctuation)
             if dlt:
                 try:
                     dlt_concat = pd.concat(features_to_pool["dlt"], axis="index")
                     dlt_concat = dlt_concat.groupby("index").mean()
-                    dlt_concat["sentence"] = sentence
+                    dlt_concat["sentence"] = str(sentence)
                 except ValueError:
                     dlt_concat = pd.DataFrame()
             else:
@@ -127,25 +130,23 @@ def get_features(
                         features_to_pool["left_corner"], axis="index"
                     )
                     left_corner_concat = left_corner_concat.groupby("index").mean()
-                    left_corner_concat["sentence"] = sentence
+                    left_corner_concat["sentence"] = str(sentence)
                 except ValueError:
                     left_corner_concat = pd.DataFrame()
             else:
                 left_corner_concat = None
 
-    tokenized = utils.tokenize(sub_sentence).split()
-    tagged_sentence = text.get_pos_tags(tokenized)
+    # tokenized = utils.tokenize(sub_sentence).split()
+    # tagged_sentence = text.get_pos_tags(tokenized)
     is_content_word = utils.get_is_content(
-        tagged_sentence, content_pos=text.pos_for_content
+        sentence.pos_tags, content_pos=text.pos_for_content
     )  # content or function word
-    pronoun_ratio = utils.get_pronoun_ratio(tagged_sentence)
+    pronoun_ratio = utils.get_pronoun_ratio(sentence.pos_tags)
     content_ratio = utils.get_content_ratio(is_content_word)
 
     return {
-        "index": identifier,
-        "sentence": sentence,
-        # 'tags': tagged_sentence,
-        # 'content_words': is_content_word,
+        "index": sentence.uid,
+        "sentence": str(sentence),
         "pronoun_ratio": pronoun_ratio,
         "content_ratio": content_ratio,
         # 'tree': features.tree

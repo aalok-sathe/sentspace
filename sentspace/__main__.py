@@ -15,14 +15,6 @@ import sentspace.utils as utils
 from itertools import chain
 from functools import reduce, partial
 
-# import numpy as np
-
-import multiprocessing
-
-
-#     # Plot input data to benchmark data
-#     #utils.plot_usr_input_against_benchmark_dist_plots(df_benchmark, sent_embed)
-
 
 def main(**kwargs):
     """used to run the main pipeline, start to end, depending on the arguments and flags"""

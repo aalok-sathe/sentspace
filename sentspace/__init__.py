@@ -151,13 +151,11 @@ def run_sentence_features_pipeline(
 
             syntax_features = [
                 syntax.get_features(
-                    sentence._raw,
+                    sentence,
                     dlt=True,
                     left_corner=True,
-                    identifier=sentence.uid,
                     syntax_port=syntax_port,
                 )
-                # !!! TODO:DEBUG
                 for i, sentence in enumerate(
                     tqdm(sentence_batch, desc="Syntax pipeline")
                 )
