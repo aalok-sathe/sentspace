@@ -46,7 +46,7 @@ def get_features(
     # then pool across sentences
     from nltk.tokenize import sent_tokenize
 
-    stripped = "".join([i if ord(i) < 128 else "" for i in sentence])
+    stripped = "".join([i if ord(i) < 128 else "" for i in str(sentence)])
     sentences = sent_tokenize(stripped, language="english")
     features_to_pool = defaultdict(list)
     features = None
@@ -114,12 +114,12 @@ def get_features(
                 pass
 
             # do groupby index and mean() here to merge all features for the same sentence into one
-            # row and then carry on
+            # row and then carry on (because we first split them into sub-parts based on punctuation)
             if dlt:
                 try:
                     dlt_concat = pd.concat(features_to_pool["dlt"], axis="index")
                     dlt_concat = dlt_concat.groupby("index").mean()
-                    dlt_concat["sentence"] = sentence
+                    dlt_concat["sentence"] = str(sentence)
                 except ValueError:
                     dlt_concat = pd.DataFrame()
             else:
@@ -130,7 +130,7 @@ def get_features(
                         features_to_pool["left_corner"], axis="index"
                     )
                     left_corner_concat = left_corner_concat.groupby("index").mean()
-                    left_corner_concat["sentence"] = sentence
+                    left_corner_concat["sentence"] = str(sentence)
                 except ValueError:
                     left_corner_concat = pd.DataFrame()
             else:
