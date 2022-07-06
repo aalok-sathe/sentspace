@@ -29,7 +29,7 @@ def get_features(sentence: sentspace.Sentence.Sentence, lock=None) -> dict:
                 key
             )
 
-    # TODO[?] return dict of lists, to be consistent with API?
+    accumulator = []
     # return list of token-level features, as a dict per token
     for i, token in enumerate(sentence.tokens):
         db_features_slice = {
@@ -37,7 +37,7 @@ def get_features(sentence: sentspace.Sentence.Sentence, lock=None) -> dict:
             for feature in features_from_database
         }
 
-        yield {
+        accumulator += [{
             "index": sentence.uid,
             "sentence": str(sentence),
             "token": token,
@@ -45,4 +45,6 @@ def get_features(sentence: sentspace.Sentence.Sentence, lock=None) -> dict:
             "tag": sentence.pos_tags[i],
             "content_word": sentence.content_words[i],
             **db_features_slice,
-        }
+        }]
+
+    return accumulator
