@@ -4,16 +4,10 @@
 <!-- ABOUT THE PROJECT -->
 ## About 
 
-`sentspace`
-gives users a better understanding of the distribution of linguistic stimuli,
-specifically, sentences, in comparison with large corpora. `sentspace` achieves
-this using a collection of psycholinguistic datasets and linguistic features.
-Imagine you have collected a set of sentences for use in a language experiment, or generated 
-sentences using an artificial neural network language model. How does your set of sentences compare to 
-naturally occurring sentences? What are the dimensions along which your sentences deviate from
-*normal*? 
-`sentspace` provides you with numerical estimates of these values, as well as
-allows you to visualize the high-dimensional space in a web-based application.
+`sentspace` is an open-source tool for characterizing text using diverse features related to how humans process and understand language. 
+`sentspace` characterizes textual input using cognitively motivated lexical, syntactic, and semantic features computed at the token- and sentence level. Features are derived from psycholinguistic experiments, large-scale corpora, and theoretically motivated models of language processing.
+The `sentspace` features fall into two main domains: lexical and contextual. Lexical features operate on individual lexical items (words) and entail features such as concreteness, age of acquisition, lexical decision latency, and contextual diversity. As several properties of a sentence cannot be attributed to individual words, so the contextual module quantifies a sentence as a whole. This module entails features such as syntactic storage and integration cost, center embedding depth, and sentiment. 
+
 
 **Online interface:** [http://sentspace.github.io/hosted](http://sentspace.github.io/hosted)
 
