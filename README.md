@@ -6,7 +6,11 @@
 
 `sentspace` is an open-source tool for characterizing text using diverse features related to how humans process and understand language. 
 `sentspace` characterizes textual input using cognitively motivated lexical, syntactic, and semantic features computed at the token- and sentence level. Features are derived from psycholinguistic experiments, large-scale corpora, and theoretically motivated models of language processing.
-The `sentspace` features fall into two main domains: lexical and contextual. Lexical features operate on individual lexical items (words) and entail features such as concreteness, age of acquisition, lexical decision latency, and contextual diversity. As several properties of a sentence cannot be attributed to individual words, so the contextual module quantifies a sentence as a whole. This module entails features such as syntactic storage and integration cost, center embedding depth, and sentiment. 
+The `sentspace` features fall into two core modules: Lexical and Contextual. The Lexical module operates on individual lexical items (words) within a sentence and computes a summary representation by combining information across the words in the sentence. This module includes features such as frequency, concreteness, age of acquisition, lexical decision latency, contextual diversity, etc.
+The Contextual module operates on sentences as whole and includes syntactic features, such as the depth of center embedding, and other features, like language model surprisal.
+
+New modules can be easily added to SentSpace to provide additional ways to characterize text.
+In this manner, `sentspace` provides a quantitative and interpretable representation of any sentence. 
 
 
 **Online interface:** [http://sentspace.github.io/hosted](http://sentspace.github.io/hosted)
