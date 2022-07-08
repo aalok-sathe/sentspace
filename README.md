@@ -53,12 +53,8 @@ optional arguments:
   -of {pkl,tsv}, --output_format {pkl,tsv}
   -lex LEXICAL, --lexical LEXICAL
                         compute lexical features? [False]
-  -syn SYNTAX, --syntax SYNTAX
+  -con CONTEXTUAL, --contextual CONTEXTUAL
                         compute syntactic features? [False]
-  -emb EMBEDDING, --embedding EMBEDDING
-                        compute high-dimensional sentence representations? [False]
-  -sem SEMANTIC, --semantic SEMANTIC
-                        compute semantic (multi-word) features? [False]
   --emb_data_dir EMB_DATA_DIR
                         path to output directory where results may be stored
 ```
