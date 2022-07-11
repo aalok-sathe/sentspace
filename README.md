@@ -1,5 +1,9 @@
 # sentspace
-![Alt text](/graphics/logo_v1.png)
+<img
+  src="//graphics/logo_v1.png"
+  alt="Alt text"
+  title="Optional title"
+  style="display: inline-block; margin: 0 auto; max-width: 300px">
 
 <!-- ABOUT THE PROJECT -->
 ## About 
