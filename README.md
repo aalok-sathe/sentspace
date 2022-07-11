@@ -1,5 +1,5 @@
 # sentspace
-<img src="graphics/logo_v1.png" width="100">
+<img src="graphics/logo_v1.png" width="300">
 
 <!-- ABOUT THE PROJECT -->
 ## About 
