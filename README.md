@@ -1,5 +1,5 @@
 # sentspace
-
+![Alt text](/graphics/logo_v1.png)
 
 <!-- ABOUT THE PROJECT -->
 ## About 
