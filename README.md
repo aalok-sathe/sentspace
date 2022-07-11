@@ -1,7 +1,5 @@
 # sentspace
-<img
-  src="/graphics/logo_v1.png"
-  style="display: inline-block; margin: 0 auto; max-width: 50px">
+<img src="graphics/logo_v1.png" width="100">
 
 <!-- ABOUT THE PROJECT -->
 ## About 
