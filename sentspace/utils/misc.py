@@ -114,7 +114,7 @@ def sha1(ob):
     return hash_object.hexdigest()
 
 
-def parallelize(function, *iterables, wrap_tqdm=True, desc='', **kwargs):
+def parallelize(function, *iterables, wrap_tqdm=True, desc='', max_workers=None, **kwargs):
     """parallelizes a function by calling it on the supplied iterables and (static) kwargs.
        optionally wraps in tqdm for progress visualization 
 
@@ -127,7 +127,7 @@ def parallelize(function, *iterables, wrap_tqdm=True, desc='', **kwargs):
         [type]: [description]
     """    
     partialfn = partial(function, **kwargs)
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=None) as executor:
         if wrap_tqdm:
             return [*tqdm(executor.map(partialfn, *iterables), total=len(iterables[0]), desc='[parallelized] '+desc)]
         return executor.map(partialfn, *iterables)
