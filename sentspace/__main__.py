@@ -84,33 +84,33 @@ def main(**kwargs):
         help="compute lexical features? [False]",
     )
     parser.add_argument(
-        "-syn",
-        "--syntax",
+        "-con", "-syn",
+        "--contextual", "--syntax",
         type=strtobool,
         default=False,
         help="compute syntactic features? [False]",
     )
-    parser.add_argument(
-        "-emb",
-        "--embedding",
-        type=strtobool,
-        default=False,
-        help="compute high-dimensional sentence representations? [False]",
-    )
-    parser.add_argument(
-        "-sem",
-        "--semantic",
-        type=strtobool,
-        default=False,
-        help="compute semantic (multi-word) features? [False]",
-    )
+    # parser.add_argument(
+    #     "-emb",
+    #     "--embedding",
+    #     type=strtobool,
+    #     default=False,
+    #     help="compute high-dimensional sentence representations? [False]",
+    # )
+    # parser.add_argument(
+    #     "-sem",
+    #     "--semantic",
+    #     type=strtobool,
+    #     default=False,
+    #     help="compute semantic (multi-word) features? [False]",
+    # )
 
-    parser.add_argument(
-        "--emb_data_dir",
-        default="/om/data/public/glove/",
-        type=str,
-        help="path to output directory where results may be stored",
-    )
+    # parser.add_argument(
+    #     "--emb_data_dir",
+    #     default="/om/data/public/glove/",
+    #     type=str,
+    #     help="path to output directory where results may be stored",
+    # )
     # parser.add_argument('--cache_dir', default=)
 
     parser.add_argument(
