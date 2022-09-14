@@ -16,7 +16,7 @@ from pathlib import Path
 import sentspace.utils as utils
 import sentspace.syntax as syntax
 import sentspace.lexical as lexical
-import sentspace.embedding as embedding
+# import sentspace.embedding as embedding
 
 from sentspace.Sentence import Sentence
 
@@ -99,20 +99,13 @@ def run_sentence_features_pipeline(
             utils.io.log("*** running lexical submodule pipeline")
             _ = lexical.utils.load_databases(features="all")
 
-            if parallelize:
-                lexical_features = utils.parallelize(
-                    lexical.get_features,
-                    sentence_batch,
-                    wrap_tqdm=True,
-                    desc="Lexical pipeline",
-                )
-            else:
-                lexical_features = [
-                    lexical.get_features(sentence)
-                    for _, sentence in enumerate(
-                        tqdm(sentence_batch, desc="Lexical pipeline")
-                    )
-                ]
+            lexical_features = utils.parallelize(
+                lexical.get_features,
+                sentence_batch,
+                wrap_tqdm=True,
+                desc="Lexical pipeline",
+                n_workers=None if parallelize else 1,
+            )
 
             lexical_out = output_dir / "lexical"
             lexical_out.mkdir(parents=True, exist_ok=True)
