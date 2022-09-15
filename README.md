@@ -1,19 +1,17 @@
 # sentspace
-
+<img src="graphics/logo_v1.png" width="300">
 
 <!-- ABOUT THE PROJECT -->
 ## About 
 
-`sentspace`
-gives users a better understanding of the distribution of linguistic stimuli,
-specifically, sentences, in comparison with large corpora. `sentspace` achieves
-this using a collection of psycholinguistic datasets and linguistic features.
-Imagine you have collected a set of sentences for use in a language experiment, or generated 
-sentences using an artificial neural network language model. How does your set of sentences compare to 
-naturally occurring sentences? What are the dimensions along which your sentences deviate from
-*normal*? 
-`sentspace` provides you with numerical estimates of these values, as well as
-allows you to visualize the high-dimensional space in a web-based application.
+`sentspace` is an open-source tool for characterizing text using diverse features related to how humans process and understand language. 
+`sentspace` characterizes textual input using cognitively motivated lexical, syntactic, and semantic features computed at the token- and sentence level. Features are derived from psycholinguistic experiments, large-scale corpora, and theoretically motivated models of language processing.
+The `sentspace` features fall into two core modules: Lexical and Contextual. The Lexical module operates on individual lexical items (words) within a sentence and computes a summary representation by combining information across the words in the sentence. This module includes features such as frequency, concreteness, age of acquisition, lexical decision latency, contextual diversity, etc.
+The Contextual module operates on sentences as whole and includes syntactic features, such as the depth of center embedding, and other features, like language model surprisal.
+
+New modules can be easily added to SentSpace to provide additional ways to characterize text.
+In this manner, `sentspace` provides a quantitative and interpretable representation of any sentence. 
+
 
 **Online interface:** [http://sentspace.github.io/hosted](http://sentspace.github.io/hosted)
 
@@ -55,12 +53,8 @@ optional arguments:
   -of {pkl,tsv}, --output_format {pkl,tsv}
   -lex LEXICAL, --lexical LEXICAL
                         compute lexical features? [False]
-  -syn SYNTAX, --syntax SYNTAX
+  -con CONTEXTUAL, --contextual CONTEXTUAL
                         compute syntactic features? [False]
-  -emb EMBEDDING, --embedding EMBEDDING
-                        compute high-dimensional sentence representations? [False]
-  -sem SEMANTIC, --semantic SEMANTIC
-                        compute semantic (multi-word) features? [False]
   --emb_data_dir EMB_DATA_DIR
                         path to output directory where results may be stored
 ```
@@ -81,7 +75,6 @@ import sentspace
 sentences = [
     'Hello, how may I help you today?',
     'The person purchased three mugs at the price of five!',
-    "She's leaving home.",
     'This is an example sentence we want features of.'
              ]
              
@@ -163,21 +156,30 @@ polyglot download morph2.en
 
 ## Submodules
 
-In general, each submodule implements a major class of features. You can run each module on its own by specifying its flag and `0` or `1` with the module call:
+SentSpace features fall into two core modules: Lexical and Contextual. 
+In general, each submodule implements a major class of features. 
+You can run each module on its own by specifying its flag and `0` or `1` with the module call:
 ```bash
-python -m sentspace -lex {0,1} -syn {0,1} -emb {0,1} <input_file_path>
+python -m sentspace -lex {0,1} -con {0,1} <input_file_path>
 ```
 
+For a full list of available features, refer to the Feature Descriptions page [on the hosted SentSpace frontend](https://sentspace.github.io/hosted).
+
 #### `lexical`
-Obtain lexical (word-level) features that are not dependendent on the sentence context. 
-These features are returned on a word-by-word level and also averaged at the sentence level to provide each sentence a corresponding value.
-- typical age of acquisition
-- n-gram surprisal `n={1,2,3,4}`
-- etc. (comprehensive list will be updated)
+The Lexical module consists of features that pertain to individual lexical items, words, regardless of the context in which they appear. 
+These features are returned on a word-by-word level and also aggregated at the sentence level to provide each sentence a corresponding value.
 
-#### `syntax`
-Description pending
+#### `contextual`
+The Contextual module consists of features that quantify contextual and combinatorial inter-word 
+relations that are not captured by individual lexical items. This module encompasses features that 
+relate to the syntactic structure of the sentence (`Contextual_syntax` features) and features that 
+apply to the sentence context but are not (exclusively) related to syntactic structure 
+(`Contextual_misc` features).
 
+
+
+
+<!--
 #### `embedding`
 Obtain high dimensional representations of sentences using word-embedding and contextualized encoder models.
 - `glove`
@@ -188,6 +190,7 @@ Multi-word features computed using partial or full sentence context.
 - PMI (pointwise mutual information)
 - Language model-based perplexity/surprisal
 *Not Implemented yet*
+-->
 
 
 
