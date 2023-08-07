@@ -26,6 +26,7 @@ def get_features(
     # identifier: str = None,
     dlt: bool = True,
     left_corner: bool = True,
+    syntax_server: str = 'http://localhost',
     syntax_port: int = 8000,
 ) -> dict:
     """Obtains contextual/syntactic features for `sentence`
@@ -59,11 +60,11 @@ def get_features(
             # io.log(f'parsing into syntax tree: `{sentence}`')
             # parsed = parse_input(sentence)
             try:
-                server_url = f"http://localhost:{syntax_port}/fullberk"
+                server_url = f"{syntax_server}:{syntax_port}/fullberk"
                 features.tree = Tree(
                     utils.compute_trees(sub_sentence, server_url=server_url)
                 )
-                if type(features.tree) is RuntimeError:
+                if type(features.tree) == RuntimeError:
                     raise features.tree
 
                 getattr(features.tree, "raw")

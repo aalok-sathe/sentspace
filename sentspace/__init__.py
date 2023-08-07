@@ -40,6 +40,7 @@ def run_sentence_features_pipeline(
     process_semantic: bool = False,
     parallelize: bool = True,
     # preserve_metadata: bool = True,
+    syntax_server: str = "http://localhost/",
     syntax_port: int = 8000,
     limit: float = float("inf"),
     offset: int = 0,
@@ -148,6 +149,7 @@ def run_sentence_features_pipeline(
                     sentence,
                     dlt=True,
                     left_corner=True,
+                    syntax_server=syntax_server,
                     syntax_port=syntax_port,
                 )
                 for i, sentence in enumerate(

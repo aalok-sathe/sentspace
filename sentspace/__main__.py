@@ -113,13 +113,23 @@ def main(**kwargs):
     # )
     # parser.add_argument('--cache_dir', default=)
 
+
+    parser.add_argument(
+        "--syntax_server",
+        type=str,
+        default="http://localhost",
+        help="The URL where the Syntax module's server is running. "
+        "The syntax module requires a parser server based on "
+        "https://github.com/sentspace/sentspace-syntax-server.",
+    )
+
     parser.add_argument(
         "--syntax_port",
         type=int,
         default=8000,
         help="The port where Syntax module's parser is running. "
         "The syntax module requires a parser server based on "
-        "https://github.com/aalok-sathe/berkeley-interact.",
+        "https://github.com/sentspace/sentspace-syntax-server.",
     )
 
     parser.add_argument(
@@ -158,6 +168,7 @@ def main(**kwargs):
             parallelize=args.parallelize,
             # TODO: return_df or return_path?
             # emb_data_dir=args.emb_data_dir,
+            syntax_server=args.syntax_server,
             syntax_port=args.syntax_port,
             limit=args.limit,
             offset=args.offset,
