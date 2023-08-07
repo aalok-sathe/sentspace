@@ -168,3 +168,5 @@ html
 sentspace/analysis
 
 TRANSFORMERS_CACHE
+
+notebooks/
