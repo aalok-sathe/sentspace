@@ -16,6 +16,7 @@ from pathlib import Path
 import sentspace.utils as utils
 import sentspace.syntax as syntax
 import sentspace.lexical as lexical
+
 # import sentspace.embedding as embedding
 
 from sentspace.Sentence import Sentence
@@ -104,7 +105,7 @@ def run_sentence_features_pipeline(
                 sentence_batch,
                 wrap_tqdm=True,
                 desc="Lexical pipeline",
-                n_workers=None if parallelize else 1,
+                max_workers=None if parallelize else 1,
             )
 
             lexical_out = output_dir / "lexical"
@@ -223,7 +224,6 @@ def run_sentence_features_pipeline(
         # Calculate PMI
         # utils.GrabNGrams(sent_rows,pmi_paths)
         # utils.pPMI(sent_rows, pmi_paths)
-        # pdb.set_trace()
 
         ################################################################################
         #### EMBEDDING FEATURES ########################################################

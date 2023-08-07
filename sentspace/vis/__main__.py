@@ -80,7 +80,8 @@ def load_benchmarks(
         df = df.append(
             load_df_from_directory(
                 "gpt_stories",
-                relprefix / "out/CR_gpt-generated",
+                # relprefix / "out/CR_gpt-generated",
+                relprefix / "out/gpt2stories_sents_target0",
                 module=module,
                 subsample=False,
             )
@@ -93,6 +94,9 @@ def load_benchmarks(
                 subsample=False,
             )
         )
+        pass
+    
+
     if load_corpora:
         df = df.append(
             load_df_from_directory(
@@ -141,9 +145,9 @@ def load_benchmarks(
         )
         df = df.append(
             load_df_from_directory(
-                "cocaspok1991",
+                "cocaspok1990",
                 relprefix
-                / "out/benchmarks/cocaspok1991_subsampled_grouped_by_length_n=500_stimuli",
+                / "out/benchmarks/cocaspok1990_subsampled_grouped_by_length_n=500_stimuli",
                 module=module,
                 subsample=subsample,
             )
