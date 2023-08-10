@@ -1,5 +1,5 @@
 # sentspace
-
+## ⚠ ARCHIVED: please use the up-to-date fork at https://github.com/sentspace/sentspace
 
 <!-- ABOUT THE PROJECT -->
 ## About 
