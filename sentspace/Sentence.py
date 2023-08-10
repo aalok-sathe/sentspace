@@ -5,6 +5,7 @@ from collections import defaultdict
 import typing
 import sentspace.utils.text as text
 import sentspace.utils.io as io
+from sentspace.utils.misc import md5
 import re
 
 
@@ -42,7 +43,11 @@ class Sentence:
         """
         self._raw = re.sub(r" +", r" ", raw.strip())
         if uid is None and warn:
-            io.log(f"no UID supplied for sentence {raw}\r", type="WARN")
+            uid = md5(raw)[-5:]
+            io.log(
+                f"no UID supplied for sentence {raw}. Auto-generating: {uid}.\r",
+                type="WARN",
+            )
         self._uid = uid
         self.OOV = defaultdict(set)
 
