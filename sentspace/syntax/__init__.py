@@ -26,7 +26,7 @@ def get_features(
     # identifier: str = None,
     dlt: bool = True,
     left_corner: bool = True,
-    syntax_server: str = 'http://localhost',
+    syntax_server: str = "http://localhost",
     syntax_port: int = 8000,
 ) -> dict:
     """Obtains contextual/syntactic features for `sentence`
@@ -54,7 +54,6 @@ def get_features(
     dlt_concat, left_corner_concat = None, None
 
     for i, sub_sentence in enumerate(sentences):
-
         features = Feature()
         if dlt or left_corner:
             # io.log(f'parsing into syntax tree: `{sentence}`')
